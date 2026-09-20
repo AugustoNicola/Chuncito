@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  concealedForDisplay, copiesUsed, disabledReason, initialHandState, isComplete,
-  pressTile, removeConcealed, toFlags, toggleMode, winningTile, type HandState,
+  concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
+  isComplete, isHandOpen, pressTile, reconcile, removeConcealed, toFlags, toSituation,
+  toggleMode, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
 
@@ -102,17 +103,100 @@ describe('call modes', () => {
   });
 });
 
-describe('dora', () => {
-  it('does not count dora against the four copies of a tile', () => {
+describe('dora indicators', () => {
+  it('stores what was tapped as an indicator, not as the dora itself', () => {
     const s = pressTile(toggleMode(build('m5 m5 m5 m5R'), 'dora'), 'm5');
-    expect(s.dora).toEqual(T('m5'));
+    expect(s.doraIndicators).toEqual(T('m5'));
+    // The indicator points at m6, and indicators never consume hand tiles.
+    expect(toSituation(s).dora).toEqual(T('m6'));
     expect(copiesUsed(s, 'm5')).toBe(4);
   });
 
   it('caps at five indicators', () => {
     const s = T('m1 m2 m3 m4 m5').reduce(pressTile, toggleMode(initialHandState, 'dora'));
-    expect(s.dora).toHaveLength(5);
-    expect(disabledReason(s, 'm6')).toMatch(/at most 5 dora/);
+    expect(s.doraIndicators).toHaveLength(5);
+    expect(disabledReason(s, 'm6')).toMatch(/at most 5 indicators/);
+  });
+
+  it('refuses ura indicators without a riichi', () => {
+    expect(disabledReason(toggleMode(initialHandState, 'uraDora'), 'm1'))
+      .toMatch(/requires a riichi/);
+    const withRiichi = toggleMode({ ...initialHandState, riichi: 'riichi' }, 'uraDora');
+    expect(disabledReason(withRiichi, 'm1')).toBeNull();
+  });
+});
+
+describe('red fives', () => {
+  it('builds a call with exactly one red copy, not three', () => {
+    const pon = pressTile(toggleMode(initialHandState, 'pon'), 'm5R');
+    expect(pon.melds[0]!.tiles).toEqual(T('m5R m5 m5'));
+
+    const kan = pressTile(toggleMode(initialHandState, 'kan'), 'p5R');
+    expect(kan.melds[0]!.tiles).toEqual(T('p5R p5 p5 p5'));
+  });
+
+  it('keeps a call built from a plain tile entirely plain', () => {
+    const pon = pressTile(toggleMode(initialHandState, 'pon'), 'm5');
+    expect(pon.melds[0]!.tiles).toEqual(T('m5 m5 m5'));
+  });
+
+  it('starts a run at the red five when that is what was tapped', () => {
+    const chii = pressTile(toggleMode(initialHandState, 'chii'), 's5R');
+    expect(chii.melds[0]!.tiles).toEqual(T('s5R s6 s7'));
+  });
+
+  it('refuses a second red copy, in hand or in a call', () => {
+    const held = build('m5R');
+    expect(disabledReason(held, 'm5R')).toMatch(/already used/);
+    expect(disabledReason(toggleMode(held, 'pon'), 'm5R')).toMatch(/already used/);
+    // The plain copies are still available.
+    expect(disabledReason(held, 'm5')).toBeNull();
+  });
+});
+
+describe('context rules the engine does not enforce', () => {
+  const open = (over: Partial<HandState> = {}): HandState =>
+    ({ ...initialHandState, melds: [{ kind: 'pon', tiles: T('s3 s3 s3') as never }], ...over });
+
+  it('treats an open meld as opening the hand, but not a concealed kan', () => {
+    expect(isHandOpen(open())).toBe(true);
+    expect(isHandOpen({ ...initialHandState, melds: [{ kind: 'kanC', tiles: T('m1 m1 m1 m1') as never }] }))
+      .toBe(false);
+  });
+
+  it('blocks riichi on an open hand', () => {
+    // The engine happily scores riichi here, so this rule has to live client-side.
+    expect(contextIssue(open(), 'riichi')).toMatch(/closed hand/);
+    expect(contextIssue(initialHandState, 'riichi')).toBeNull();
+  });
+
+  it('retracts a declared riichi when the hand is opened', () => {
+    const s = reconcile(open({ riichi: 'riichi', ippatsu: true, uraIndicators: T('m1') }));
+    expect(s.riichi).toBe('none');
+    expect(s.ippatsu).toBe(false);
+    expect(s.uraIndicators).toEqual([]);
+  });
+
+  it('ties chankan to ron and rinshan to tsumo', () => {
+    expect(contextIssue({ ...initialHandState, winMode: 'tsumo' }, 'chankan')).toMatch(/always a ron/);
+    expect(contextIssue({ ...initialHandState, winMode: 'ron' }, 'rinshan')).toMatch(/always a tsumo/);
+  });
+
+  it('requires a kan before rinshan', () => {
+    const tsumo: HandState = { ...initialHandState, winMode: 'tsumo' };
+    expect(contextIssue(tsumo, 'rinshan')).toMatch(/no kan/);
+    expect(contextIssue({ ...tsumo, melds: [{ kind: 'kanC', tiles: T('m1 m1 m1 m1') as never }] }, 'rinshan'))
+      .toBeNull();
+  });
+
+  it('clears chankan when the win switches to tsumo', () => {
+    expect(reconcile({ ...initialHandState, chankan: true, winMode: 'tsumo' }).chankan).toBe(false);
+  });
+
+  it('rules out a first-round win once any call has been made', () => {
+    expect(contextIssue(open(), 'firstRound')).toMatch(/no calls/);
+    expect(contextIssue({ ...initialHandState, riichi: 'riichi' }, 'firstRound')).toMatch(/riichi/);
+    expect(contextIssue(initialHandState, 'firstRound')).toBeNull();
   });
 });
 

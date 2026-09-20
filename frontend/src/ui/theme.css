@@ -296,3 +296,20 @@ button {
 
 .checks--single { grid-template-columns: 1fr; }
 .context__hint { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-faint); line-height: 1.45; }
+
+/* Indicator -> dora, shown side by side so the conversion is visible. */
+.dorarow__pair { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; }
+.dorarow__arrow { color: var(--text-faint); font-size: 0.8rem; }
+
+.handsummary {
+  --tile-w: 30px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.handsummary__tiles { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
+.handsummary__meld { display: inline-flex; align-items: flex-end; gap: 1px; margin-left: 8px; }

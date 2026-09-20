@@ -6,7 +6,7 @@
  */
 import type { SituationWind, WinMode } from '../../scorer/types';
 import { SITUATION_WINDS } from '../../scorer/types';
-import type { HandState, RiichiChoice } from './handState';
+import { contextIssue, isHandOpen, type HandState, type RiichiChoice } from './handState';
 
 const WIND_KANJI: Record<SituationWind, string> = {
   este: '東', sur: '南', oeste: '西', norte: '北',
@@ -56,8 +56,8 @@ export function HandContextPanel({ state, update }: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
 }) {
-  const riichiDeclared = state.riichi !== 'none';
-  const firstRound = state.firstRound;
+  const riichiIssue = contextIssue(state, 'riichi');
+  const issue = (k: Parameters<typeof contextIssue>[1]) => contextIssue(state, k);
 
   return (
     <div className="context">
@@ -77,33 +77,43 @@ export function HandContextPanel({ state, update }: {
         Seat wind {WIND_KANJI.este} means the winner is dealer.
       </p>
 
-      <Segmented label="Riichi" value={state.riichi}
-                 options={['none', 'riichi', 'dobleRiichi'] as RiichiChoice[]}
-                 onChange={(v) => update({
-                   riichi: v,
-                   // Dropping the riichi invalidates anything that depends on it.
-                   ...(v === 'none' ? { ippatsu: false } : {}),
-                 })}
-                 render={(v) => (v === 'none' ? 'None' : v === 'riichi' ? 'Riichi' : 'Double')} />
+      <div className="field">
+        <span className="field__label">Riichi</span>
+        <div className="segmented" role="group" aria-label="Riichi">
+          {(['none', 'riichi', 'dobleRiichi'] as RiichiChoice[]).map((opt) => {
+            // A riichi is impossible on an open hand; the engine does not
+            // enforce that, so the UI must.
+            const blocked = opt !== 'none' && riichiIssue !== null;
+            return (
+              <button key={opt} type="button"
+                      className={`segmented__btn${state.riichi === opt ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={state.riichi === opt}
+                      disabled={blocked}
+                      title={blocked ? riichiIssue! : undefined}
+                      onClick={() => update({ riichi: opt, ...(opt === 'none' ? { ippatsu: false } : {}) })}>
+                {opt === 'none' ? 'None' : opt === 'riichi' ? 'Riichi' : 'Double'}
+              </button>
+            );
+          })}
+        </div>
+        {riichiIssue && <p className="context__hint">Unavailable: {riichiIssue}.</p>}
+      </div>
 
       <div className="field">
         <span className="field__label">Circumstances</span>
         <div className="checks">
-          <Check label="Ippatsu" checked={state.ippatsu}
-                 disabled={!riichiDeclared || firstRound}
-                 hint={!riichiDeclared ? 'Requires a riichi' : firstRound ? 'Not on the first round' : 'One-shot'}
+          <Check label="Ippatsu" checked={state.ippatsu} disabled={issue('ippatsu') !== null}
+                 hint={issue('ippatsu') ?? 'One-shot'}
                  onChange={(v) => update({ ippatsu: v })} />
-          <Check label="Chankan" checked={state.chankan}
-                 disabled={state.rinshan || state.lastDraw}
-                 hint="Robbing a kan"
+          <Check label="Chankan" checked={state.chankan} disabled={issue('chankan') !== null}
+                 hint={issue('chankan') ?? 'Robbing a kan'}
                  onChange={(v) => update({ chankan: v })} />
-          <Check label="Rinshan" checked={state.rinshan}
-                 disabled={state.chankan || state.lastDraw}
-                 hint="After a kan"
+          <Check label="Rinshan" checked={state.rinshan} disabled={issue('rinshan') !== null}
+                 hint={issue('rinshan') ?? 'After a kan'}
                  onChange={(v) => update({ rinshan: v })} />
-          <Check label="Last draw" checked={state.lastDraw}
-                 disabled={state.rinshan || state.chankan}
-                 hint={state.winMode === 'tsumo' ? 'Haitei — last tile drawn' : 'Houtei — last discard'}
+          <Check label="Last draw" checked={state.lastDraw} disabled={issue('lastDraw') !== null}
+                 hint={issue('lastDraw')
+                   ?? (state.winMode === 'tsumo' ? 'Haitei — last tile drawn' : 'Houtei — last discard')}
                  onChange={(v) => update({ lastDraw: v })} />
         </div>
       </div>
@@ -112,10 +122,8 @@ export function HandContextPanel({ state, update }: {
         <span className="field__label">Situational yakuman</span>
         <div className="checks checks--single">
           <Check label="First round win" checked={state.firstRound}
-                 disabled={riichiDeclared}
-                 hint={riichiDeclared
-                   ? 'Incompatible with a riichi'
-                   : 'An uninterrupted first go-around'}
+                 disabled={issue('firstRound') !== null}
+                 hint={issue('firstRound') ?? 'An uninterrupted first go-around'}
                  onChange={(v) => update({ firstRound: v, ...(v ? { ippatsu: false } : {}) })} />
         </div>
         <p className="context__hint">
@@ -123,6 +131,13 @@ export function HandContextPanel({ state, update }: {
           other yakuman is read from the tiles.
         </p>
       </div>
+
+      {isHandOpen(state) && (
+        <p className="context__hint">
+          This hand is open, so riichi, ippatsu and ura dora are unavailable.
+          A concealed kan would keep it closed.
+        </p>
+      )}
     </div>
   );
 }

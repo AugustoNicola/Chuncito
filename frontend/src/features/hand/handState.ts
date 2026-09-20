@@ -14,7 +14,9 @@
 import type {
   DeclaredMeld, Flag, Situation, SituationWind, Tile, WinMode,
 } from '../../scorer/types';
-import { compareTiles, normalizeRed, numberOf, suitOf } from '../../scorer/order';
+import { OPEN_MELD_KINDS } from '../../scorer/types';
+import { compareTiles, isRedFive, normalizeRed, numberOf, suitOf } from '../../scorer/order';
+import { doraFromIndicators } from '../../scorer/dora';
 
 /** Which keyboard button, if any, is armed. `null` means "add a concealed tile". */
 export type CallMode = 'chii' | 'pon' | 'kan' | 'closedKan' | 'dora' | 'uraDora';
@@ -25,8 +27,9 @@ export interface HandState {
   /** Insertion order; the last entry is the winning tile. */
   concealed: Tile[];
   melds: DeclaredMeld[];
-  dora: Tile[];
-  uraDora: Tile[];
+  /** What the player actually sees on the table; converted on the way out. */
+  doraIndicators: Tile[];
+  uraIndicators: Tile[];
   mode: CallMode | null;
 
   winMode: WinMode;
@@ -43,7 +46,7 @@ export interface HandState {
 }
 
 export const initialHandState: HandState = {
-  concealed: [], melds: [], dora: [], uraDora: [], mode: null,
+  concealed: [], melds: [], doraIndicators: [], uraIndicators: [], mode: null,
   winMode: 'ron', roundWind: 'este', seatWind: 'este', riichi: 'none',
   ippatsu: false, chankan: false, rinshan: false, lastDraw: false, firstRound: false,
 };
@@ -66,6 +69,16 @@ export function copiesUsed(state: HandState, tile: Tile): number {
   return heldTiles(state).filter((t) => normalizeRed(t) === base).length;
 }
 
+/** How many red copies of a given red-five atom are in play (at most one exists). */
+export function redsUsed(state: HandState, redTile: Tile): number {
+  return heldTiles(state).filter((t) => t === redTile).length;
+}
+
+/** An open meld makes the hand open; a concealed kan does not. */
+export function isHandOpen(state: HandState): boolean {
+  return state.melds.some((m) => OPEN_MELD_KINDS.has(m.kind));
+}
+
 /** A standard hand is 14 tiles, plus one extra per kan. */
 export function targetSize(state: HandState): number {
   return 14 + state.melds.filter(isKan).length;
@@ -84,16 +97,33 @@ export function winningTile(state: HandState): Tile | null {
   return state.concealed.at(-1) ?? null;
 }
 
+/**
+ * Builds the meld a keyboard press implies.
+ *
+ * Only one red copy of each five exists, so tapping a red five means "this meld
+ * contains the red one" -- the remaining copies are plain. Tapping a plain tile
+ * never produces a red.
+ */
 function meldFor(mode: CallMode, tile: Tile): DeclaredMeld | null {
+  const plain = normalizeRed(tile);
+  const red = isRedFive(tile);
+  /** n copies of the tile, at most one of them red. */
+  const copies = (n: number): Tile[] =>
+    red ? [tile, ...Array<Tile>(n - 1).fill(plain)] : Array<Tile>(n).fill(plain);
+
   switch (mode) {
-    case 'pon': return { kind: 'pon', tiles: [tile, tile, tile] };
-    case 'kan': return { kind: 'kanA', tiles: [tile, tile, tile, tile] };
-    case 'closedKan': return { kind: 'kanC', tiles: [tile, tile, tile, tile] };
+    case 'pon': return { kind: 'pon', tiles: copies(3) as [Tile, Tile, Tile] };
+    case 'kan': return { kind: 'kanA', tiles: copies(4) as [Tile, Tile, Tile, Tile] };
+    case 'closedKan': return { kind: 'kanC', tiles: copies(4) as [Tile, Tile, Tile, Tile] };
     case 'chii': {
-      const n = numberOf(tile);
+      const n = numberOf(plain);
       if (n === null || n > 7) return null;
-      const suit = tile[0];
-      return { kind: 'chii', tiles: [tile, `${suit}${n + 1}` as Tile, `${suit}${n + 2}` as Tile] };
+      const suit = plain[0];
+      // The run starts at the tapped tile, keeping its redness if it had any.
+      return {
+        kind: 'chii',
+        tiles: [tile, `${suit}${n + 1}` as Tile, `${suit}${n + 2}` as Tile],
+      };
     }
     default: return null;
   }
@@ -107,13 +137,17 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
   const mode = state.mode;
 
   if (mode === 'dora' || mode === 'uraDora') {
-    const list = mode === 'dora' ? state.dora : state.uraDora;
-    return list.length >= MAX_DORA ? `at most ${MAX_DORA} dora` : null;
+    const list = mode === 'dora' ? state.doraIndicators : state.uraIndicators;
+    if (list.length >= MAX_DORA) return `at most ${MAX_DORA} indicators`;
+    if (mode === 'uraDora' && state.riichi === 'none') return 'ura dora requires a riichi';
+    return null;
   }
 
   if (mode === null) {
     if (isComplete(state)) return 'the hand is already complete';
-    return copiesUsed(state, tile) >= 4 ? 'all four copies are already used' : null;
+    if (copiesUsed(state, tile) >= 4) return 'all four copies are already used';
+    if (isRedFive(tile) && redsUsed(state, tile) >= 1) return `the ${tile} is already used`;
+    return null;
   }
 
   // A call mode.
@@ -129,16 +163,20 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
     return 'not available';
   }
 
-  // Every tile the call consumes must still be available.
+  // Every tile the call consumes must still be available: four copies of each
+  // value exist, and at most one of those four is the red one.
   const needed = new Map<Tile, number>();
+  const neededRed = new Map<Tile, number>();
   for (const t of meld.tiles) {
     const base = normalizeRed(t);
     needed.set(base, (needed.get(base) ?? 0) + 1);
+    if (isRedFive(t)) neededRed.set(t, (neededRed.get(t) ?? 0) + 1);
   }
   for (const [base, count] of needed) {
-    if (copiesUsed(state, base) + count > 4) {
-      return `not enough copies of ${base} left`;
-    }
+    if (copiesUsed(state, base) + count > 4) return `not enough copies of ${base} left`;
+  }
+  for (const [redTile, count] of neededRed) {
+    if (redsUsed(state, redTile) + count > 1) return `the ${redTile} is already used`;
   }
 
   // The winning tile must come after the last call, so a call can never be the
@@ -163,27 +201,27 @@ export function pressTile(state: HandState, tile: Tile): HandState {
   if (isDisabled(state, tile)) return state;
   const mode = state.mode;
 
-  if (mode === 'dora') return { ...state, dora: [...state.dora, tile] };
-  if (mode === 'uraDora') return { ...state, uraDora: [...state.uraDora, tile] };
+  if (mode === 'dora') return { ...state, doraIndicators: [...state.doraIndicators, tile] };
+  if (mode === 'uraDora') return { ...state, uraIndicators: [...state.uraIndicators, tile] };
   if (mode === null) return { ...state, concealed: [...state.concealed, tile] };
 
   const meld = meldFor(mode, tile);
   if (!meld) return state;
   // Call modes disarm after use -- you almost always want to add tiles next.
   // Dora modes stay armed, since revealing several dora is routine.
-  return { ...state, melds: [...state.melds, meld], mode: null };
+  return reconcile({ ...state, melds: [...state.melds, meld], mode: null });
 }
 
 export const removeConcealed = (state: HandState, index: number): HandState =>
   ({ ...state, concealed: state.concealed.filter((_, i) => i !== index) });
 
 export const removeMeld = (state: HandState, index: number): HandState =>
-  ({ ...state, melds: state.melds.filter((_, i) => i !== index) });
+  reconcile({ ...state, melds: state.melds.filter((_, i) => i !== index) });
 
 export const removeDora = (state: HandState, index: number, ura = false): HandState =>
   ura
-    ? { ...state, uraDora: state.uraDora.filter((_, i) => i !== index) }
-    : { ...state, dora: state.dora.filter((_, i) => i !== index) };
+    ? { ...state, uraIndicators: state.uraIndicators.filter((_, i) => i !== index) }
+    : { ...state, doraIndicators: state.doraIndicators.filter((_, i) => i !== index) };
 
 export const clearHand = (state: HandState): HandState =>
   ({ ...initialHandState, winMode: state.winMode, roundWind: state.roundWind, seatWind: state.seatWind });
@@ -207,6 +245,74 @@ export function concealedForDisplay(state: HandState): {
   };
 }
 
+/** True when the hand contains any kan, which rinshan requires. */
+export function hasKan(state: HandState): boolean {
+  return state.melds.some(isKan);
+}
+
+/**
+ * Why a context option is unavailable, or null. Centralised so the panel and
+ * `reconcile` can never disagree about what is legal.
+ *
+ * Several of these the *engine* does not enforce -- notably it will happily
+ * score riichi on an open hand -- so they have to hold here.
+ */
+export function contextIssue(state: HandState, option:
+  'riichi' | 'ippatsu' | 'chankan' | 'rinshan' | 'lastDraw' | 'firstRound' | 'uraDora',
+): string | null {
+  const open = isHandOpen(state);
+  const riichiDeclared = state.riichi !== 'none';
+
+  switch (option) {
+    case 'riichi':
+      if (open) return 'riichi needs a closed hand';
+      if (state.firstRound) return 'incompatible with a first-round win';
+      return null;
+    case 'ippatsu':
+      if (!riichiDeclared) return 'requires a riichi';
+      if (state.firstRound) return 'incompatible with a first-round win';
+      return null;
+    case 'uraDora':
+      return riichiDeclared ? null : 'ura dora requires a riichi';
+    case 'chankan':
+      if (state.winMode !== 'ron') return 'robbing a kan is always a ron';
+      if (state.rinshan || state.lastDraw) return 'conflicts with another circumstance';
+      return null;
+    case 'rinshan':
+      if (state.winMode !== 'tsumo') return 'winning off a kan draw is always a tsumo';
+      if (state.chankan || state.lastDraw) return 'conflicts with another circumstance';
+      if (!hasKan(state)) return 'the hand has no kan';
+      return null;
+    case 'lastDraw':
+      return state.rinshan || state.chankan ? 'conflicts with another circumstance' : null;
+    case 'firstRound':
+      if (riichiDeclared) return 'incompatible with a riichi';
+      if (state.melds.length > 0) return 'no calls can have been made';
+      return null;
+  }
+}
+
+/**
+ * Clears options that the current hand has made impossible -- adding an open
+ * meld retracts a riichi, switching to tsumo retracts chankan, and so on.
+ *
+ * Applied after every transition so the state can never drift into a shape the
+ * panel would refuse to let you build directly.
+ */
+export function reconcile(state: HandState): HandState {
+  let s = state;
+  if (contextIssue(s, 'riichi') && s.riichi !== 'none') s = { ...s, riichi: 'none' };
+  if (contextIssue(s, 'ippatsu') && s.ippatsu) s = { ...s, ippatsu: false };
+  if (contextIssue(s, 'chankan') && s.chankan) s = { ...s, chankan: false };
+  if (s.winMode !== 'tsumo' && s.rinshan) s = { ...s, rinshan: false };
+  if (contextIssue(s, 'firstRound') && s.firstRound) s = { ...s, firstRound: false };
+  // Ura dora is only revealed on a riichi.
+  if (s.riichi === 'none' && s.uraIndicators.length > 0) s = { ...s, uraIndicators: [] };
+  // Arming a mode that is no longer meaningful would strand the keyboard.
+  if (s.mode === 'uraDora' && s.riichi === 'none') s = { ...s, mode: null };
+  return s;
+}
+
 export function toFlags(state: HandState): Flag[] {
   const flags: Flag[] = [];
   if (state.riichi === 'riichi') flags.push('riichi');
@@ -223,8 +329,9 @@ export function toSituation(state: HandState): Situation {
   return {
     roundWind: state.roundWind,
     seatWind: state.seatWind,
-    dora: state.dora,
-    uraDora: state.uraDora,
+    // Indicators are what the UI collects; the engine wants the dora themselves.
+    dora: doraFromIndicators(state.doraIndicators),
+    uraDora: doraFromIndicators(state.uraIndicators),
     flags: toFlags(state),
   };
 }

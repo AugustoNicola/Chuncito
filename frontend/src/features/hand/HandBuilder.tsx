@@ -12,9 +12,9 @@ import { HandDisplay } from './HandDisplay';
 import { HandContextPanel } from './HandContextPanel';
 import { ScoreResultView } from './ScoreResultView';
 import {
-  clearHand, currentSize, initialHandState, isComplete, pressTile, removeConcealed,
-  removeDora, removeMeld, targetSize, toSituation, toggleMode, winningTile,
-  type CallMode, type HandState,
+  clearHand, currentSize, initialHandState, isComplete, pressTile, reconcile,
+  removeConcealed, removeDora, removeMeld, targetSize, toSituation, toggleMode,
+  winningTile, type CallMode, type HandState,
 } from './handState';
 import { useScorer } from '../../scorer/useScorer';
 import { validateQuery } from '../../scorer/validate';
@@ -45,10 +45,11 @@ export function HandBuilder() {
   const complete = isComplete(state);
   const canScore = complete && issues.length === 0 && scorer.state === 'ready';
 
-  const update = (patch: Partial<HandState>) => {
-    setState((s) => ({ ...s, ...patch }));
+  const apply = (f: (s: HandState) => HandState) => {
+    setState((s) => reconcile(f(s)));
     setMessage(null);
   };
+  const update = (patch: Partial<HandState>) => apply((s) => ({ ...s, ...patch }));
 
   function score() {
     if (!query || scorer.state !== 'ready') return;
@@ -65,7 +66,7 @@ export function HandBuilder() {
   if (result) {
     return (
       <div className="app">
-        <ScoreResultView result={result} onBack={() => setResult(null)} />
+        <ScoreResultView result={result} hand={state} onBack={() => setResult(null)} />
       </div>
     );
   }
@@ -83,16 +84,16 @@ export function HandBuilder() {
       <header className="app__bar">
         <h1 className="app__title">Hand</h1>
         <button type="button" className="btn btn--quiet"
-                onClick={() => { setState(clearHand); setMessage(null); }}>
+                onClick={() => apply(clearHand)}>
           Clear
         </button>
       </header>
 
       <HandDisplay
         state={state}
-        onRemoveConcealed={(i) => setState((s) => removeConcealed(s, i))}
-        onRemoveMeld={(i) => setState((s) => removeMeld(s, i))}
-        onRemoveDora={(i, ura) => setState((s) => removeDora(s, i, ura))}
+        onRemoveConcealed={(i) => apply((s) => removeConcealed(s, i))}
+        onRemoveMeld={(i) => apply((s) => removeMeld(s, i))}
+        onRemoveDora={(i, ura) => apply((s) => removeDora(s, i, ura))}
       />
 
       <div className="app__spacer" />
@@ -118,8 +119,8 @@ export function HandBuilder() {
 
       {flap === 'tiles' ? (
         <>
-          <CallModeBar state={state} onToggle={(m: CallMode) => setState((s) => toggleMode(s, m))} />
-          <TileKeyboard state={state} onPress={(t: TileAtom) => setState((s) => pressTile(s, t))} />
+          <CallModeBar state={state} onToggle={(m: CallMode) => apply((s) => toggleMode(s, m))} />
+          <TileKeyboard state={state} onPress={(t: TileAtom) => apply((s) => pressTile(s, t))} />
         </>
       ) : (
         <HandContextPanel state={state} update={update} />

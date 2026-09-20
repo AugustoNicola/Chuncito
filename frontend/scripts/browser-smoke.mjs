@@ -94,6 +94,9 @@ try {
   await page.waitForSelector('.score', { timeout: 90_000 });
   await shot('03-score.png');
 
+  const summaryTiles = await page.$$eval('.handsummary__tiles .tile', (els) => els.length);
+  check(summaryTiles === 14, `score screen shows the hand (got ${summaryTiles} tiles)`);
+
   const yakus = await page.$$eval('.score__yaku span:first-child', (els) => els.map((e) => e.textContent));
   const points = await page.$eval('.score__points', (e) => e.textContent);
   const hanfu = await page.$eval('.score__hanfu', (e) => e.textContent);
@@ -131,6 +134,39 @@ try {
   check(melds[2]?.backs === 2 && melds[2]?.rotated === 0,
         'a closed kan shows two face-down tiles and none rotated');
   await shot('04-melds.png');
+
+  // --- red fives produce one red copy, not three ---
+  // Clear first: the previous hand is complete, so no further call is allowed.
+  await page.evaluate(() => {
+    [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
+  });
+  await arm('Pon'); await page.click('.keyboard [data-face="m5R"]');
+  const ponFaces = await page.$$eval('.meld .tile', (els) => els.map((e) => e.dataset.face));
+  check(JSON.stringify(ponFaces) === JSON.stringify(['m5R', 'm5', 'm5']),
+        `a pon on the red five holds one red copy (got ${JSON.stringify(ponFaces)})`);
+  const redAgain = await page.$eval('.keyboard [data-face="m5R"]', (el) => el.disabled);
+  check(redAgain, 'the red five disables once its single copy is used');
+
+  // --- an open hand blocks riichi ---
+  await page.click('.flaps__tab:nth-child(2)');
+  await page.waitForSelector('.context');
+  const riichiBlocked = await page.$$eval('.field', (fs) => {
+    const f = fs.find((x) => x.querySelector('.field__label')?.textContent === 'Riichi');
+    return [...f.querySelectorAll('.segmented__btn')].slice(1).every((b) => b.disabled);
+  });
+  check(riichiBlocked, 'riichi is unavailable while the hand is open');
+  await shot('05-open-hand.png');
+  await page.click('.flaps__tab:nth-child(1)');
+
+  // --- dora input takes indicators and shows what they point at ---
+  await page.evaluate(() => {
+    [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
+  });
+  await arm('Dora'); await page.click('.keyboard [data-face="m9"]');
+  const pair = await page.$$eval('.dorarow__pair .tile', (els) => els.map((e) => e.dataset.face));
+  check(JSON.stringify(pair) === JSON.stringify(['m9', 'm1']),
+        `a 9m indicator resolves to 1m (got ${JSON.stringify(pair)})`);
+  await shot('06-dora.png');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {

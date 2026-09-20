@@ -21,6 +21,27 @@ with a cut so `kanA` isn't counted twice. Verified: ankan now scores, keeps the
 hand closed (`sanshokuDoujun` 2 han rather than 1), and yields 70 fu for a
 concealed terminal kan. Covered by a regression test.
 
+## Open — upstream
+
+### `riichi` is granted on an open hand
+`yaku(riichi, _, situacion(...))` checks only that the flag is present, with no
+closed-hand condition. Same for `dobleRiichi` and `ippatsu`. Reproduces:
+
+```prolog
+resultadoDeVictoria(mano([m2,m2,m3,m4,m5,p3,p4,p5],[pon(s3,s3,s3),chii(m6,m7,m8)]),
+                    m5, ron, situacion(este,sur,[],[],[riichi]), R).
+% R = resultado([yakuHan(riichi,1),yakuHan(tanyao,1)],2,30,sinNombre,pago(2000))
+```
+
+A riichi requires a concealed hand, so this should fail. Contrast `menzenTsumo`,
+which does guard with `manoCerrada(Formas)` — the same check is what riichi
+needs. Note an ankan keeps a hand closed, so the condition is "no `llamada/1`
+meld", not "no melds".
+
+Guarded client-side for now (`contextIssue` in `handState.ts` refuses a riichi on
+an open hand, and retracts one if the hand is later opened), so the UI cannot
+produce this. **Reported to the user.**
+
 ## Ours to implement (not upstream bugs)
 
 ### No input validation in the entry point
@@ -29,12 +50,15 @@ identical tiles without complaint. Since malformed input *fails* exactly like a
 yaku-less hand, everything is validated client-side first
 (`frontend/src/scorer/validate.ts`).
 
-### No dora-indicator → dora conversion
+### No dora-indicator → dora conversion — DONE client-side
 `situacion.pl` declares it out of scope: `Doras` holds the actual dora tiles.
-Trivial (advance with wraparound), but ours. The tile-input UI sidesteps it by
-having the user tap the dora tile directly; it only matters if indicator entry is
-added. Store **both** the indicator and the resolved dora in match history — the
-indicator is what you'd want to see in a review.
+Implemented in `frontend/src/scorer/dora.ts` (advance with wraparound; winds
+cycle E→S→W→N, dragons haku→hatsu→chun; a red five indicates what its plain twin
+does, and a dora is never the red copy).
+
+The UI collects **indicators**, which is what a player actually sees on the
+table, and displays the resolved dora next to each one. Match history should
+store the indicator, for the same reason.
 
 ## Known behaviour worth knowing (not bugs)
 

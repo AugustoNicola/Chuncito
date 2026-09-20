@@ -8,6 +8,8 @@ import type { Payment, ScoreResult } from '../../scorer/types';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import { paymentTotal } from '../../scorer/decode';
 import { isYakumanLevel, levelColorVar, levelName, yakuName } from './yakuNames';
+import { HandSummary } from './HandDisplay';
+import type { HandState } from './handState';
 
 function paymentLine(payment: Payment): string {
   switch (payment.kind) {
@@ -18,7 +20,12 @@ function paymentLine(payment: Payment): string {
   }
 }
 
-export function ScoreResultView({ result, onBack }: { result: ScoreResult; onBack: () => void }) {
+export function ScoreResultView({ result, hand, onBack }: {
+  result: ScoreResult;
+  /** Omitted by the limit-theming preview; the score stands on its own. */
+  hand?: HandState;
+  onBack: () => void;
+}) {
   const real = result.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const extras = result.yakus.filter((y) => PSEUDO_YAKU.has(y.yaku));
   const title = levelName(result.level);
@@ -26,6 +33,8 @@ export function ScoreResultView({ result, onBack }: { result: ScoreResult; onBac
 
   return (
     <div className="score" style={{ ['--limit' as string]: color }}>
+      {hand && <HandSummary state={hand} />}
+
       <div className="score__yakus">
         {real.map((y) => (
           <div className="score__yaku" key={y.yaku}>

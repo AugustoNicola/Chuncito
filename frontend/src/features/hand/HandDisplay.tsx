@@ -8,6 +8,7 @@
 import { Tile } from '../../ui/Tile';
 import type { DeclaredMeld, Tile as TileAtom } from '../../scorer/types';
 import { concealedForDisplay, type HandState } from './handState';
+import { doraFromIndicator } from '../../scorer/dora';
 
 function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void }) {
   const tiles = meld.tiles as TileAtom[];
@@ -28,16 +29,49 @@ function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void
   );
 }
 
-function DoraRow({ label, tiles, onRemove }: {
-  label: string; tiles: TileAtom[]; onRemove: (i: number) => void;
+/**
+ * Indicators as they sit on the table, with the dora they point at shown
+ * alongside -- the conversion is easy to get wrong from memory, so the UI does
+ * it visibly rather than silently.
+ */
+function IndicatorRow({ label, indicators, onRemove }: {
+  label: string; indicators: TileAtom[]; onRemove: (i: number) => void;
 }) {
-  if (tiles.length === 0) return null;
+  if (indicators.length === 0) return null;
   return (
     <div className="dorarow">
       <span className="dorarow__label">{label}</span>
-      {tiles.map((tile, i) => (
-        <Tile key={i} face={tile} onClick={() => onRemove(i)} label={`Remove ${label} ${tile}`} />
+      {indicators.map((tile, i) => (
+        <span className="dorarow__pair" key={i}>
+          <Tile face={tile} onClick={() => onRemove(i)} label={`Remove ${label} indicator ${tile}`} />
+          <span className="dorarow__arrow" aria-hidden="true">→</span>
+          <Tile face={doraFromIndicator(tile)} label={`dora ${doraFromIndicator(tile)}`} />
+        </span>
       ))}
+    </div>
+  );
+}
+
+/** Read-only rendering of a finished hand, for the score screen. */
+export function HandSummary({ state }: { state: HandState }) {
+  const { sorted, winning } = concealedForDisplay(state);
+  return (
+    <div className="handsummary">
+      <div className="handsummary__tiles">
+        {sorted.map(({ tile, index }) => <Tile key={index} face={tile} />)}
+        {winning && <Tile face={winning.tile} winning />}
+        {state.melds.map((meld, i) => (
+          <span className="handsummary__meld" key={`m${i}`}>
+            {(meld.tiles as TileAtom[]).map((tile, j) => (
+              meld.kind === 'kanC'
+                ? <Tile key={j} face={j === 0 || j === meld.tiles.length - 1 ? 'back' : tile} />
+                : <Tile key={j} face={tile} rotated={j === 0} />
+            ))}
+          </span>
+        ))}
+      </div>
+      <IndicatorRow label="Dora" indicators={state.doraIndicators} onRemove={() => {}} />
+      <IndicatorRow label="Ura" indicators={state.uraIndicators} onRemove={() => {}} />
     </div>
   );
 }
@@ -74,8 +108,10 @@ export function HandDisplay({ state, onRemoveConcealed, onRemoveMeld, onRemoveDo
         </div>
       )}
 
-      <DoraRow label="Dora" tiles={state.dora} onRemove={(i) => onRemoveDora(i, false)} />
-      <DoraRow label="Ura" tiles={state.uraDora} onRemove={(i) => onRemoveDora(i, true)} />
+      <IndicatorRow label="Dora" indicators={state.doraIndicators}
+                    onRemove={(i) => onRemoveDora(i, false)} />
+      <IndicatorRow label="Ura" indicators={state.uraIndicators}
+                    onRemove={(i) => onRemoveDora(i, true)} />
     </div>
   );
 }
