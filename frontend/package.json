@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "stage:swipl": "cp node_modules/swipl-wasm/dist/swipl/swipl-web.js node_modules/swipl-wasm/dist/swipl/swipl-web.wasm node_modules/swipl-wasm/dist/swipl/swipl-web.data public/swipl/",
+    "stage:swipl": "mkdir -p public/swipl && cp node_modules/swipl-wasm/dist/swipl/swipl-web.js node_modules/swipl-wasm/dist/swipl/swipl-web.wasm node_modules/swipl-wasm/dist/swipl/swipl-web.data public/swipl/",
     "postinstall": "npm run stage:swipl",
     "test:browser": "node scripts/browser-smoke.mjs"
   },
