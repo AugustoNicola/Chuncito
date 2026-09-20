@@ -27,11 +27,19 @@ From the repo root:
 ## Layout
 
 ```
-scorer/mahjonglog/     vendored Prolog (do NOT edit; changes belong upstream)
-scorer/sync-prolog.sh  re-vendor with a test gate
-frontend/src/scorer/   the contract layer: types, order, serialize, decode, validate
-docs/                  contract, gaps, architecture, data model, roadmap
+scorer/mahjonglog/          vendored Prolog (do NOT edit; changes belong upstream)
+scorer/sync-prolog.sh       re-vendor with a test gate
+frontend/src/scorer/        contract layer: types, order, serialize, decode, validate,
+                            dora, engine (+ .node / .browser factories)
+frontend/src/features/hand/ hand input: handState (pure, React-free) + components
+frontend/src/ui/            Tile, theme.css
+frontend/scripts/           browser-smoke.mjs, the real-browser end-to-end test
+docs/                       contract, gaps, architecture, data model, roadmap
 ```
+
+`handState.ts` holds the tile-entry rules and is deliberately free of React, so
+the awkward parts (which keys are legal in which mode, when a call would
+illegally complete the hand, red-five supply) are directly testable.
 
 ## Invariants
 
@@ -63,6 +71,9 @@ without checking the runtime.
   translated.
 - Comments explain *why*, especially where behaviour is surprising (silent
   failure, canonical ordering, the `s` collision).
+- Missing CSS fails silently, so `src/ui/styles.test.ts` fails the build when a
+  component references a class `theme.css` does not define. Three regressions
+  got through before it existed; don't delete it.
 
 ## Working across sessions
 
