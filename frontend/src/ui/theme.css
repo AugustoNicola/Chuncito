@@ -216,21 +216,24 @@ button {
   background: var(--bg-raised);
   border: 1px solid var(--border);
   color: var(--text-dim);
+  /* Every button is identical at rest; only the armed colour differs. */
+  --on-bg: var(--accent-dim);
+  --on-border: var(--accent);
 }
+.modebar__btn[data-mode="chii"],
+.modebar__btn[data-mode="dora"]      { --on-bg: #1d6b47; --on-border: #4ecd8a; }
+.modebar__btn[data-mode="pon"]       { --on-bg: #2b5f99; --on-border: #4a9eff; }
+.modebar__btn[data-mode="kan"],
+.modebar__btn[data-mode="closedKan"],
+.modebar__btn[data-mode="uraDora"]   { --on-bg: #5b2f92; --on-border: #b47ae8; }
+.modebar__btn[data-mode="red"]       { --on-bg: #7a2230; --on-border: #ff6b6b; }
+
 .modebar__btn--on {
-  background: var(--accent-dim);
-  border-color: var(--accent);
+  background: var(--on-bg);
+  border-color: var(--on-border);
   color: var(--text);
 }
 .modebar__btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* The red modifier stacks with any call mode, so it reads differently. */
-.modebar__btn--red { border-color: var(--border-strong); }
-.modebar__btn--red.modebar__btn--on {
-  background: #7a2230;
-  border-color: var(--danger);
-  color: var(--text);
-}
 
 /* ---------- keyboard ---------- */
 

@@ -16,7 +16,7 @@ const CALLS: readonly ModeSpec[] = [
 
 const MARKERS: readonly ModeSpec[] = [
   { mode: 'dora', label: 'Dora', hint: 'Mark the tapped tile as a dora indicator' },
-  { mode: 'uraDora', label: 'Ura', hint: 'Mark the tapped tile as an ura dora indicator' },
+  { mode: 'uraDora', label: 'Ura Dora', hint: 'Mark the tapped tile as an ura dora indicator' },
 ];
 
 export function CallModeBar({ state, onToggle, onToggleRed }: {
@@ -24,11 +24,13 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
   onToggle: (mode: CallMode) => void;
   onToggleRed: () => void;
 }) {
+  // data-mode drives the armed colour; idle buttons all look alike.
   const modeButton = ({ mode, label, hint }: ModeSpec) => (
     <button
       key={mode}
       type="button"
       className={`modebar__btn${state.mode === mode ? ' modebar__btn--on' : ''}`}
+      data-mode={mode}
       aria-pressed={state.mode === mode}
       title={hint}
       onClick={() => onToggle(mode)}
@@ -46,13 +48,14 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
         {/* Red is independent of the modes: it combines with any of them. */}
         <button
           type="button"
-          className={`modebar__btn modebar__btn--red${state.red ? ' modebar__btn--on' : ''}`}
+          className={`modebar__btn${state.red ? ' modebar__btn--on' : ''}`}
+          data-mode="red"
           aria-pressed={state.red}
           disabled={!redAvailable(state)}
           title="The next five you add is the red one — works on its own or inside a call"
           onClick={onToggleRed}
         >
-          Red 5
+          Red Five
         </button>
         {MARKERS.map(modeButton)}
       </div>

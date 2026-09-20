@@ -148,13 +148,13 @@ try {
   await page.evaluate(() => {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
   });
-  await arm('Chii'); await arm('Red 5');
+  await arm('Chii'); await arm('Red Five');
   await page.click('.keyboard [data-key="m3"]');
   const chiiFaces = await page.$$eval('.meld .tile', (els) => els.map((e) => e.dataset.face));
   check(JSON.stringify(chiiFaces) === JSON.stringify(['m3', 'm4', 'm5R']),
         `a 3-4-5 run can hold the red five (got ${JSON.stringify(chiiFaces)})`);
 
-  await arm('Red 5');
+  await arm('Red Five');
   const nonFiveOff = await page.$eval('.keyboard [data-key="m4"]', (el) => el.disabled);
   check(nonFiveOff, 'the red modifier disables tiles that would produce no five');
   // The red 5m is already inside that run, so only another suit is available.
@@ -187,7 +187,7 @@ try {
         `the dora row shows the indicator itself (got ${JSON.stringify(indicators)})`);
 
   // Ura is enterable before a riichi is picked, since the tile flap comes first.
-  await arm('Ura'); await page.click('.keyboard [data-key="s1"]');
+  await arm('Ura Dora'); await page.click('.keyboard [data-key="s1"]');
   const uraCount = await page.$$eval('.dorarow', (rows) => rows.length);
   check(uraCount === 2, `ura accepted without a riichi (got ${uraCount} indicator rows)`);
 
