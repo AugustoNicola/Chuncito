@@ -160,8 +160,8 @@ button {
 }
 
 .handdisplay__empty { margin: auto; color: var(--text-faint); font-size: 0.9rem; }
-.handdisplay__tiles { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
-.handdisplay__melds { display: flex; flex-wrap: wrap; gap: 10px; }
+.handdisplay__tiles { display: flex; flex-wrap: wrap; gap: 5px; align-items: flex-end; }
+.handdisplay__melds { display: flex; flex-wrap: wrap; gap: 14px; }
 
 .meld {
   display: flex;
@@ -173,7 +173,7 @@ button {
 }
 .meld:hover { border-color: var(--border-strong); }
 
-.dorarow { display: flex; align-items: center; gap: 4px; --tile-w: 28px; }
+.dorarow { display: flex; align-items: center; gap: 5px; --tile-w: 28px; }
 .dorarow__label {
   font-size: 0.72rem; color: var(--text-dim);
   text-transform: uppercase; letter-spacing: 0.07em;
@@ -276,8 +276,8 @@ button {
  * since colour-mix needs one.
  */
 .score[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: #4a9eff; }
-.score[data-tier="mangan"]    { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: #b47ae8; }
-.score[data-tier="haneman"]   { --limit-a: #9df5b8; --limit-b: #17945a; --limit: #4ecd8a; }
+.score[data-tier="mangan"]    { --limit-a: #9df5b8; --limit-b: #17945a; --limit: #4ecd8a; }
+.score[data-tier="haneman"]   { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: #b47ae8; }
 .score[data-tier="baiman"]    { --limit-a: #f0c396; --limit-b: #9c5320; --limit: #cd8c4f; }
 .score[data-tier="sanbaiman"] { --limit-a: #ffffff; --limit-b: #8793a8; --limit: #d3dae5; }
 /* A counted yakuman: gold, but deliberately duller than the real thing. */
@@ -375,3 +375,18 @@ button {
     .score__points { animation: none; }
   }
 }
+
+/* The scored hand, shown read-only above the result. */
+.handsummary {
+  --tile-w: 30px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.handsummary__tiles { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; }
+/* Tiles inside a meld stay adjacent, as they sit on the table. */
+.handsummary__meld { display: inline-flex; align-items: flex-end; gap: 1px; margin-left: 10px; }
