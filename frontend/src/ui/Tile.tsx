@@ -18,9 +18,15 @@ export interface TileProps {
   winning?: boolean;
   onClick?: () => void;
   label?: string;
+  /**
+   * Stable identity for this button, independent of the face it currently
+   * shows -- a keyboard key previews the red five while the modifier is armed,
+   * so `face` alone is not a reliable handle.
+   */
+  keyTile?: string;
 }
 
-export function Tile({ face, rotated, disabled, winning, onClick, label }: TileProps) {
+export function Tile({ face, rotated, disabled, winning, onClick, label, keyTile }: TileProps) {
   const className = [
     'tile',
     rotated && 'tile--rotated',
@@ -47,7 +53,8 @@ export function Tile({ face, rotated, disabled, winning, onClick, label }: TileP
   }
 
   return (
-    <button type="button" className={className} disabled={disabled} data-face={face}
+    <button type="button" className={className} disabled={disabled}
+            data-face={face} data-key={keyTile ?? face}
             onClick={onClick} aria-label={label ?? face} title={label}>
       {layers}
     </button>

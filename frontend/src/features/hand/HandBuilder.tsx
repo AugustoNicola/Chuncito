@@ -14,7 +14,7 @@ import { ScoreResultView } from './ScoreResultView';
 import {
   clearHand, currentSize, initialHandState, isComplete, pressTile, reconcile,
   removeConcealed, removeDora, removeMeld, targetSize, toSituation, toggleMode,
-  winningTile, type CallMode, type HandState,
+  toggleRed, winningTile, type CallMode, type HandState,
 } from './handState';
 import { useScorer } from '../../scorer/useScorer';
 import { validateQuery } from '../../scorer/validate';
@@ -73,11 +73,14 @@ export function HandBuilder() {
 
   const statusLine = () => {
     if (scorer.state === 'error') return 'The scorer failed to load.';
-    if (issues.length > 0) return issues[0]!.message;
+    // While the hand is still being built, a plain count reads better than the
+    // "wrong size" complaint that validation would otherwise raise every press.
     if (!complete) return `${currentSize(state)} / ${targetSize(state)} tiles`;
+    if (issues.length > 0) return issues[0]!.message;
     if (scorer.state === 'loading') return 'Loading the scorer…';
     return 'Ready to score';
   };
+  const warning = message !== null || (complete && issues.length > 0);
 
   return (
     <div className="app">
@@ -98,7 +101,7 @@ export function HandBuilder() {
 
       <div className="app__spacer" />
 
-      <div className={`status${issues.length > 0 || message ? ' status--warn' : ''}`}>
+      <div className={`status${warning ? ' status--warn' : ''}`}>
         {message ?? statusLine()}
       </div>
 
@@ -119,7 +122,9 @@ export function HandBuilder() {
 
       {flap === 'tiles' ? (
         <>
-          <CallModeBar state={state} onToggle={(m: CallMode) => apply((s) => toggleMode(s, m))} />
+          <CallModeBar state={state}
+                       onToggle={(m: CallMode) => apply((s) => toggleMode(s, m))}
+                       onToggleRed={() => apply(toggleRed)} />
           <TileKeyboard state={state} onPress={(t: TileAtom) => apply((s) => pressTile(s, t))} />
         </>
       ) : (

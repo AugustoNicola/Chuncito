@@ -204,7 +204,7 @@ button {
 
 /* ---------- mode bar ---------- */
 
-.modebar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.modebar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .modebar__btn {
   padding: 9px 2px;
   font-size: 0.75rem;
@@ -223,7 +223,7 @@ button {
 /* ---------- keyboard ---------- */
 
 .keyboard { display: flex; flex-direction: column; gap: 4px; }
-.keyboard__row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.keyboard__row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
 .keyboard .tile { width: 100%; }
 
 /* ---------- context flap ---------- */
@@ -313,3 +313,12 @@ button {
 }
 .handsummary__tiles { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
 .handsummary__meld { display: inline-flex; align-items: flex-end; gap: 1px; margin-left: 8px; }
+
+/* The red modifier stacks with any call mode, so it reads differently. */
+.modebar__btn--red { border-color: var(--border-strong); }
+.modebar__btn--red.modebar__btn--on {
+  background: #7a2230;
+  border-color: var(--danger);
+  color: var(--text);
+}
+.modebar__btn:disabled { opacity: 0.4; cursor: not-allowed; }

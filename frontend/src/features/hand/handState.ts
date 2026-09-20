@@ -31,6 +31,12 @@ export interface HandState {
   doraIndicators: Tile[];
   uraIndicators: Tile[];
   mode: CallMode | null;
+  /**
+   * Independent of `mode`: when armed, the next five added -- on its own or
+   * inside a call -- is the red one. A run is built from its lowest tile, so
+   * this is the only way to put a red five anywhere but the start of a chii.
+   */
+  red: boolean;
 
   winMode: WinMode;
   roundWind: SituationWind;
@@ -46,7 +52,7 @@ export interface HandState {
 }
 
 export const initialHandState: HandState = {
-  concealed: [], melds: [], doraIndicators: [], uraIndicators: [], mode: null,
+  concealed: [], melds: [], doraIndicators: [], uraIndicators: [], mode: null, red: false,
   winMode: 'ron', roundWind: 'este', seatWind: 'este', riichi: 'none',
   ippatsu: false, chankan: false, rinshan: false, lastDraw: false, firstRound: false,
 };
@@ -97,19 +103,25 @@ export function winningTile(state: HandState): Tile | null {
   return state.concealed.at(-1) ?? null;
 }
 
+/** Is this tile a five of a numbered suit (red or not)? */
+const isFive = (tile: Tile): boolean => numberOf(tile) === 5;
+
+/** Replaces the first five in a meld with its red copy. */
+function reddenOne(tiles: Tile[]): Tile[] {
+  const at = tiles.findIndex(isFive);
+  if (at < 0) return tiles;
+  return tiles.map((t, i) => (i === at ? (`${normalizeRed(t)}R` as Tile) : t));
+}
+
 /**
- * Builds the meld a keyboard press implies.
+ * Builds the meld a keyboard press implies, from plain tiles.
  *
- * Only one red copy of each five exists, so tapping a red five means "this meld
- * contains the red one" -- the remaining copies are plain. Tapping a plain tile
- * never produces a red.
+ * Redness is applied afterwards by `reddenOne`, driven by the red modifier --
+ * that way a red five can land anywhere in a run, not just at its start.
  */
 function meldFor(mode: CallMode, tile: Tile): DeclaredMeld | null {
   const plain = normalizeRed(tile);
-  const red = isRedFive(tile);
-  /** n copies of the tile, at most one of them red. */
-  const copies = (n: number): Tile[] =>
-    red ? [tile, ...Array<Tile>(n - 1).fill(plain)] : Array<Tile>(n).fill(plain);
+  const copies = (n: number): Tile[] => Array<Tile>(n).fill(plain);
 
   switch (mode) {
     case 'pon': return { kind: 'pon', tiles: copies(3) as [Tile, Tile, Tile] };
@@ -119,14 +131,27 @@ function meldFor(mode: CallMode, tile: Tile): DeclaredMeld | null {
       const n = numberOf(plain);
       if (n === null || n > 7) return null;
       const suit = plain[0];
-      // The run starts at the tapped tile, keeping its redness if it had any.
       return {
         kind: 'chii',
-        tiles: [tile, `${suit}${n + 1}` as Tile, `${suit}${n + 2}` as Tile],
+        tiles: [plain, `${suit}${n + 1}` as Tile, `${suit}${n + 2}` as Tile],
       };
     }
     default: return null;
   }
+}
+
+/** The meld a press produces, with the red modifier applied. */
+function meldForPress(state: HandState, tile: Tile): DeclaredMeld | null {
+  const meld = state.mode && state.mode !== 'dora' && state.mode !== 'uraDora'
+    ? meldFor(state.mode, tile) : null;
+  if (!meld || !state.red) return meld;
+  return { ...meld, tiles: reddenOne([...meld.tiles]) } as DeclaredMeld;
+}
+
+/** The concealed tile a press produces, with the red modifier applied. */
+function tileForPress(state: HandState, tile: Tile): Tile {
+  const plain = normalizeRed(tile);
+  return state.red && isFive(plain) ? (`${plain}R` as Tile) : plain;
 }
 
 /**
@@ -145,15 +170,17 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
 
   if (mode === null) {
     if (isComplete(state)) return 'the hand is already complete';
-    if (copiesUsed(state, tile) >= 4) return 'all four copies are already used';
-    if (isRedFive(tile) && redsUsed(state, tile) >= 1) return `the ${tile} is already used`;
+    if (state.red && !isFive(tile)) return 'the red modifier only applies to fives';
+    const actual = tileForPress(state, tile);
+    if (copiesUsed(state, actual) >= 4) return 'all four copies are already used';
+    if (isRedFive(actual) && redsUsed(state, actual) >= 1) return `the ${actual} is already used`;
     return null;
   }
 
   // A call mode.
   if (state.melds.length >= 4) return 'a hand holds at most four melds';
 
-  const meld = meldFor(mode, tile);
+  const meld = meldForPress(state, tile);
   if (!meld) {
     if (mode === 'chii') {
       return suitOf(tile) === 'honor'
@@ -161,6 +188,10 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
         : 'a run cannot start above 7';
     }
     return 'not available';
+  }
+
+  if (state.red && !meld.tiles.some(isFive)) {
+    return 'the red modifier only applies to melds containing a five';
   }
 
   // Every tile the call consumes must still be available: four copies of each
@@ -194,7 +225,20 @@ export const isDisabled = (state: HandState, tile: Tile): boolean =>
 // --- transitions ---
 
 export function toggleMode(state: HandState, mode: CallMode): HandState {
-  return { ...state, mode: state.mode === mode ? null : mode };
+  const next = state.mode === mode ? null : mode;
+  // The red modifier is meaningless while marking dora indicators.
+  const red = next === 'dora' || next === 'uraDora' ? false : state.red;
+  return { ...state, mode: next, red };
+}
+
+/** Independent of the call modes: arms the next five to be the red one. */
+export function toggleRed(state: HandState): HandState {
+  return { ...state, red: !state.red };
+}
+
+/** Whether the red modifier can be armed at all right now. */
+export function redAvailable(state: HandState): boolean {
+  return state.mode !== 'dora' && state.mode !== 'uraDora';
 }
 
 export function pressTile(state: HandState, tile: Tile): HandState {
@@ -203,13 +247,15 @@ export function pressTile(state: HandState, tile: Tile): HandState {
 
   if (mode === 'dora') return { ...state, doraIndicators: [...state.doraIndicators, tile] };
   if (mode === 'uraDora') return { ...state, uraIndicators: [...state.uraIndicators, tile] };
-  if (mode === null) return { ...state, concealed: [...state.concealed, tile] };
+  if (mode === null) {
+    return { ...state, concealed: [...state.concealed, tileForPress(state, tile)], red: false };
+  }
 
-  const meld = meldFor(mode, tile);
+  const meld = meldForPress(state, tile);
   if (!meld) return state;
   // Call modes disarm after use -- you almost always want to add tiles next.
   // Dora modes stay armed, since revealing several dora is routine.
-  return reconcile({ ...state, melds: [...state.melds, meld], mode: null });
+  return reconcile({ ...state, melds: [...state.melds, meld], mode: null, red: false });
 }
 
 export const removeConcealed = (state: HandState, index: number): HandState =>

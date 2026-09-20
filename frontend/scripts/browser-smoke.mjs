@@ -53,12 +53,12 @@ try {
 
   // --- disable logic is live in the DOM ---
   await page.click('.modebar__btn[aria-pressed="false"]'); // arm chii (first button)
-  const honourDisabled = await page.$eval('.keyboard [data-face="e"]', (el) => el.disabled);
+  const honourDisabled = await page.$eval('.keyboard [data-key="e"]', (el) => el.disabled);
   check(honourDisabled, 'honours disable while chii is armed');
   await page.click('.modebar__btn[aria-pressed="true"]');  // disarm
 
   // --- build the hand ---
-  for (const tile of HAND) await page.click(`.keyboard [data-face="${tile}"]`);
+  for (const tile of HAND) await page.click(`.keyboard [data-key="${tile}"]`);
 
   const handCount = await page.$$eval('.handdisplay__tiles .tile', (els) => els.length);
   check(handCount === 14, `hand shows 14 tiles (got ${handCount})`);
@@ -118,10 +118,10 @@ try {
     [...document.querySelectorAll('.modebar__btn')].find((b) => b.textContent === l).click();
   }, label);
 
-  await arm('Chii'); await page.click('.keyboard [data-face="s3"]');
-  await arm('Pon');  await page.click('.keyboard [data-face="p7"]');
-  await arm('Closed kan'); await page.click('.keyboard [data-face="m1"]');
-  for (const t of ['e', 'e', 'p2', 'p3', 'p4']) await page.click(`.keyboard [data-face="${t}"]`);
+  await arm('Chii'); await page.click('.keyboard [data-key="s3"]');
+  await arm('Pon');  await page.click('.keyboard [data-key="p7"]');
+  await arm('Closed kan'); await page.click('.keyboard [data-key="m1"]');
+  for (const t of ['e', 'e', 'p2', 'p3', 'p4']) await page.click(`.keyboard [data-key="${t}"]`);
 
   const melds = await page.$$eval('.meld', (els) => els.map((el) => ({
     tiles: el.querySelectorAll('.tile').length,
@@ -135,17 +135,28 @@ try {
         'a closed kan shows two face-down tiles and none rotated');
   await shot('04-melds.png');
 
-  // --- red fives produce one red copy, not three ---
+  // --- the red modifier puts a red five anywhere in a run ---
   // Clear first: the previous hand is complete, so no further call is allowed.
   await page.evaluate(() => {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
   });
-  await arm('Pon'); await page.click('.keyboard [data-face="m5R"]');
-  const ponFaces = await page.$$eval('.meld .tile', (els) => els.map((e) => e.dataset.face));
-  check(JSON.stringify(ponFaces) === JSON.stringify(['m5R', 'm5', 'm5']),
-        `a pon on the red five holds one red copy (got ${JSON.stringify(ponFaces)})`);
-  const redAgain = await page.$eval('.keyboard [data-face="m5R"]', (el) => el.disabled);
-  check(redAgain, 'the red five disables once its single copy is used');
+  await arm('Chii'); await arm('Red 5');
+  await page.click('.keyboard [data-key="m3"]');
+  const chiiFaces = await page.$$eval('.meld .tile', (els) => els.map((e) => e.dataset.face));
+  check(JSON.stringify(chiiFaces) === JSON.stringify(['m3', 'm4', 'm5R']),
+        `a 3-4-5 run can hold the red five (got ${JSON.stringify(chiiFaces)})`);
+
+  await arm('Red 5');
+  const nonFiveOff = await page.$eval('.keyboard [data-key="m4"]', (el) => el.disabled);
+  check(nonFiveOff, 'the red modifier disables tiles that would produce no five');
+  // The red 5m is already inside that run, so only another suit is available.
+  const redManUsed = await page.$eval('.keyboard [data-key="m5"]', (el) => el.disabled);
+  check(redManUsed, 'the red five disables once its single copy is in the hand');
+
+  await page.click('.keyboard [data-key="p5"]');
+  const heldRed = await page.$$eval('.handdisplay__tiles .tile', (els) => els.map((e) => e.dataset.face));
+  check(heldRed.includes('p5R'), `the modifier adds the red copy (got ${JSON.stringify(heldRed)})`);
+  await shot('07-red.png');
 
   // --- an open hand blocks riichi ---
   await page.click('.flaps__tab:nth-child(2)');
@@ -162,7 +173,7 @@ try {
   await page.evaluate(() => {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
   });
-  await arm('Dora'); await page.click('.keyboard [data-face="m9"]');
+  await arm('Dora'); await page.click('.keyboard [data-key="m9"]');
   const pair = await page.$$eval('.dorarow__pair .tile', (els) => els.map((e) => e.dataset.face));
   check(JSON.stringify(pair) === JSON.stringify(['m9', 'm1']),
         `a 9m indicator resolves to 1m (got ${JSON.stringify(pair)})`);

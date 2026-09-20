@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
   isComplete, isHandOpen, pressTile, reconcile, removeConcealed, toFlags, toSituation,
-  toggleMode, winningTile, type HandState,
+  toggleMode, toggleRed, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
 
@@ -126,31 +126,56 @@ describe('dora indicators', () => {
   });
 });
 
-describe('red fives', () => {
-  it('builds a call with exactly one red copy, not three', () => {
-    const pon = pressTile(toggleMode(initialHandState, 'pon'), 'm5R');
-    expect(pon.melds[0]!.tiles).toEqual(T('m5R m5 m5'));
+describe('the red-five modifier', () => {
+  const red = (s: HandState = initialHandState) => toggleRed(s);
 
-    const kan = pressTile(toggleMode(initialHandState, 'kan'), 'p5R');
+  it('adds the red copy of a lone five', () => {
+    expect(pressTile(red(), 'm5').concealed).toEqual(T('m5R'));
+  });
+
+  it('disarms itself after one use, so only one five turns red', () => {
+    const after = pressTile(red(), 'm5');
+    expect(after.red).toBe(false);
+    expect(pressTile(after, 'm5').concealed).toEqual(T('m5R m5'));
+  });
+
+  it('puts the red five anywhere in a run, which tapping alone cannot', () => {
+    const chii = (start: string) =>
+      pressTile(toggleRed(toggleMode(initialHandState, 'chii')), start as never).melds[0]!.tiles;
+    expect(chii('m3')).toEqual(T('m3 m4 m5R'));   // red at the end
+    expect(chii('m4')).toEqual(T('m4 m5R m6'));   // red in the middle
+    expect(chii('m5')).toEqual(T('m5R m6 m7'));   // red at the start
+  });
+
+  it('reddens exactly one tile of a set, since only one red copy exists', () => {
+    const pon = pressTile(toggleRed(toggleMode(initialHandState, 'pon')), 'm5');
+    expect(pon.melds[0]!.tiles).toEqual(T('m5R m5 m5'));
+    const kan = pressTile(toggleRed(toggleMode(initialHandState, 'kan')), 'p5');
     expect(kan.melds[0]!.tiles).toEqual(T('p5R p5 p5 p5'));
   });
 
-  it('keeps a call built from a plain tile entirely plain', () => {
-    const pon = pressTile(toggleMode(initialHandState, 'pon'), 'm5');
-    expect(pon.melds[0]!.tiles).toEqual(T('m5 m5 m5'));
+  it('leaves an unmodified call entirely plain', () => {
+    expect(pressTile(toggleMode(initialHandState, 'pon'), 'm5').melds[0]!.tiles)
+      .toEqual(T('m5 m5 m5'));
   });
 
-  it('starts a run at the red five when that is what was tapped', () => {
-    const chii = pressTile(toggleMode(initialHandState, 'chii'), 's5R');
-    expect(chii.melds[0]!.tiles).toEqual(T('s5R s6 s7'));
+  it('only applies to fives, and says so', () => {
+    expect(disabledReason(red(), 'm4')).toMatch(/only applies to fives/);
+    expect(disabledReason(red(), 'm5')).toBeNull();
+    expect(disabledReason(toggleRed(toggleMode(initialHandState, 'chii')), 'm1'))
+      .toMatch(/containing a five/);
   });
 
-  it('refuses a second red copy, in hand or in a call', () => {
-    const held = build('m5R');
-    expect(disabledReason(held, 'm5R')).toMatch(/already used/);
-    expect(disabledReason(toggleMode(held, 'pon'), 'm5R')).toMatch(/already used/);
-    // The plain copies are still available.
+  it('refuses a second red copy of the same five', () => {
+    const held = pressTile(red(), 'm5');
+    expect(held.concealed).toEqual(T('m5R'));
+    expect(disabledReason(red(held), 'm5')).toMatch(/already used/);
+    // The three plain copies remain available.
     expect(disabledReason(held, 'm5')).toBeNull();
+  });
+
+  it('is meaningless while marking dora, so it disarms', () => {
+    expect(toggleMode(red(), 'dora').red).toBe(false);
   });
 });
 
