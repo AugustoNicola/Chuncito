@@ -75,11 +75,11 @@ try {
       .find((f) => f.querySelector('.field__label')?.textContent === 'Seat wind');
     field.querySelectorAll('.segmented__btn')[1].click();   // South
   });
-  const seat = await page.$$eval('.field', (fs) => {
+  const seatWind = await page.$$eval('.field', (fs) => {
     const f = fs.find((x) => x.querySelector('.field__label')?.textContent === 'Seat wind');
     return f.querySelector('.segmented__btn--on')?.textContent;
   });
-  check(seat === '\u5357', `seat wind switches to South (got ${seat})`);
+  check(seatWind === '\u5357', `seat wind switches to South (got ${seatWind})`);
   await shot('02-details.png');
   await page.click('.flaps__tab:nth-child(1)');
 
@@ -104,6 +104,11 @@ try {
   check(JSON.stringify(yakus) === JSON.stringify(EXPECT.yakus), `yaku list is ${JSON.stringify(EXPECT.yakus)} (got ${JSON.stringify(yakus)})`);
   check(points === EXPECT.points, `points are ${EXPECT.points} (got ${points})`);
   check(EXPECT.han.test(hanfu) && EXPECT.fu.test(hanfu), `han/fu line is "4 han · 30 fu" (got "${hanfu}")`);
+
+  const seat = await page.$eval('.score__seat', (e) => e.textContent);
+  check(seat === 'Non-dealer ron', `seat/win line reads "Non-dealer ron" (got "${seat}")`);
+  const tier = await page.$eval('.score', (e) => e.dataset.tier);
+  check(tier === 'none', `a 4 han hand uses the plain tier (got "${tier}")`);
 
   // --- melds render as they sit on a real table ---
   await page.evaluate(() => {

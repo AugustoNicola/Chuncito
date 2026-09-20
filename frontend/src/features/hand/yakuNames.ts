@@ -46,16 +46,21 @@ export function levelName(level: Level): string {
   return m ? `${m[1]}× Yakuman` : level;
 }
 
-/** CSS custom property holding this level's accent colour. */
-export function levelColorVar(level: Level): string {
+/**
+ * Collapses a level onto the tier that drives its colour theme.
+ *
+ * The yakuman tail ('4xYakuman', ...) all share the yakuman treatment, and a
+ * counted yakuman gets its own, slightly cooler one -- it is not the real thing.
+ */
+export function levelTier(level: Level): string {
   switch (level) {
-    case 'sinNombre': return 'var(--limit-none)';
-    case 'mangan': return 'var(--limit-mangan)';
-    case 'haneman': return 'var(--limit-haneman)';
-    case 'baiman': return 'var(--limit-baiman)';
-    case 'sanbaiman': return 'var(--limit-sanbaiman)';
-    case 'kazoeYakuman': return 'var(--limit-kazoe)';
-    default: return 'var(--limit-yakuman)';
+    case 'sinNombre': return 'none';
+    case 'mangan': return 'mangan';
+    case 'haneman': return 'haneman';
+    case 'baiman': return 'baiman';
+    case 'sanbaiman': return 'sanbaiman';
+    case 'kazoeYakuman': return 'kazoe';
+    default: return 'yakuman';
   }
 }
 

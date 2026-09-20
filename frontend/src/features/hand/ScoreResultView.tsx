@@ -7,13 +7,17 @@
 import type { Payment, ScoreResult } from '../../scorer/types';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import { paymentTotal } from '../../scorer/decode';
-import { isYakumanLevel, levelColorVar, levelName, yakuName } from './yakuNames';
+import { isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
 import { HandSummary } from './HandDisplay';
 import type { HandState } from './handState';
 
-function paymentLine(payment: Payment): string {
+/**
+ * How the total splits. Omitted for a ron, where "<seat> ron" already says the
+ * discarder pays all of it.
+ */
+function paymentSplit(payment: Payment): string | null {
   switch (payment.kind) {
-    case 'ron': return `${payment.total.toLocaleString()} from the discarder`;
+    case 'ron': return null;
     case 'tsumoDealer': return `${payment.each.toLocaleString()} all`;
     case 'tsumo':
       return `${payment.nonDealer.toLocaleString()} / ${payment.dealer.toLocaleString()}`;
@@ -29,10 +33,13 @@ export function ScoreResultView({ result, hand, onBack }: {
   const real = result.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const extras = result.yakus.filter((y) => PSEUDO_YAKU.has(y.yaku));
   const title = levelName(result.level);
-  const color = levelColorVar(result.level);
+  const split = paymentSplit(result.payment);
+  // The engine reads dealership straight off the seat wind.
+  const seat = hand ? (hand.seatWind === 'este' ? 'Dealer' : 'Non-dealer') : null;
+  const winType = hand?.winMode === 'tsumo' ? 'tsumo' : 'ron';
 
   return (
-    <div className="score" style={{ ['--limit' as string]: color }}>
+    <div className="score" data-tier={levelTier(result.level)}>
       {hand && <HandSummary state={hand} />}
 
       <div className="score__yakus">
@@ -64,7 +71,8 @@ export function ScoreResultView({ result, hand, onBack }: {
           {result.fu > 0 && ` · ${result.fu} fu`}
         </span>
         <span className="score__points">{paymentTotal(result.payment).toLocaleString()}</span>
-        <span className="score__breakdown">{paymentLine(result.payment)}</span>
+        {seat && <span className="score__seat">{seat} {winType}</span>}
+        {split && <span className="score__breakdown">{split}</span>}
       </div>
 
       <button type="button" className="btn btn--wide" onClick={onBack}>Back to the hand</button>

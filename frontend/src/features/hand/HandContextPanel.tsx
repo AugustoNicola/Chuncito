@@ -73,9 +73,6 @@ export function HandContextPanel({ state, update }: {
       <Segmented label="Seat wind" value={state.seatWind} options={SITUATION_WINDS}
                  onChange={(v) => update({ seatWind: v })}
                  render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
-      <p className="context__note">
-        Seat wind {WIND_KANJI.este} means the winner is dealer.
-      </p>
 
       <div className="field">
         <span className="field__label">Riichi</span>
@@ -126,10 +123,6 @@ export function HandContextPanel({ state, update }: {
                  hint={issue('firstRound') ?? 'An uninterrupted first go-around'}
                  onChange={(v) => update({ firstRound: v, ...(v ? { ippatsu: false } : {}) })} />
         </div>
-        <p className="context__hint">
-          Scores tenhou, chiihou or renhou depending on seat and win type. Every
-          other yakuman is read from the tiles.
-        </p>
       </div>
 
       {isHandOpen(state) && (

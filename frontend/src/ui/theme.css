@@ -262,6 +262,19 @@ button {
 
 .score { display: flex; flex-direction: column; gap: 16px; padding: 8px 4px; }
 
+/*
+ * Each limit tier gets its own two-stop ramp, used as gradient text for both
+ * the title and the total. --limit stays a flat colour for glows and borders,
+ * since colour-mix needs one.
+ */
+.score[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: #4a9eff; }
+.score[data-tier="mangan"]    { --limit-a: #ffd98a; --limit-b: #d1791f; --limit: #e8a83c; }
+.score[data-tier="haneman"]   { --limit-a: #8fe6ff; --limit-b: #2a74cc; --limit: #59b0e0; }
+.score[data-tier="baiman"]    { --limit-a: #e0b3ff; --limit-b: #7433d6; --limit: #a878e8; }
+.score[data-tier="sanbaiman"] { --limit-a: #ffc07a; --limit-b: #d92d1c; --limit: #e8703a; }
+.score[data-tier="kazoe"]     { --limit-a: #e6d08a; --limit-b: #9c7615; --limit: #c9a227; }
+.score[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ff9b1f; --limit: #ffd24a; }
+
 .score__yakus {
   background: var(--bg-sunken);
   border: 1px solid var(--border);
@@ -281,45 +294,54 @@ button {
   color: var(--limit);
   text-shadow: 0 0 22px color-mix(in srgb, var(--limit) 45%, transparent);
 }
-.score__title--yakuman {
-  font-size: 2.4rem;
-  letter-spacing: 0.08em;
-  text-shadow:
-    0 0 10px color-mix(in srgb, var(--limit) 70%, transparent),
-    0 0 34px color-mix(in srgb, var(--limit) 45%, transparent);
-}
+.score__title--yakuman { font-size: 2.4rem; letter-spacing: 0.08em; }
 
 .score__totals { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.score__hanfu { color: var(--text-dim); font-size: 0.95rem; }
+
+.score__hanfu {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--limit);
+}
 .score__points {
-  font-size: 2.6rem;
-  font-weight: 700;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.05;
   font-variant-numeric: tabular-nums;
   color: var(--limit);
 }
-.score__breakdown { color: var(--text-faint); font-size: 0.85rem; }
-
-.checks--single { grid-template-columns: 1fr; }
-.context__hint { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-faint); line-height: 1.45; }
-
-.handsummary {
-  --tile-w: 30px;
-  background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.score__seat {
+  color: var(--text-dim);
+  font-size: 0.9rem;
 }
-.handsummary__tiles { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
-.handsummary__meld { display: inline-flex; align-items: flex-end; gap: 1px; margin-left: 8px; }
+.score__breakdown { color: var(--text-faint); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 
-/* The red modifier stacks with any call mode, so it reads differently. */
-.modebar__btn--red { border-color: var(--border-strong); }
-.modebar__btn--red.modebar__btn--on {
-  background: #7a2230;
-  border-color: var(--danger);
-  color: var(--text);
+/*
+ * Gradient text. Guarded, because with background-clip unsupported the
+ * transparent fill would leave the number invisible rather than merely flat.
+ */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .score__title,
+  .score__points {
+    background-image: linear-gradient(160deg, var(--limit-a) 0%, var(--limit-b) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Gradient text cannot take a text-shadow, so the glow moves to a backdrop. */
+  .score__title { position: relative; text-shadow: none; }
+  .score__title::before {
+    content: '';
+    position: absolute;
+    inset: -10% 20%;
+    background: radial-gradient(ellipse at center,
+      color-mix(in srgb, var(--limit) 30%, transparent) 0%, transparent 70%);
+    z-index: -1;
+  }
+  .score[data-tier="yakuman"] .score__title::before {
+    inset: -25% 8%;
+    background: radial-gradient(ellipse at center,
+      color-mix(in srgb, var(--limit) 55%, transparent) 0%, transparent 72%);
+  }
 }
-.modebar__btn:disabled { opacity: 0.4; cursor: not-allowed; }
