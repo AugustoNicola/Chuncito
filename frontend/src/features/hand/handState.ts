@@ -80,6 +80,21 @@ export function redsUsed(state: HandState, redTile: Tile): number {
   return heldTiles(state).filter((t) => t === redTile).length;
 }
 
+/**
+ * Plain (non-red) copies of a tile in play.
+ *
+ * Fives are the interesting case: a suit has four, but only *three* of them are
+ * plain. So three plain fives exhaust the supply, and any further five must be
+ * the red one -- which is also why a kan of fives always contains it.
+ */
+export function plainUsed(state: HandState, tile: Tile): number {
+  const base = normalizeRed(tile);
+  return heldTiles(state).filter((t) => t === base).length;
+}
+
+/** How many plain copies of this tile exist at all: three for a five, four otherwise. */
+export const plainSupply = (tile: Tile): number => (numberOf(tile) === 5 ? 3 : 4);
+
 /** An open meld makes the hand open; a concealed kan does not. */
 export function isHandOpen(state: HandState): boolean {
   return state.melds.some((m) => OPEN_MELD_KINDS.has(m.kind));
@@ -106,12 +121,20 @@ export function winningTile(state: HandState): Tile | null {
 /** Is this tile a five of a numbered suit (red or not)? */
 const isFive = (tile: Tile): boolean => numberOf(tile) === 5;
 
-/** Replaces the first five in a meld with its red copy. */
+/** Replaces the first plain five in a meld with its red copy. No-op if one is already red. */
 function reddenOne(tiles: Tile[]): Tile[] {
+  if (tiles.some(isRedFive)) return tiles;
   const at = tiles.findIndex(isFive);
   if (at < 0) return tiles;
   return tiles.map((t, i) => (i === at ? (`${normalizeRed(t)}R` as Tile) : t));
 }
+
+/**
+ * A four-tile set of fives uses every copy in the suit, and only three of those
+ * are plain -- so the red one is necessarily part of it.
+ */
+const forcesRed = (kind: DeclaredMeld['kind'], tiles: readonly Tile[]): boolean =>
+  (kind === 'kanA' || kind === 'kanC') && tiles.every(isFive);
 
 /**
  * Builds the meld a keyboard press implies, from plain tiles.
@@ -123,10 +146,16 @@ function meldFor(mode: CallMode, tile: Tile): DeclaredMeld | null {
   const plain = normalizeRed(tile);
   const copies = (n: number): Tile[] => Array<Tile>(n).fill(plain);
 
+  /** Kans of fives are reddened here, since that is forced rather than chosen. */
+  const kan = (kind: 'kanA' | 'kanC'): DeclaredMeld => {
+    const tiles = copies(4);
+    return { kind, tiles: (forcesRed(kind, tiles) ? reddenOne(tiles) : tiles) } as DeclaredMeld;
+  };
+
   switch (mode) {
     case 'pon': return { kind: 'pon', tiles: copies(3) as [Tile, Tile, Tile] };
-    case 'kan': return { kind: 'kanA', tiles: copies(4) as [Tile, Tile, Tile, Tile] };
-    case 'closedKan': return { kind: 'kanC', tiles: copies(4) as [Tile, Tile, Tile, Tile] };
+    case 'kan': return kan('kanA');
+    case 'closedKan': return kan('kanC');
     case 'chii': {
       const n = numberOf(plain);
       if (n === null || n > 7) return null;
@@ -163,9 +192,9 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
 
   if (mode === 'dora' || mode === 'uraDora') {
     const list = mode === 'dora' ? state.doraIndicators : state.uraIndicators;
-    if (list.length >= MAX_DORA) return `at most ${MAX_DORA} indicators`;
-    if (mode === 'uraDora' && state.riichi === 'none') return 'ura dora requires a riichi';
-    return null;
+    // Ura is enterable before the riichi is picked -- the tile flap comes first,
+    // and validation catches the combination when the hand is scored.
+    return list.length >= MAX_DORA ? `at most ${MAX_DORA} indicators` : null;
   }
 
   if (mode === null) {
@@ -173,7 +202,14 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
     if (state.red && !isFive(tile)) return 'the red modifier only applies to fives';
     const actual = tileForPress(state, tile);
     if (copiesUsed(state, actual) >= 4) return 'all four copies are already used';
-    if (isRedFive(actual) && redsUsed(state, actual) >= 1) return `the ${actual} is already used`;
+    if (isRedFive(actual)) {
+      return redsUsed(state, actual) >= 1 ? `the ${actual} is already used` : null;
+    }
+    if (plainUsed(state, actual) >= plainSupply(actual)) {
+      return isFive(actual)
+        ? 'all three plain fives are used — arm Red 5 for the last one'
+        : 'all four copies are already used';
+    }
     return null;
   }
 
@@ -198,16 +234,25 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
   // value exist, and at most one of those four is the red one.
   const needed = new Map<Tile, number>();
   const neededRed = new Map<Tile, number>();
+  const neededPlain = new Map<Tile, number>();
   for (const t of meld.tiles) {
     const base = normalizeRed(t);
     needed.set(base, (needed.get(base) ?? 0) + 1);
     if (isRedFive(t)) neededRed.set(t, (neededRed.get(t) ?? 0) + 1);
+    else neededPlain.set(base, (neededPlain.get(base) ?? 0) + 1);
   }
   for (const [base, count] of needed) {
     if (copiesUsed(state, base) + count > 4) return `not enough copies of ${base} left`;
   }
   for (const [redTile, count] of neededRed) {
     if (redsUsed(state, redTile) + count > 1) return `the ${redTile} is already used`;
+  }
+  for (const [base, count] of neededPlain) {
+    if (plainUsed(state, base) + count > plainSupply(base)) {
+      return isFive(base)
+        ? `only three plain ${base} exist`
+        : `not enough copies of ${base} left`;
+    }
   }
 
   // The winning tile must come after the last call, so a call can never be the
@@ -352,10 +397,9 @@ export function reconcile(state: HandState): HandState {
   if (contextIssue(s, 'chankan') && s.chankan) s = { ...s, chankan: false };
   if (s.winMode !== 'tsumo' && s.rinshan) s = { ...s, rinshan: false };
   if (contextIssue(s, 'firstRound') && s.firstRound) s = { ...s, firstRound: false };
-  // Ura dora is only revealed on a riichi.
-  if (s.riichi === 'none' && s.uraIndicators.length > 0) s = { ...s, uraIndicators: [] };
-  // Arming a mode that is no longer meaningful would strand the keyboard.
-  if (s.mode === 'uraDora' && s.riichi === 'none') s = { ...s, mode: null };
+  // Ura indicators are deliberately kept even without a riichi: they are entered
+  // on the tile flap, before the riichi is picked. validateQuery reports the
+  // combination at score time.
   return s;
 }
 

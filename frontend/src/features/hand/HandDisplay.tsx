@@ -9,6 +9,7 @@ import { Tile } from '../../ui/Tile';
 import type { DeclaredMeld, Tile as TileAtom } from '../../scorer/types';
 import { concealedForDisplay, type HandState } from './handState';
 import { doraFromIndicator } from '../../scorer/dora';
+import { isRedFive } from '../../scorer/order';
 
 function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void }) {
   const tiles = meld.tiles as TileAtom[];
@@ -19,8 +20,7 @@ function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void
       {tiles.map((tile, i) => {
         // An ankan is shown with its outer tiles face down.
         if (meld.kind === 'kanC') {
-          const hidden = i === 0 || i === tiles.length - 1;
-          return <Tile key={i} face={hidden ? 'back' : tile} />;
+          return <Tile key={i} face={ankanFaces(tiles)[i]!} />;
         }
         // Called melds: the first tile lies sideways, marking where it came from.
         return <Tile key={i} face={tile} rotated={i === 0} />;
@@ -29,11 +29,7 @@ function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void
   );
 }
 
-/**
- * Indicators as they sit on the table, with the dora they point at shown
- * alongside -- the conversion is easy to get wrong from memory, so the UI does
- * it visibly rather than silently.
- */
+/** The indicators as they sit on the table. What each points at is left implicit. */
 function IndicatorRow({ label, indicators, onRemove }: {
   label: string; indicators: TileAtom[]; onRemove: (i: number) => void;
 }) {
@@ -42,14 +38,23 @@ function IndicatorRow({ label, indicators, onRemove }: {
     <div className="dorarow">
       <span className="dorarow__label">{label}</span>
       {indicators.map((tile, i) => (
-        <span className="dorarow__pair" key={i}>
-          <Tile face={tile} onClick={() => onRemove(i)} label={`Remove ${label} indicator ${tile}`} />
-          <span className="dorarow__arrow" aria-hidden="true">→</span>
-          <Tile face={doraFromIndicator(tile)} label={`dora ${doraFromIndicator(tile)}`} />
-        </span>
+        <Tile key={i} face={tile} onClick={() => onRemove(i)}
+              label={`${label} indicator ${tile} — points at ${doraFromIndicator(tile)}`} />
       ))}
     </div>
   );
+}
+
+/**
+ * A concealed kan is shown with its outer tiles face down. Its tiles are
+ * reordered first so anything worth seeing -- a red five, which a kan of fives
+ * always contains -- ends up in one of the two visible slots.
+ */
+function ankanFaces(tiles: readonly TileAtom[]): (TileAtom | 'back')[] {
+  const reds = tiles.filter(isRedFive);
+  const plain = tiles.filter((t) => !isRedFive(t));
+  const visible = [...reds, ...plain].slice(0, 2);
+  return ['back', visible[0] ?? tiles[0]!, visible[1] ?? tiles[1]!, 'back'];
 }
 
 /** Read-only rendering of a finished hand, for the score screen. */
@@ -64,7 +69,7 @@ export function HandSummary({ state }: { state: HandState }) {
           <span className="handsummary__meld" key={`m${i}`}>
             {(meld.tiles as TileAtom[]).map((tile, j) => (
               meld.kind === 'kanC'
-                ? <Tile key={j} face={j === 0 || j === meld.tiles.length - 1 ? 'back' : tile} />
+                ? <Tile key={j} face={ankanFaces(meld.tiles as TileAtom[])[j]!} />
                 : <Tile key={j} face={tile} rotated={j === 0} />
             ))}
           </span>

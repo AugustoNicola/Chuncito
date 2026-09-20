@@ -31,10 +31,12 @@ describe('adding concealed tiles', () => {
   });
 
   it('refuses a fifth copy, counting a red five as its plain twin', () => {
-    const s = build('m5 m5 m5 m5R');
+    // Three plain plus the red one is every copy of the 5m in the game.
+    const s = pressTile(toggleRed(build('m5 m5 m5')), 'm5');
+    expect(s.concealed).toEqual(T('m5 m5 m5 m5R'));
     expect(copiesUsed(s, 'm5')).toBe(4);
     expect(disabledReason(s, 'm5')).toMatch(/four copies/);
-    expect(disabledReason(s, 'm5R')).toMatch(/four copies/);
+    expect(disabledReason(toggleRed(s), 'm5')).toMatch(/already used/);
   });
 
   it('stops accepting tiles once the hand is complete', () => {
@@ -105,7 +107,7 @@ describe('call modes', () => {
 
 describe('dora indicators', () => {
   it('stores what was tapped as an indicator, not as the dora itself', () => {
-    const s = pressTile(toggleMode(build('m5 m5 m5 m5R'), 'dora'), 'm5');
+    const s = pressTile(toggleMode(pressTile(toggleRed(build('m5 m5 m5')), 'm5'), 'dora'), 'm5');
     expect(s.doraIndicators).toEqual(T('m5'));
     // The indicator points at m6, and indicators never consume hand tiles.
     expect(toSituation(s).dora).toEqual(T('m6'));
@@ -118,12 +120,6 @@ describe('dora indicators', () => {
     expect(disabledReason(s, 'm6')).toMatch(/at most 5 indicators/);
   });
 
-  it('refuses ura indicators without a riichi', () => {
-    expect(disabledReason(toggleMode(initialHandState, 'uraDora'), 'm1'))
-      .toMatch(/requires a riichi/);
-    const withRiichi = toggleMode({ ...initialHandState, riichi: 'riichi' }, 'uraDora');
-    expect(disabledReason(withRiichi, 'm1')).toBeNull();
-  });
 });
 
 describe('the red-five modifier', () => {
@@ -179,6 +175,59 @@ describe('the red-five modifier', () => {
   });
 });
 
+describe('only three of each five are plain', () => {
+  it('exhausts the plain fives after three, pointing at the modifier', () => {
+    const three = build('m5 m5 m5');
+    expect(disabledReason(three, 'm5')).toMatch(/three plain fives/);
+    // The red one is still there.
+    expect(disabledReason(toggleRed(three), 'm5')).toBeNull();
+  });
+
+  it('blocks a plain five once a pon has taken all three', () => {
+    const pon = pressTile(toggleMode(initialHandState, 'pon'), 'm5');
+    expect(pon.melds[0]!.tiles).toEqual(T('m5 m5 m5'));
+    expect(disabledReason(pon, 'm5')).toMatch(/three plain fives/);
+    expect(disabledReason(toggleRed(pon), 'm5')).toBeNull();
+  });
+
+  it('puts the red five in a kan of fives automatically, since it is forced', () => {
+    const open = pressTile(toggleMode(initialHandState, 'kan'), 'm5');
+    expect(open.melds[0]!.tiles).toEqual(T('m5R m5 m5 m5'));
+    const closed = pressTile(toggleMode(initialHandState, 'closedKan'), 'p5');
+    expect(closed.melds[0]!.tiles).toEqual(T('p5R p5 p5 p5'));
+  });
+
+  it('leaves kans of other tiles alone', () => {
+    const kan = pressTile(toggleMode(initialHandState, 'kan'), 'm4');
+    expect(kan.melds[0]!.tiles).toEqual(T('m4 m4 m4 m4'));
+  });
+
+  it('refuses a pon of plain fives when only the plain supply is short', () => {
+    // One plain five held: the pon needs three more plain, but only two remain,
+    // even though four copies of the tile are not yet used.
+    const one = build('m5');
+    expect(copiesUsed(one, 'm5')).toBe(1);
+    expect(disabledReason(toggleMode(one, 'pon'), 'm5')).toMatch(/only three plain m5 exist/);
+  });
+});
+
+describe('ura indicators', () => {
+  it('accepts them before a riichi is chosen, since the tile flap comes first', () => {
+    const s = pressTile(toggleMode(initialHandState, 'uraDora'), 'm1');
+    expect(s.uraIndicators).toEqual(T('m1'));
+    expect(disabledReason(toggleMode(initialHandState, 'uraDora'), 'm1')).toBeNull();
+  });
+
+  it('keeps them when the hand is opened, rather than silently dropping them', () => {
+    const s = reconcile({
+      ...initialHandState,
+      uraIndicators: T('m1'),
+      melds: [{ kind: 'pon', tiles: T('s3 s3 s3') as never }],
+    });
+    expect(s.uraIndicators).toEqual(T('m1'));
+  });
+});
+
 describe('context rules the engine does not enforce', () => {
   const open = (over: Partial<HandState> = {}): HandState =>
     ({ ...initialHandState, melds: [{ kind: 'pon', tiles: T('s3 s3 s3') as never }], ...over });
@@ -199,7 +248,9 @@ describe('context rules the engine does not enforce', () => {
     const s = reconcile(open({ riichi: 'riichi', ippatsu: true, uraIndicators: T('m1') }));
     expect(s.riichi).toBe('none');
     expect(s.ippatsu).toBe(false);
-    expect(s.uraIndicators).toEqual([]);
+    // The ura indicators stay: they were entered on the tile flap, and
+    // validateQuery reports the combination when the hand is scored.
+    expect(s.uraIndicators).toEqual(T('m1'));
   });
 
   it('ties chankan to ron and rinshan to tsumo', () => {

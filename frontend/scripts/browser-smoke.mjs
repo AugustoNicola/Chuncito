@@ -174,9 +174,22 @@ try {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
   });
   await arm('Dora'); await page.click('.keyboard [data-key="m9"]');
-  const pair = await page.$$eval('.dorarow__pair .tile', (els) => els.map((e) => e.dataset.face));
-  check(JSON.stringify(pair) === JSON.stringify(['m9', 'm1']),
-        `a 9m indicator resolves to 1m (got ${JSON.stringify(pair)})`);
+  const indicators = await page.$$eval('.dorarow .tile', (els) => els.map((e) => e.dataset.face));
+  check(JSON.stringify(indicators) === JSON.stringify(['m9']),
+        `the dora row shows the indicator itself (got ${JSON.stringify(indicators)})`);
+
+  // Ura is enterable before a riichi is picked, since the tile flap comes first.
+  await arm('Ura'); await page.click('.keyboard [data-key="s1"]');
+  const uraCount = await page.$$eval('.dorarow', (rows) => rows.length);
+  check(uraCount === 2, `ura accepted without a riichi (got ${uraCount} indicator rows)`);
+
+  // A kan of fives necessarily contains the red one, and it must be visible.
+  await arm('Closed kan'); await page.click('.keyboard [data-key="p5"]');
+  const ankan = await page.$$eval('.meld .tile', (els) => els.map((e) => e.dataset.face));
+  check(JSON.stringify(ankan) === JSON.stringify(['back', 'p5R', 'p5', 'back']),
+        `a closed kan of fives shows its red five (got ${JSON.stringify(ankan)})`);
+  const plainSpent = await page.$eval('.keyboard [data-key="p5"]', (el) => el.disabled);
+  check(plainSpent, 'the plain five disables once a kan has taken every copy');
   await shot('06-dora.png');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');

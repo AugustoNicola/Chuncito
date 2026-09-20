@@ -30,7 +30,8 @@ export function TileKeyboard({ state, onPress }: {
   return (
     <div className="keyboard">
       {ROWS.map((row, i) => (
-        <div className="keyboard__row" key={i}>
+        // The honour row is short, so it centres rather than sitting flush left.
+        <div className={`keyboard__row${row.length < 9 ? ' keyboard__row--short' : ''}`} key={i}>
           {row.map((tile) => {
             const reason = disabledReason(state, tile);
             // Preview what the press will actually add.

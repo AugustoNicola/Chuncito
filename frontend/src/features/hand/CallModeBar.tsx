@@ -4,13 +4,19 @@
  */
 import { redAvailable, type CallMode, type HandState } from './handState';
 
-const MODES: readonly { mode: CallMode; label: string; hint: string }[] = [
+type ModeSpec = { mode: CallMode; label: string; hint: string };
+
+/** Calls on their own row; the tile-marking modifiers on a second. */
+const CALLS: readonly ModeSpec[] = [
   { mode: 'chii', label: 'Chii', hint: 'Called run, starting at the tapped tile' },
   { mode: 'pon', label: 'Pon', hint: 'Called triplet' },
   { mode: 'kan', label: 'Kan', hint: 'Open kan' },
   { mode: 'closedKan', label: 'Closed kan', hint: 'Concealed kan (ankan)' },
-  { mode: 'dora', label: 'Dora', hint: 'Mark the tapped tile as dora' },
-  { mode: 'uraDora', label: 'Ura', hint: 'Mark the tapped tile as ura dora' },
+];
+
+const MARKERS: readonly ModeSpec[] = [
+  { mode: 'dora', label: 'Dora', hint: 'Mark the tapped tile as a dora indicator' },
+  { mode: 'uraDora', label: 'Ura', hint: 'Mark the tapped tile as an ura dora indicator' },
 ];
 
 export function CallModeBar({ state, onToggle, onToggleRed }: {
@@ -18,31 +24,38 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
   onToggle: (mode: CallMode) => void;
   onToggleRed: () => void;
 }) {
+  const modeButton = ({ mode, label, hint }: ModeSpec) => (
+    <button
+      key={mode}
+      type="button"
+      className={`modebar__btn${state.mode === mode ? ' modebar__btn--on' : ''}`}
+      aria-pressed={state.mode === mode}
+      title={hint}
+      onClick={() => onToggle(mode)}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div className="modebar" role="group" aria-label="Call modes">
-      {MODES.map(({ mode, label, hint }) => (
+    <div className="modebar">
+      <div className="modebar__row modebar__row--calls" role="group" aria-label="Calls">
+        {CALLS.map(modeButton)}
+      </div>
+      <div className="modebar__row modebar__row--markers" role="group" aria-label="Tile markers">
+        {/* Red is independent of the modes: it combines with any of them. */}
         <button
-          key={mode}
           type="button"
-          className={`modebar__btn${state.mode === mode ? ' modebar__btn--on' : ''}`}
-          aria-pressed={state.mode === mode}
-          title={hint}
-          onClick={() => onToggle(mode)}
+          className={`modebar__btn modebar__btn--red${state.red ? ' modebar__btn--on' : ''}`}
+          aria-pressed={state.red}
+          disabled={!redAvailable(state)}
+          title="The next five you add is the red one — works on its own or inside a call"
+          onClick={onToggleRed}
         >
-          {label}
+          Red 5
         </button>
-      ))}
-      {/* Independent of the modes above: combines with any of them. */}
-      <button
-        type="button"
-        className={`modebar__btn modebar__btn--red${state.red ? ' modebar__btn--on' : ''}`}
-        aria-pressed={state.red}
-        disabled={!redAvailable(state)}
-        title="The next five you add is the red one — works on its own or inside a call"
-        onClick={onToggleRed}
-      >
-        Red 5
-      </button>
+        {MARKERS.map(modeButton)}
+      </div>
     </div>
   );
 }

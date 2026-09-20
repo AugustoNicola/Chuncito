@@ -204,10 +204,13 @@ button {
 
 /* ---------- mode bar ---------- */
 
-.modebar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.modebar { display: flex; flex-direction: column; gap: 4px; }
+.modebar__row { display: grid; gap: 4px; }
+.modebar__row--calls { grid-template-columns: repeat(4, 1fr); }
+.modebar__row--markers { grid-template-columns: repeat(3, 1fr); }
 .modebar__btn {
-  padding: 9px 2px;
-  font-size: 0.75rem;
+  padding: 10px 4px;
+  font-size: 0.8rem;
   font-weight: 550;
   border-radius: 8px;
   background: var(--bg-raised);
@@ -222,9 +225,11 @@ button {
 
 /* ---------- keyboard ---------- */
 
-.keyboard { display: flex; flex-direction: column; gap: 4px; }
-.keyboard__row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
+.keyboard { display: flex; flex-direction: column; gap: 5px; }
+.keyboard__row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
 .keyboard .tile { width: 100%; }
+/* Seven honours in a nine-column grid: leave a column free on each side. */
+.keyboard__row--short > :first-child { grid-column-start: 2; }
 
 /* ---------- context flap ---------- */
 
@@ -296,10 +301,6 @@ button {
 
 .checks--single { grid-template-columns: 1fr; }
 .context__hint { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-faint); line-height: 1.45; }
-
-/* Indicator -> dora, shown side by side so the conversion is visible. */
-.dorarow__pair { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; }
-.dorarow__arrow { color: var(--text-faint); font-size: 0.8rem; }
 
 .handsummary {
   --tile-w: 30px;
