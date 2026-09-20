@@ -1,0 +1,295 @@
+/* Chuncito — dark theme tokens. Mobile-first; the table is the primary screen. */
+
+:root {
+  color-scheme: dark;
+
+  --bg:            #12131a;
+  --bg-raised:     #1a1c26;
+  --bg-sunken:     #0d0e13;
+  --border:        #2a2d3a;
+  --border-strong: #3a3e4f;
+
+  --text:          #e8e9ef;
+  --text-dim:      #9a9db0;
+  --text-faint:    #63667a;
+
+  --accent:        #4a9eff;
+  --accent-dim:    #2b5f99;
+  --danger:        #ff6b6b;
+  --ok:            #5ad19a;
+
+  /* Limit-hand colours, used for the title on the score screen. */
+  --limit-none:      #9a9db0;
+  --limit-mangan:    #d9a441;
+  --limit-haneman:   #59b0e0;
+  --limit-baiman:    #a878e8;
+  --limit-sanbaiman: #e8703a;
+  --limit-kazoe:     #c9a227;   /* counted yakuman: muted, not the real thing */
+  --limit-yakuman:   #ffd24a;
+
+  --tile-w: 40px;
+  --radius: 10px;
+  --gap: 8px;
+
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  /* Tapping tiles repeatedly shouldn't trigger zoom or text selection. */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* ---------- tiles ---------- */
+
+.tile {
+  position: relative;
+  display: inline-block;
+  width: var(--tile-w);
+  aspect-ratio: 3 / 4;
+  flex: none;
+  user-select: none;
+}
+
+.tile img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* Called melds show one tile turned on its side, as on a real table. */
+.tile--rotated {
+  width: calc(var(--tile-w) * 4 / 3);
+  aspect-ratio: 4 / 3;
+}
+.tile--rotated img {
+  width: calc(var(--tile-w) * 4 / 3 * 3 / 4);
+  height: calc(var(--tile-w) * 4 / 3);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
+}
+
+.tile--button { cursor: pointer; transition: transform 80ms ease, filter 80ms ease; }
+.tile--button:active { transform: translateY(1px) scale(0.97); }
+
+.tile--disabled { filter: grayscale(0.85) brightness(0.45); cursor: not-allowed; }
+
+.tile--winning {
+  /* The last tile acquired; set apart so it reads as the winning tile. */
+  margin-left: calc(var(--gap) * 1.5);
+  position: relative;
+}
+.tile--winning::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* ---------- app shell ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+  gap: 10px;
+}
+
+.app__bar { display: flex; align-items: center; justify-content: space-between; }
+.app__title { margin: 0; font-size: 1.05rem; font-weight: 600; letter-spacing: 0.02em; }
+.app__spacer { flex: 1 1 auto; min-height: 4px; }
+
+/* ---------- buttons ---------- */
+
+.btn {
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 550;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+.btn:active { background: var(--border); }
+.btn--wide { width: 100%; }
+.btn--quiet { background: none; border-color: transparent; color: var(--text-dim); padding: 6px 10px; }
+.btn--primary { background: var(--accent-dim); border-color: var(--accent); }
+.btn--primary:disabled { background: var(--bg-raised); border-color: var(--border); color: var(--text-faint); cursor: not-allowed; }
+
+/* ---------- hand display ---------- */
+
+.handdisplay {
+  --tile-w: 38px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 10px;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.handdisplay__empty { margin: auto; color: var(--text-faint); font-size: 0.9rem; }
+.handdisplay__tiles { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
+.handdisplay__melds { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.meld {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px dashed transparent;
+}
+.meld:hover { border-color: var(--border-strong); }
+
+.dorarow { display: flex; align-items: center; gap: 4px; --tile-w: 28px; }
+.dorarow__label {
+  font-size: 0.72rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  min-width: 34px;
+}
+
+/* ---------- status ---------- */
+
+.status {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: center;
+  min-height: 1.2em;
+}
+.status--warn { color: var(--danger); }
+
+/* ---------- flaps ---------- */
+
+.flaps { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+.flaps__tab {
+  flex: 1;
+  padding: 9px;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  font-weight: 550;
+}
+.flaps__tab--on { color: var(--text); border-bottom-color: var(--accent); }
+
+/* ---------- mode bar ---------- */
+
+.modebar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.modebar__btn {
+  padding: 9px 2px;
+  font-size: 0.75rem;
+  font-weight: 550;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.modebar__btn--on {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* ---------- keyboard ---------- */
+
+.keyboard { display: flex; flex-direction: column; gap: 4px; }
+.keyboard__row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.keyboard .tile { width: 100%; }
+
+/* ---------- context flap ---------- */
+
+.context { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field__label {
+  font-size: 0.72rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.context__note { margin: -8px 0 0; font-size: 0.75rem; color: var(--text-faint); }
+
+.segmented { display: flex; gap: 4px; }
+.segmented__btn {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 1rem;
+}
+.segmented__btn--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.check--disabled { color: var(--text-faint); }
+
+/* ---------- score screen ---------- */
+
+.score { display: flex; flex-direction: column; gap: 16px; padding: 8px 4px; }
+
+.score__yakus {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.score__yaku { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.95rem; }
+.score__yaku--extra { color: var(--text-dim); }
+.score__han { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.score__divider { height: 1px; background: var(--border); margin: 7px 0; }
+
+.score__title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--limit);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--limit) 45%, transparent);
+}
+.score__title--yakuman {
+  font-size: 2.4rem;
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 0 10px color-mix(in srgb, var(--limit) 70%, transparent),
+    0 0 34px color-mix(in srgb, var(--limit) 45%, transparent);
+}
+
+.score__totals { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.score__hanfu { color: var(--text-dim); font-size: 0.95rem; }
+.score__points {
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--limit);
+}
+.score__breakdown { color: var(--text-faint); font-size: 0.85rem; }

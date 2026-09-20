@@ -11,23 +11,31 @@ Living checklist. **Update at the end of every session.**
 - [x] Repo skeleton: git, Vite 5 + React 18 + TS (Node 18 constraint), vitest
 - [x] Docs: contract, gaps, architecture, data model, roadmap
 
-## Phase 1 — Hand scorer and tile input — IN PROGRESS
+## Phase 1 — Hand scorer and tile input — MOSTLY DONE
 
-Contract layer — **done**, 20 tests passing:
+Contract layer — **done**, 20 tests:
 - [x] `types.ts`, `order.ts`, `term.ts`, `serialize.ts`, `decode.ts`, `validate.ts`
 - [x] `engine.ts` + Node and browser factories
-- [x] Browser smoke test harness (`npm run test:browser`, system Firefox)
+- [x] Browser test harness (`npm run test:browser`, system Firefox, 10 checks)
+
+Tile input — **done**, 18 tests:
+- [x] FluffyStuff tiles vendored (CC0), renamed to atom names, svgo'd 868K→404K
+- [x] `handState.ts` — pure state + disable logic, React-free
+- [x] `TileKeyboard` — 4 rows, per-tile disable with reasons surfaced as tooltips
+- [x] `HandDisplay` — sorted concealed tiles, winning tile set apart, melds with
+      rotated / face-down tiles
+- [x] `CallModeBar` — mutually exclusive; call modes disarm after use, dora stay
+- [x] `HandContextPanel` — ron/tsumo, winds in kanji, riichi, circumstance flags
+- [x] `ScoreResultView` — yaku list, han/fu/points, limit-hand colour theming
+- [x] Dark theme, mobile-first layout
 
 Remaining:
-- [ ] Vendor FluffyStuff tiles (CC0), rename to atom names
-- [ ] `TileKeyboard` — 4 rows, per-tile disable logic
-- [ ] `HandDisplay` — concealed tiles + melds with rotated / face-down tiles
-- [ ] `CallModeBar` — chii/pon/kan/closedKan/dora/uraDora, mutually exclusive
-- [ ] `HandContextPanel` — ron/tsumo, winds (kanji), riichi, flags, yakuman
-- [ ] `ScoreResult` — yaku list, han/fu/points, limit-hand colour theming
-- [ ] Dark theme + mobile layout pass
+- [ ] **Yakuman selector** — the requirements ask for one but say the list is "to
+      be defined later". `firstRound` (primeraRonda) is implemented, which is what
+      enables tenhou/chiihou/renhou. Needs the intended list before building more.
 - [ ] Widen the test corpus from `puntuacion_matriz_tests.pl` (fu 20–110)
-- [ ] Differential harness: WASM vs `swipl` CLI over a hand corpus
+- [ ] Differential harness: WASM vs `swipl` CLI over a generated hand corpus
+- [ ] Landscape / tablet layout (currently tuned for phone portrait)
 
 ## Phase 2 — Match tracker (local only)
 

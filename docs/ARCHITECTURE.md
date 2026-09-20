@@ -62,3 +62,16 @@ files, so there is often no commit to pin to.
 
 The `.pl` files are imported directly from there by `prologSource.ts` (Vite
 `?raw`), so the repo holds exactly one copy.
+
+## Tile artwork
+
+`frontend/public/tiles/` holds [FluffyStuff/riichi-mahjong-tiles](https://github.com/FluffyStuff/riichi-mahjong-tiles),
+CC0 1.0 (public domain, no attribution required — `LICENSE.md` is kept alongside).
+Files are renamed to the engine's atom names (`Man5-Dora` → `m5R`, `Ton` → `e`,
+`Haku` → `wh`, …) so a tile's atom *is* its asset path, and run through svgo
+(868 KB → 404 KB).
+
+The artwork is layered rather than pre-composited: `front.svg` is the tile face
+and the glyphs are transparent overlays, so the face can be tinted or swapped for
+theming without touching 37 files. `back.svg` renders the face-down outer tiles
+of a concealed kan.
