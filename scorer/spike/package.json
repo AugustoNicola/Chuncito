@@ -1,6 +1,0 @@
-{
-  "name": "swipl-wasm-spike",
-  "private": true,
-  "type": "module",
-  "dependencies": { "swipl-wasm": "^8.1.3" }
-}

@@ -9,3 +9,6 @@ __pycache__/
 .DS_Store
 *.swp
 backups/
+
+# staged from node_modules by `npm run stage:swipl` (postinstall)
+frontend/public/swipl/
