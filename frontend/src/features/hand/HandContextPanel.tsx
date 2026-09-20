@@ -6,7 +6,7 @@
  */
 import type { SituationWind, WinMode } from '../../scorer/types';
 import { SITUATION_WINDS } from '../../scorer/types';
-import { contextIssue, isHandOpen, type HandState, type RiichiChoice } from './handState';
+import { contextIssue, type HandState, type RiichiChoice } from './handState';
 
 const WIND_KANJI: Record<SituationWind, string> = {
   este: '東', sur: '南', oeste: '西', norte: '北',
@@ -39,16 +39,23 @@ function Segmented<T extends string>({ label, value, options, onChange, render }
   );
 }
 
+/**
+ * A toggle, styled like the segmented selectors above it. `aria-pressed` keeps
+ * it announced as a two-state control despite not being a checkbox.
+ */
 function Check({ label, checked, disabled, hint, onChange }: {
   label: string; checked: boolean; disabled?: boolean; hint?: string;
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className={`check${disabled ? ' check--disabled' : ''}`} title={hint}>
-      <input type="checkbox" checked={checked} disabled={disabled}
-             onChange={(e) => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
+    <button type="button"
+            className={`check${checked ? ' check--on' : ''}`}
+            aria-pressed={checked}
+            disabled={disabled}
+            title={hint}
+            onClick={() => onChange(!checked)}>
+      {label}
+    </button>
   );
 }
 
@@ -124,13 +131,6 @@ export function HandContextPanel({ state, update }: {
                  onChange={(v) => update({ firstRound: v, ...(v ? { ippatsu: false } : {}) })} />
         </div>
       </div>
-
-      {isHandOpen(state) && (
-        <p className="context__hint">
-          This hand is open, so riichi, ippatsu and ura dora are unavailable.
-          A concealed kan would keep it closed.
-        </p>
-      )}
     </div>
   );
 }

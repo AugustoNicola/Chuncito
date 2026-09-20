@@ -253,10 +253,18 @@ button {
 }
 .segmented__btn--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
 
-.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-.check input { width: 18px; height: 18px; accent-color: var(--accent); }
-.check--disabled { color: var(--text-faint); }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.check {
+  padding: 10px 4px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-align: center;
+}
+.check--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+.check:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---------- score screen ---------- */
 
@@ -338,9 +346,32 @@ button {
 @supports ((background-clip: text) or (-webkit-background-clip: text)) {
   .score__title,
   .score__points {
-    background-image: linear-gradient(160deg, var(--limit-a) 0%, var(--limit-b) 100%);
+    /* The ramp runs a -> b -> a so the loop meets itself with no seam. */
+    background-image: linear-gradient(100deg,
+      var(--limit-a) 0%, var(--limit-b) 50%, var(--limit-a) 100%);
+    background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  /* Only limit hands shimmer; an ordinary hand stays still. */
+  .score:not([data-tier="none"]) .score__title,
+  .score:not([data-tier="none"]) .score__points {
+    animation: limit-shimmer 5s linear infinite;
+  }
+  /* A yakuman is worth being louder about. */
+  .score[data-tier="yakuman"] .score__title,
+  .score[data-tier="yakuman"] .score__points {
+    animation-duration: 3s;
+  }
+
+  @keyframes limit-shimmer {
+    to { background-position: 200% center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .score__title,
+    .score__points { animation: none; }
   }
 }
