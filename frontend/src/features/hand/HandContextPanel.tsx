@@ -100,7 +100,6 @@ export function HandContextPanel({ state, update }: {
             );
           })}
         </div>
-        {riichiIssue && <p className="context__hint">Unavailable: {riichiIssue}.</p>}
       </div>
 
       <div className="field">

@@ -222,6 +222,15 @@ button {
   border-color: var(--accent);
   color: var(--text);
 }
+.modebar__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* The red modifier stacks with any call mode, so it reads differently. */
+.modebar__btn--red { border-color: var(--border-strong); }
+.modebar__btn--red.modebar__btn--on {
+  background: #7a2230;
+  border-color: var(--danger);
+  color: var(--text);
+}
 
 /* ---------- keyboard ---------- */
 
@@ -239,7 +248,6 @@ button {
   font-size: 0.72rem; color: var(--text-dim);
   text-transform: uppercase; letter-spacing: 0.07em;
 }
-.context__note { margin: -8px 0 0; font-size: 0.75rem; color: var(--text-faint); }
 
 .segmented { display: flex; gap: 4px; }
 .segmented__btn {
@@ -265,6 +273,8 @@ button {
 }
 .check--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
 .check:disabled { opacity: 0.4; cursor: not-allowed; }
+/* The situational-yakuman group holds a single toggle. */
+.checks--single { grid-template-columns: 1fr; }
 
 /* ---------- score screen ---------- */
 
