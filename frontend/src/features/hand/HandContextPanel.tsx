@@ -105,13 +105,23 @@ export function HandContextPanel({ state, update }: {
                  disabled={state.rinshan || state.chankan}
                  hint={state.winMode === 'tsumo' ? 'Haitei — last tile drawn' : 'Houtei — last discard'}
                  onChange={(v) => update({ lastDraw: v })} />
-          <Check label="First round" checked={state.firstRound}
+        </div>
+      </div>
+
+      <div className="field">
+        <span className="field__label">Situational yakuman</span>
+        <div className="checks checks--single">
+          <Check label="First round win" checked={state.firstRound}
                  disabled={riichiDeclared}
                  hint={riichiDeclared
                    ? 'Incompatible with a riichi'
-                   : 'Uninterrupted first go-around — enables tenhou / chiihou / renhou'}
+                   : 'An uninterrupted first go-around'}
                  onChange={(v) => update({ firstRound: v, ...(v ? { ippatsu: false } : {}) })} />
         </div>
+        <p className="context__hint">
+          Scores tenhou, chiihou or renhou depending on seat and win type. Every
+          other yakuman is read from the tiles.
+        </p>
       </div>
     </div>
   );

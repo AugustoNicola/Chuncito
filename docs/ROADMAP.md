@@ -29,10 +29,12 @@ Tile input — **done**, 18 tests:
 - [x] `ScoreResultView` — yaku list, han/fu/points, limit-hand colour theming
 - [x] Dark theme, mobile-first layout
 
+- [x] Situational yakuman — confirmed with the user that this covers only the
+      contextual ones that can't be inferred from shape, i.e. first-round wins
+      (tenhou / chiihou / renhou, all from `primeraRonda`). Everything else the
+      engine reads from the tiles. Surfaced as its own labelled control.
+
 Remaining:
-- [ ] **Yakuman selector** — the requirements ask for one but say the list is "to
-      be defined later". `firstRound` (primeraRonda) is implemented, which is what
-      enables tenhou/chiihou/renhou. Needs the intended list before building more.
 - [ ] Widen the test corpus from `puntuacion_matriz_tests.pl` (fu 20–110)
 - [ ] Differential harness: WASM vs `swipl` CLI over a generated hand corpus
 - [ ] Landscape / tablet layout (currently tuned for phone portrait)

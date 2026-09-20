@@ -293,3 +293,6 @@ button {
   color: var(--limit);
 }
 .score__breakdown { color: var(--text-faint); font-size: 0.85rem; }
+
+.checks--single { grid-template-columns: 1fr; }
+.context__hint { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-faint); line-height: 1.45; }
