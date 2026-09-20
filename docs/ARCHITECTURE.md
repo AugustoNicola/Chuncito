@@ -29,6 +29,16 @@ once and cached. Measured 146 ms cold boot in Firefox including that fetch.
 Inputs *and* outputs are stored, so history can be re-scored if the engine is
 later fixed or extended.
 
+### It runs on the main thread, not in a Worker
+
+The plan called for a Web Worker. Measured, a query takes **~1 ms**, so there is
+nothing to move off the main thread — and swipl-wasm ships a UMD bundle that
+expects either a script tag or `importScripts`, which fights Vite's module
+workers. The bundle is loaded with a script tag and queried inline.
+
+Revisit only if something starts scoring in bulk (re-scoring stored history, say),
+where the cost would actually accumulate.
+
 ## Why there is no event log
 
 An earlier draft made the server store an append-only event log. That conflated

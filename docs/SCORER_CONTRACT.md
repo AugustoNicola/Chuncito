@@ -35,6 +35,10 @@ Failure is wrapped into data, never an absent solution:
   first character without checking the honor set first.
 - The `R` in `m5R` is capital. Atom case is significant.
 - `===/2` treats a red five as equal to its plain twin, so `m5 === m5R`.
+- **A suit has four fives, of which only three are plain.** The engine does not
+  know this — it would accept four plain fives — so the supply is enforced in
+  `validate.ts` (at most one `m5R`) and in `handState.ts` (at most three plain).
+  It follows that a kan of fives always contains the red one.
 
 ## Canonical order — non-negotiable
 
@@ -80,7 +84,9 @@ situacion(VientoRonda, VientoJugador, Doras, UraDoras, Flags)
 - Winds are **Spanish** atoms `este|sur|oeste|norte`, *not* the tile atoms.
   `VientoJugador == este` means the winner is dealer.
 - `Doras`/`UraDoras` are the **actual dora tiles, not indicators**. Duplicates
-  are meaningful (counted with `member/2`). Indicator→dora conversion is ours.
+  are meaningful (counted with `member/2`). Indicator→dora conversion is ours,
+  and lives in `scorer/dora.ts` — the UI collects *indicators*, since that is
+  what a player sees on the table, and converts on the way into `toSituation`.
 - **Aka dora is not listed** — it is derived from `redfive/1` tiles in the hand.
 - `ModoVictoria` is `ron` | `tsumo`.
 

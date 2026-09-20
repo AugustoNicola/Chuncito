@@ -39,8 +39,13 @@ Notes:
 - `score_delta` per hand makes running scores a prefix sum — nothing recomputes
   from scratch, and undo is deleting the last row.
 - `level` is an ordinal so "mangan or better" is an index range scan.
-- `hand_tiles` is compact text (`"m2m2m3m4m5p3p4p5s3s4s5m6m7m8"`, ~40 B), kept so
-  history can be re-scored after an engine fix. NULL when han/fu were typed in.
+- `hand_tiles` is compact text, kept so history can be re-scored after an engine
+  fix. NULL when han/fu were typed in. It is a concatenation of tile atoms and
+  needs a **longest-match** parse, since atoms vary in length and share prefixes:
+  `m5R` before `m5`, `wh` before `w`. Melds must be recorded too, not just the
+  concealed tiles — an open hand scores differently, and the engine cannot infer
+  a call from loose tiles. Something like
+  `"m2m2m3m4m5p3p4p5|chii:s3s4s5R"` rather than a bare tile run.
 - `hand_yakus` is what makes "filter by yaku achieved" a join instead of a scan.
 
 ## Required queries
