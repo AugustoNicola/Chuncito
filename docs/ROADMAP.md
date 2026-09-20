@@ -11,7 +11,7 @@ Living checklist. **Update at the end of every session.**
 - [x] Repo skeleton: git, Vite 5 + React 18 + TS (Node 18 constraint), vitest
 - [x] Docs: contract, gaps, architecture, data model, roadmap
 
-## Phase 1 — Hand scorer and tile input — MOSTLY DONE
+## Phase 1 — Hand scorer and tile input — DONE (2026-09-20)
 
 Contract layer — **done**, 20 tests:
 - [x] `types.ts`, `order.ts`, `term.ts`, `serialize.ts`, `decode.ts`, `validate.ts`
@@ -34,12 +34,25 @@ Tile input — **done**, 18 tests:
       (tenhou / chiihou / renhou, all from `primeraRonda`). Everything else the
       engine reads from the tiles. Surfaced as its own labelled control.
 
-Remaining:
+Styling, after a round of on-device feedback:
+- [x] Per-tier limit palettes (green mangan, purple haneman, bronze baiman,
+      silver sanbaiman, gold yakuman), as animated gradient text
+- [x] Per-mode button colours; uniform when idle
+- [x] Dora/red/ura yaku lines coloured; yaku lines labelled in han
+- [x] Stylesheet-coverage test, after three silent CSS regressions
+
+Deferred out of Phase 1 (not blocking the tracker):
 - [ ] Widen the test corpus from `puntuacion_matriz_tests.pl` (fu 20–110)
 - [ ] Differential harness: WASM vs `swipl` CLI over a generated hand corpus
 - [ ] Landscape / tablet layout (currently tuned for phone portrait)
+- [ ] A called run whose red five sits mid-run is reachable via the Red Five
+      modifier; no known gaps left in tile entry
 
-## Phase 2 — Match tracker (local only)
+## Phase 2 — Match tracker (local only) — NEXT
+
+Start here. Phase 1 is self-contained: `HandBuilder` is embedded whole into the
+win menu, so nothing in it needs revisiting to begin.
+
 
 - [ ] Match state + pure `recordHand()` reducer (dealer repeat, honba, sticks,
       round advance, busting). Each recorded hand = one prospective `hands` row.
