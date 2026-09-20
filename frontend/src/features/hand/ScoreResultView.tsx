@@ -46,14 +46,14 @@ export function ScoreResultView({ result, hand, onBack }: {
         {real.map((y) => (
           <div className="score__yaku" key={y.yaku}>
             <span>{yakuName(y.yaku)}</span>
-            <span className="score__han">{y.han}</span>
+            <span className="score__han">{y.han} han</span>
           </div>
         ))}
         {extras.length > 0 && <div className="score__divider" />}
         {extras.map((y) => (
-          <div className="score__yaku score__yaku--extra" key={y.yaku}>
+          <div className="score__yaku score__yaku--extra" data-yaku={y.yaku} key={y.yaku}>
             <span>{yakuName(y.yaku)}</span>
-            <span className="score__han">{y.han}</span>
+            <span className="score__han">{y.han} han</span>
           </div>
         ))}
       </div>

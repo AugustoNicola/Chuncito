@@ -109,6 +109,9 @@ try {
   check(seat === 'Non-dealer ron', `seat/win line reads "Non-dealer ron" (got "${seat}")`);
   const tier = await page.$eval('.score', (e) => e.dataset.tier);
   check(tier === 'none', `a 4 han hand uses the plain tier (got "${tier}")`);
+  const hanLabels = await page.$$eval('.score__han', (els) => els.map((e) => e.textContent));
+  check(hanLabels.every((t) => /^\d+ han$/.test(t)),
+        `each yaku line is labelled in han (got ${JSON.stringify(hanLabels)})`);
 
   // --- melds render as they sit on a real table ---
   await page.evaluate(() => {

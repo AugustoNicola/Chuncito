@@ -268,12 +268,13 @@ button {
  * since colour-mix needs one.
  */
 .score[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: #4a9eff; }
-.score[data-tier="mangan"]    { --limit-a: #ffd98a; --limit-b: #d1791f; --limit: #e8a83c; }
-.score[data-tier="haneman"]   { --limit-a: #8fe6ff; --limit-b: #2a74cc; --limit: #59b0e0; }
-.score[data-tier="baiman"]    { --limit-a: #e0b3ff; --limit-b: #7433d6; --limit: #a878e8; }
-.score[data-tier="sanbaiman"] { --limit-a: #ffc07a; --limit-b: #d92d1c; --limit: #e8703a; }
+.score[data-tier="mangan"]    { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: #b47ae8; }
+.score[data-tier="haneman"]   { --limit-a: #9df5b8; --limit-b: #17945a; --limit: #4ecd8a; }
+.score[data-tier="baiman"]    { --limit-a: #f0c396; --limit-b: #9c5320; --limit: #cd8c4f; }
+.score[data-tier="sanbaiman"] { --limit-a: #ffffff; --limit-b: #8793a8; --limit: #d3dae5; }
+/* A counted yakuman: gold, but deliberately duller than the real thing. */
 .score[data-tier="kazoe"]     { --limit-a: #e6d08a; --limit-b: #9c7615; --limit: #c9a227; }
-.score[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ff9b1f; --limit: #ffd24a; }
+.score[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ffa61f; --limit: #ffd24a; }
 
 .score__yakus {
   background: var(--bg-sunken);
@@ -281,20 +282,33 @@ button {
   border-radius: var(--radius);
   padding: 12px 14px;
 }
-.score__yaku { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.95rem; }
-.score__yaku--extra { color: var(--text-dim); }
-.score__han { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.score__yaku {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.score__han { color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The three counted extras read as their own thing, so they carry their own colour. */
+.score__yaku--extra[data-yaku="dora"]    { --extra: #4ecd8a; }
+.score__yaku--extra[data-yaku="akaDora"] { --extra: #ff6b6b; }
+.score__yaku--extra[data-yaku="uraDora"] { --extra: #b47ae8; }
+.score__yaku--extra,
+.score__yaku--extra .score__han { color: var(--extra, var(--text-dim)); }
 .score__divider { height: 1px; background: var(--border); margin: 7px 0; }
 
 .score__title {
   text-align: center;
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
   color: var(--limit);
-  text-shadow: 0 0 22px color-mix(in srgb, var(--limit) 45%, transparent);
 }
-.score__title--yakuman { font-size: 2.4rem; letter-spacing: 0.08em; }
+.score__title--yakuman { font-size: 3.2rem; letter-spacing: 0.06em; }
 
 .score__totals { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 
@@ -328,20 +342,5 @@ button {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-  }
-  /* Gradient text cannot take a text-shadow, so the glow moves to a backdrop. */
-  .score__title { position: relative; text-shadow: none; }
-  .score__title::before {
-    content: '';
-    position: absolute;
-    inset: -10% 20%;
-    background: radial-gradient(ellipse at center,
-      color-mix(in srgb, var(--limit) 30%, transparent) 0%, transparent 70%);
-    z-index: -1;
-  }
-  .score[data-tier="yakuman"] .score__title::before {
-    inset: -25% 8%;
-    background: radial-gradient(ellipse at center,
-      color-mix(in srgb, var(--limit) 55%, transparent) 0%, transparent 72%);
   }
 }
