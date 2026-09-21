@@ -227,12 +227,23 @@ changes once kita are added is priced off the engine's choice. Logged in
       to contain the red. Switching the calculator off turns any entered red
       five plain rather than clearing the hand.
 - [x] Fu 60–110 now share their row evenly, like 20–50.
-- [x] **Live places.** Each player box shows its current place after the score,
-      and the review screen adds a place column with ▲/▼ where it moved.
+- [x] **Live places.** Each player box shows its current place as a badge on
+      its right edge, and the review screen adds a place column with ▲/▼
+      where it moved. 1st–3rd are gold/silver/bronze (`--place-1..3`, borrowed
+      from the limit metals) on the table, the review and the end screen.
       `placesOf()` uses the same ordering as the final standings (ties to the
       earlier seat), and returns nothing while every score is level, so a fresh
-      match does not rank four identical scores 1st–4th. 1st is gold, like the
-      end screen — close to the dealer's border colour; revisit if it confuses.
+      match does not rank four identical scores 1st–4th. The dealer accent is
+      now the primary blue, so it no longer competes with the gold 1st.
+- [x] **One box layout for every seat.** The side seats used to be a squashed
+      row version; now all four are the same box (name, score and place over the
+      riichi button), turned to face their chair. The side tracks are as wide as
+      a box is tall (`--seat-h`), so the centre shrank and its type with it; the
+      top and bottom boxes span the full width. The browser test checks the
+      geometry — no overflow, clipping or overlap — at 390px and 360px.
+- [x] The riichi button fills the box's spare height instead of leaving a gap.
+- [x] A finished match's timeline reads East 1 first; an ongoing one stays
+      newest first.
 
 ## Phase 3 — Backend and sync — NEXT
 
@@ -271,6 +282,10 @@ everything it sends already exists.
 ## Phase 4 — History and stats
 
 - [ ] Match list: filter by name, players, hand level ≥ X, yaku achieved
+- [ ] **Hand order is chronological for any finished match** — East 1 at the top,
+      the last hand at the bottom. Only a match *in progress* reads newest
+      first, because at the table you are checking the last hand. The tracker's
+      `TimelineView` already does this off `status`; a history view must too.
 - [ ] Player directory + per-player page (placement line, best hand, win-method
       pie, placement pie, avg rank, tsumo/deal-in/riichi rates, yaku frequency)
 - [ ] Desktop layout

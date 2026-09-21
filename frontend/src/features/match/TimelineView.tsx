@@ -132,8 +132,10 @@ function HandEntry({ row, names, sanma }: {
 
 export function TimelineView({ state, onClose }: { state: MatchState; onClose: () => void }) {
   const names = state.config.seats.map((p) => p.name);
-  // Newest first: at the table you are almost always checking the last hand.
-  const rows = [...state.hands].reverse();
+  // At the table you are almost always checking the last hand, so a match in
+  // progress reads newest first. A finished one is read as a story, East 1
+  // down to the last hand -- and so should any later history view.
+  const rows = state.status === 'finished' ? state.hands : [...state.hands].reverse();
 
   return (
     <div className="app">

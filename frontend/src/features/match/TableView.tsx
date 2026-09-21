@@ -47,14 +47,12 @@ function PlayerBox({ state, seat, place, onOpen, onRiichi }: {
                 for everyone else at the table. */}
             <span className="playerbox__windname">{roundName(wind)}</span>
           </span>
-          <span className="playerbox__scoreline">
-            <span className={`playerbox__score${score < 0 ? ' playerbox__score--negative' : ''}`}>
-              {score.toLocaleString()}
-            </span>
-            {place !== null && (
-              <span className="playerbox__place" data-place={place}>{placeLabel(place)}</span>
-            )}
+          <span className={`playerbox__score${score < 0 ? ' playerbox__score--negative' : ''}`}>
+            {score.toLocaleString()}
           </span>
+          {place !== null && (
+            <span className="playerbox__place" data-place={place}>{placeLabel(place)}</span>
+          )}
         </button>
         <button type="button"
                 className={`playerbox__riichi${declared ? ' playerbox__riichi--on' : ''}`}

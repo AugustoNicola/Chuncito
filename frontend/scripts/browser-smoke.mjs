@@ -346,6 +346,41 @@ try {
   const afterWin = await scores();
   // 25000 - 1000 riichi + 3900 for the hand + the 1000 stick back off the table.
   check(afterWin[1] === '28,900', `the winner takes 3900 and the stick (got ${afterWin[1]})`);
+  await shot('20-table-places.png');
+
+  // Every box is the full layout, turned to face its chair. Squeezing four of
+  // them round a centre on a phone is where things clip or collide, so check
+  // the geometry rather than trusting a screenshot.
+  const tableFits = async (label) => {
+    const problems = await page.evaluate(() => {
+      const out = [];
+      const els = [...document.querySelectorAll('.playerbox, .centre')];
+      for (const el of els) {
+        if (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) {
+          out.push(`${el.className} overflows its box (${el.scrollWidth}x${el.scrollHeight} in ${el.clientWidth}x${el.clientHeight})`);
+        }
+      }
+      for (const el of document.querySelectorAll('.playerbox__place, .playerbox__score')) {
+        if (el.scrollWidth > el.clientWidth + 1) out.push(`${el.className} is clipped`);
+      }
+      const rects = els.map((el) => [el.className, el.getBoundingClientRect()]);
+      for (const [name, r] of rects) {
+        if (r.left < 0 || r.right > window.innerWidth) out.push(`${name} leaves the screen`);
+      }
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          const [a, ra] = rects[i]; const [b, rb] = rects[j];
+          if (ra.left < rb.right && rb.left < ra.right && ra.top < rb.bottom && rb.top < ra.bottom) {
+            out.push(`${a} overlaps ${b}`);
+          }
+        }
+      }
+      return out;
+    });
+    check(problems.length === 0, `${label}: boxes fit without clipping or overlap (${
+      problems.length ? problems.join('; ') : 'clean'})`);
+  };
+  await tableFits('four players');
   check(afterWin[2] === '21,100', `the discarder pays 3900 (got ${afterWin[2]})`);
   check(await centreText() === 'East 2', `the deal passes on (got ${await centreText()})`);
 
@@ -738,11 +773,35 @@ try {
   check(JSON.stringify(await scores()) === JSON.stringify(['32,500', '31,900', '40,600']),
         `the dealer pays 3,900 and the other 2,000 (got ${JSON.stringify(await scores())})`);
   await shot('34-sanma-after.png');
+  await tableFits('sanma');
+  // The narrowest common phone leaves the centre least room.
+  await page.setViewport({ width: 360, height: 740 });
+  await tableFits('sanma at 360px');
+  await shot('35-sanma-narrow.png');
+  await page.setViewport({ width: 390, height: 844 });
 
+  // A match in progress reads newest first; a finished one reads as it was
+  // played, East 1 at the top.
+  const timelineRounds = () => page.$$eval('.timeline__round',
+    (els) => els.map((e) => e.firstChild.textContent));
+  await byText('Timeline');
+  await page.waitForSelector('.timeline');
+  check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 2', 'East 1']),
+        `an ongoing match lists its latest hand first (got ${JSON.stringify(await timelineRounds())})`);
+  await byText('Back');
+  await page.waitForSelector('.table');
   await byText('Manual');
   await page.waitForSelector('.manual');
-  await byText('Discard this match');
-  await byText('Yes, throw it away');
+  await byText('End early');
+  await page.waitForSelector('.confirm');
+  await byText('End it now');
+  await page.waitForSelector('.standings');
+  await byText('Timeline');
+  await page.waitForSelector('.timeline');
+  check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
+        `a finished match lists its hands in order (got ${JSON.stringify(await timelineRounds())})`);
+  await shot('36-finished-timeline.png');
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.home');
 
   // ==================== without red fives ====================
