@@ -15,7 +15,8 @@ import { HandContextPanel } from './HandContextPanel';
 import { ScoreResultView } from './ScoreResultView';
 import {
   clearHand, currentSize, initialHandState, isComplete, pressTile, reconcile,
-  removeConcealed, removeDora, removeKita, removeMeld, setSanma, targetSize, toSituation,
+  removeConcealed, removeDora, removeKita, removeMeld, setRedFives, setSanma, targetSize,
+  toSituation,
   toggleMode, toggleRed, winningTile, type CallMode, type HandState,
 } from './handState';
 import { withNukidora } from './nukidora';
@@ -50,6 +51,12 @@ export interface HandBuilderProps {
    */
   players?: PlayerCount;
   /**
+   * Whether the match plays with red fives. Without them the Red Five modifier
+   * is gone and all four fives are plain. The tracker fixes it; the plain
+   * calculator offers a toggle instead.
+   */
+  redFives?: boolean;
+  /**
    * Whether this player's riichi button was pressed on the table. The tracker
    * already knows, so the selector follows it: no riichi declared means riichi
    * cannot be claimed here, and a declared one cannot be dropped. The double is
@@ -83,11 +90,12 @@ function buildQuery(state: HandState): ScoreQuery | null {
 }
 
 export function HandBuilder({
-  winds, winMode, players, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
+  winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
 }: HandBuilderProps = {}) {
   const [state, setState] = useState<HandState>(() => ({
     ...initialHandState,
     sanma: players === 3,
+    redFives: redFives ?? true,
     ...winds,
     ...(winMode ? { winMode } : {}),
     ...(riichiDeclared ? { riichi: 'riichi' as const } : {}),
@@ -196,6 +204,8 @@ export function HandBuilder({
                           showWinds={!winds} showWinMode={!winMode}
                           showPlayers={players === undefined}
                           onSanma={(on) => apply((s) => setSanma(s, on))}
+                          showRedFives={redFives === undefined}
+                          onRedFives={(on) => apply((s) => setRedFives(s, on))}
                           riichiDeclared={riichiDeclared} />
       )}
     </div>

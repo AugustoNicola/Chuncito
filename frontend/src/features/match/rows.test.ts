@@ -17,6 +17,7 @@ import type { Seat } from './seats';
 
 const config: MatchConfig = {
   players: 4,
+  redFives: true,
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,
@@ -160,6 +161,12 @@ describe('a match survives the database', () => {
     }).state;
     const back = fromRows(toRows(state));
     expect(back).toEqual(state);
+  });
+
+  it('keeps whether the match played with red fives', () => {
+    const state = createMatch({ ...config, redFives: false });
+    expect(toRows(state).match.redFives).toBe(false);
+    expect(fromRows(toRows(state))).toEqual(state);
   });
 
   it('round-trips an empty match', () => {

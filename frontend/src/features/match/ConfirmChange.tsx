@@ -17,6 +17,7 @@ import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import { roundLabel } from './seats';
+import { placeLabel, placesOf } from './scoring';
 
 /** "East 3 · 1 repeat", the state of the round as a player would say it. */
 function roundPhrase(label: string, honba: number): string {
@@ -79,6 +80,20 @@ export function ConfirmChange({
   const delta = seats.map((s) => after.scores[s] - before.scores[s]);
   const moved = delta.some((d) => d !== 0);
 
+  /**
+   * Places after the change, and which way each moved. There is no "before"
+   * place while everyone was level -- the seat-order tiebreak would invent one
+   * -- so the first hand of a match shows places without arrows.
+   */
+  const placesBefore = placesOf(before.scores);
+  const placesAfter = placesOf(after.scores);
+  const movement = (seat: number): 'up' | 'down' | null => {
+    const was = placesBefore?.[seat];
+    const now = placesAfter?.[seat];
+    if (was === undefined || now === undefined || was === now) return null;
+    return now < was ? 'up' : 'down';
+  };
+
   const roundChanged = roundLabel(before.round) !== roundLabel(after.round)
     || before.honba !== after.honba;
 
@@ -133,6 +148,18 @@ export function ConfirmChange({
                 <span className={`confirm__now${
                   after.scores[seat] < 0 ? ' confirm__now--negative' : ''}`}>
                   {after.scores[seat].toLocaleString()}
+                </span>
+                <span className="confirm__place" data-place={placesAfter?.[seat]}
+                      title={movement(seat)
+                        ? `was ${placeLabel(placesBefore![seat]!)}` : undefined}>
+                  {movement(seat) && (
+                    <span className={movement(seat) === 'up'
+                      ? 'confirm__move confirm__move--up' : 'confirm__move confirm__move--down'}
+                          aria-label={movement(seat) === 'up' ? 'up to' : 'down to'}>
+                      {movement(seat) === 'up' ? '▲' : '▼'}
+                    </span>
+                  )}
+                  {placesAfter ? placeLabel(placesAfter[seat]!) : ''}
                 </span>
               </div>
             ))}

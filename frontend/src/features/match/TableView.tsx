@@ -12,14 +12,17 @@ import type { MatchState } from './matchState';
 import { dealerSeat, potOnTable, seatsIn } from './matchState';
 import type { Seat } from './seats';
 import { roundKanji, roundLabel, roundName, seatWindOf } from './seats';
+import { placeLabel, placesOf } from './scoring';
 
 const SEAT_POSITION: Record<Seat, string> = {
   0: 'bottom', 1: 'right', 2: 'top', 3: 'left',
 };
 
-function PlayerBox({ state, seat, onOpen, onRiichi }: {
+function PlayerBox({ state, seat, place, onOpen, onRiichi }: {
   state: MatchState;
   seat: Seat;
+  /** Where this seat stands right now; null while everyone is level. */
+  place: number | null;
   onOpen: (seat: Seat) => void;
   onRiichi: (seat: Seat) => void;
 }) {
@@ -44,8 +47,13 @@ function PlayerBox({ state, seat, onOpen, onRiichi }: {
                 for everyone else at the table. */}
             <span className="playerbox__windname">{roundName(wind)}</span>
           </span>
-          <span className={`playerbox__score${score < 0 ? ' playerbox__score--negative' : ''}`}>
-            {score.toLocaleString()}
+          <span className="playerbox__scoreline">
+            <span className={`playerbox__score${score < 0 ? ' playerbox__score--negative' : ''}`}>
+              {score.toLocaleString()}
+            </span>
+            {place !== null && (
+              <span className="playerbox__place" data-place={place}>{placeLabel(place)}</span>
+            )}
           </span>
         </button>
         <button type="button"
@@ -69,11 +77,12 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
   onOpenCentre: () => void;
 }) {
   const pot = potOnTable(state);
+  const places = placesOf(state.scores);
 
   return (
     <div className="table">
       {seatsIn(state).map((seat) => (
-        <PlayerBox key={seat} state={state} seat={seat}
+        <PlayerBox key={seat} state={state} seat={seat} place={places?.[seat] ?? null}
                    onOpen={onOpenSeat} onRiichi={onRiichi} />
       ))}
 

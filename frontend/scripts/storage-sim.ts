@@ -206,6 +206,7 @@ function nextInput(s: Scenario, state: MatchState): HandInput {
 
 const config = (): MatchConfig => ({
   players: 4,
+  redFives: true,
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,

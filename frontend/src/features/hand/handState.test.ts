@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
-  isComplete, isHandOpen, pressTile, reconcile, removeConcealed, toFlags, toSituation,
-  toggleMode, toggleRed, winningTile, type HandState,
+  isComplete, isHandOpen, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
+  toFlags, toSituation, toggleMode, toggleRed, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
 
@@ -285,5 +285,45 @@ describe('flags', () => {
   it('emits the riichi choice as the matching atom', () => {
     expect(toFlags({ ...initialHandState, riichi: 'dobleRiichi' })).toEqual(['dobleRiichi']);
     expect(toFlags({ ...initialHandState, riichi: 'none' })).toEqual([]);
+  });
+});
+
+describe('without red fives', () => {
+  const noRed: HandState = { ...initialHandState, redFives: false };
+
+  it('has no Red Five modifier', () => {
+    expect(redAvailable(noRed)).toBe(false);
+    expect(toggleRed(noRed).red).toBe(false);
+  });
+
+  it('allows all four fives plain, loose or called', () => {
+    const loose = build('m5 m5 m5 m5', { redFives: false });
+    expect(loose.concealed).toEqual(T('m5 m5 m5 m5'));
+    expect(disabledReason(loose, 'm5')).toMatch(/four copies/);
+
+    const pon = pressTile(toggleMode(build('p5', { redFives: false }), 'pon'), 'p5');
+    expect(pon.melds[0]!.tiles).toEqual(T('p5 p5 p5'));
+  });
+
+  it('makes a kan of fives plain rather than forcing the red one in', () => {
+    for (const mode of ['kan', 'closedKan'] as const) {
+      const kan = pressTile(toggleMode(noRed, mode), 's5');
+      expect(kan.melds[0]!.tiles).toEqual(T('s5 s5 s5 s5'));
+    }
+  });
+
+  it('lets a chii through a five stay plain, and counts it against four copies', () => {
+    const s = build('m5 m5 m5', { redFives: false });
+    expect(disabledReason(toggleMode(s, 'chii'), 'm4')).toBeNull();
+    expect(disabledReason(toggleMode(build('m5 m5 m5 m5', { redFives: false }), 'chii'), 'm4'))
+      .toMatch(/not enough copies of m5/);
+  });
+
+  it('makes existing reds plain when switched off', () => {
+    const red = pressTile(toggleRed(initialHandState), 'p5');
+    const off = setRedFives({ ...red, doraIndicators: T('s5R') }, false);
+    expect(off.concealed).toEqual(T('p5'));
+    expect(off.doraIndicators).toEqual(T('s5'));
+    expect(off.redFives).toBe(false);
   });
 });

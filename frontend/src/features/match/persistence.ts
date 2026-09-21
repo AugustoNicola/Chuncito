@@ -70,13 +70,15 @@ export const saveMatch = (state: MatchState): Promise<unknown> =>
   withStore('readwrite', (store) => store.put(state, CURRENT));
 
 /**
- * Mirrors written before sanma existed have no player count; they were all
- * four-player matches. Filled in on the way out so nothing downstream has to
- * guess.
+ * Mirrors written before sanma existed have no player count, and ones written
+ * before red fives were optional have no setting for them; they were all
+ * four-player matches with red fives. Filled in on the way out so nothing
+ * downstream has to guess.
  */
 function upgrade(state: MatchState): MatchState {
-  if (state.config.players) return state;
-  return { ...state, config: { ...state.config, players: 4 } };
+  const { players = 4, redFives = true } = state.config as Partial<MatchState['config']>;
+  if (state.config.players === players && state.config.redFives === redFives) return state;
+  return { ...state, config: { ...state.config, players, redFives } };
 }
 
 export const loadMatch = async (): Promise<MatchState | null> => {

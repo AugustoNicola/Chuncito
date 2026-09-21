@@ -636,12 +636,23 @@ button {
   text-transform: uppercase; letter-spacing: 0.08em;
 }
 
-.playerbox__score {
+.playerbox__scoreline {
   grid-area: score;
+  display: flex; align-items: baseline; gap: 6px;
+  min-width: 0;
+}
+.playerbox__score {
   font-size: 1.6rem; font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .playerbox__score--negative { color: var(--loss); }
+/* Sits after the score at a glance-sized scale; the leader's matches the gold
+   the end screen gives first place. */
+.playerbox__place {
+  font-size: 0.78rem; font-weight: 600; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.playerbox__place[data-place="1"] { color: var(--limit-yakuman); }
 
 .playerbox__riichi {
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -1012,7 +1023,7 @@ button {
 }
 .confirm__row {
   display: grid;
-  grid-template-columns: 1fr 4.5rem 4.5rem 5rem;
+  grid-template-columns: 1fr 4.5rem 4.5rem 5rem 2.9rem;
   align-items: baseline;
   gap: 6px;
   padding: 5px 0;
@@ -1026,6 +1037,15 @@ button {
 .confirm__delta--loss { color: var(--loss); }
 .confirm__now { text-align: right; font-weight: 600; }
 .confirm__now--negative { color: var(--loss); }
+.confirm__place {
+  text-align: right; white-space: nowrap;
+  font-size: 0.78rem; font-weight: 600; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.confirm__place[data-place="1"] { color: var(--limit-yakuman); }
+.confirm__move { margin-right: 2px; font-size: 0.65rem; }
+.confirm__move--up { color: var(--gain); }
+.confirm__move--down { color: var(--loss); }
 
 .confirm__round {
   display: flex; align-items: center; justify-content: center; gap: 10px;

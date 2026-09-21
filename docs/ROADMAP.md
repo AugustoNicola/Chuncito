@@ -218,6 +218,22 @@ Open: the engine has no nukidora input, so a hand whose best decomposition
 changes once kita are added is priced off the engine's choice. Logged in
 `SCORER_GAPS.md` and reported.
 
+## Small features (2026-09-21)
+
+- [x] **Red fives optional.** `MatchConfig.redFives` (setup toggle, default on;
+      `matches.red_fives`) and `HandState.redFives` (a With/Without toggle on the
+      calculator's Details flap). Off: no Red Five button, all four fives are
+      plain (`plainSupply` depends on it), and a kan of fives is no longer forced
+      to contain the red. Switching the calculator off turns any entered red
+      five plain rather than clearing the hand.
+- [x] Fu 60–110 now share their row evenly, like 20–50.
+- [x] **Live places.** Each player box shows its current place after the score,
+      and the review screen adds a place column with ▲/▼ where it moved.
+      `placesOf()` uses the same ordering as the final standings (ties to the
+      earlier seat), and returns nothing while every score is level, so a fresh
+      match does not rank four identical scores 1st–4th. 1st is gold, like the
+      end screen — close to the dealer's border colour; revisit if it confuses.
+
 ## Phase 3 — Backend and sync — NEXT
 
 **Start here.** Phases 1 and 2 are closed and need no revisiting. The client is

@@ -239,6 +239,9 @@ try {
     page.$$eval('.seat .playerbox__score', (els) => els.map((e) => e.textContent));
   check(JSON.stringify(await scores()) === JSON.stringify(['25,000', '25,000', '25,000', '25,000']),
         'everyone starts on 25,000');
+  const places = async () => page.$$eval('.seat', (els) =>
+    els.map((e) => e.querySelector('.playerbox__place')?.textContent ?? null));
+  check((await places()).every((p) => p === null), 'nobody is placed while the scores are level');
 
   const dealerBox = await page.$eval('.playerbox--dealer', (el) => ({
     name: el.querySelector('.playerbox__name').firstChild.textContent.trim(),
@@ -254,6 +257,8 @@ try {
   await page.click('.seat--right .playerbox__riichi');
   const afterRiichi = await scores();
   check(afterRiichi[1] === '24,000', `riichi takes 1000 (got ${afterRiichi[1]})`);
+  check(JSON.stringify(await places()) === JSON.stringify(['1st', '4th', '2nd', '3rd']),
+        `each box shows its place, ties by seat (got ${JSON.stringify(await places())})`);
   const counters = await page.$$eval('.centre__counter', (els) => els.map((e) => e.textContent));
   check(counters[0] === 'Riichi1' && counters[1] === 'Honba0',
         `the counters are labelled (got ${JSON.stringify(counters)})`);
@@ -331,6 +336,9 @@ try {
                                          (els) => els.map((e) => e.textContent).join(' '));
   check(confirmHints.includes('riichi stick'),
         'the confirmation explains why the change exceeds the hand value');
+  const confirmPlaces = await page.$$eval('.confirm__place', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(confirmPlaces) === JSON.stringify(['▼2nd', '▲1st', '▼4th', '3rd']),
+        `the review shows places and which way they moved (got ${JSON.stringify(confirmPlaces)})`);
   await shot('19-confirm.png');
   await byText('Record this hand');
   await page.waitForSelector('.table');
@@ -736,6 +744,23 @@ try {
   await byText('Discard this match');
   await byText('Yes, throw it away');
   await page.waitForSelector('.home');
+
+  // ==================== without red fives ====================
+
+  await byText('Hand calculator');
+  await page.waitForSelector('.keyboard');
+  await byText('Details');
+  await byText('Without');
+  await byText('Tiles');
+  await page.waitForSelector('.keyboard');
+  const noRedModes = await page.$$eval('.modebar__btn', (els) => els.map((e) => e.textContent));
+  check(!noRedModes.includes('Red Five'),
+        `without red fives there is no Red Five button (got ${JSON.stringify(noRedModes)})`);
+  await arm('Closed kan'); await page.click('.keyboard [data-key="p5"]');
+  const plainKan = await page.$$eval('.meld .tile', (els) => els.map((e) => e.dataset.face));
+  check(JSON.stringify(plainKan) === JSON.stringify(['back', 'p5', 'p5', 'back']),
+        `a kan of fives is all plain without red fives (got ${JSON.stringify(plainKan)})`);
+  await shot('40-no-red.png');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {

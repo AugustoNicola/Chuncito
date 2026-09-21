@@ -37,8 +37,8 @@ import { seatWindOf } from './seats';
 
 /**
  * Fu values the rules can actually produce. 25 is chiitoitsu; 20 is a pinfu
- * tsumo. The common ones get a row to themselves and share it evenly, because
- * they are what you reach for; the rest sit below at their natural width.
+ * tsumo. The common ones get a row to themselves because they are what you
+ * reach for; the rest sit below. Both rows share their width evenly.
  */
 const FU_COMMON = [20, 25, 30, 40, 50];
 const FU_REST = [60, 70, 80, 90, 100, 110];
@@ -135,6 +135,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
           seatWind: seatWindOf(current, state.round, players),
         }}
         players={players}
+        redFives={state.config.redFives}
         winMode={mode}
         riichiDeclared={state.pendingRiichi.includes(current)}
         onCancel={() => setRoute('menu')}
@@ -329,7 +330,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               </button>
             ))}
           </div>
-          <div className="pills" role="group" aria-label="Fu, higher">
+          <div className="pills pills--fill" role="group" aria-label="Fu, higher">
             {FU_REST.map((value) => (
               <button key={value} type="button"
                       className={`pill${fu === value ? ' pill--on' : ''}`}

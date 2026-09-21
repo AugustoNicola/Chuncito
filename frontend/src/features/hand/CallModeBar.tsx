@@ -51,8 +51,9 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
         {CALLS.filter((c) => !(state.sanma && c.mode === 'chii')).map(modeButton)}
       </div>
       <div className="modebar__row" role="group" aria-label="Tile markers">
-        {/* Red is independent of the modes: it combines with any of them. */}
-        <button
+        {/* Red is independent of the modes: it combines with any of them. A set
+            without red fives has no use for it, so it is not shown at all. */}
+        {state.redFives && <button
           type="button"
           className={`modebar__btn${state.red ? ' modebar__btn--on' : ''}`}
           data-mode="red"
@@ -62,7 +63,7 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
           onClick={onToggleRed}
         >
           Red Five
-        </button>
+        </button>}
         {MARKERS.map(modeButton)}
         {state.sanma && modeButton(KITA)}
       </div>

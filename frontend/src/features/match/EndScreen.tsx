@@ -11,11 +11,9 @@ import type { MatchState } from './matchState';
 import { bestHand } from './matchState';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
-import { placements } from './scoring';
+import { placeLabel, placements } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel } from './seats';
-
-const PLACE_LABEL = ['1st', '2nd', '3rd', '4th'];
 
 const END_REASON: Record<string, string> = {
   final_round: 'Played to the end',
@@ -52,7 +50,7 @@ export function EndScreen({ state, onSave, onTimeline }: {
         <ol className="standings">
           {standings.map((p) => (
             <li key={p.seat} className="standings__row" data-place={p.place}>
-              <span className="standings__place">{PLACE_LABEL[p.place - 1]}</span>
+              <span className="standings__place">{placeLabel(p.place)}</span>
               <span className="standings__name">{state.config.seats[p.seat]!.name}</span>
               <span className={`standings__score${p.score < 0 ? ' standings__score--negative' : ''}`}>
                 {p.score.toLocaleString()}

@@ -48,6 +48,12 @@ export interface MatchConfig {
    * scorer the missing manzu and the nukidora.
    */
   players: PlayerCount;
+  /**
+   * Whether the set has one red five per suit. Off, all four fives are plain
+   * and the hand scorer has no Red Five modifier; nothing else changes, since
+   * aka dora only ever arrive as tiles.
+   */
+  redFives: boolean;
   length: MatchLength;
   startingPoints: number;
   /**

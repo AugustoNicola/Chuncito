@@ -33,6 +33,7 @@ export interface MatchTableRow {
    * sanma scores differently -- so it is a column, and history can filter on it.
    */
   players: PlayerCount;
+  redFives: boolean;
   length: MatchLength;
   startingPoints: number;
   returnScore: number;
@@ -107,6 +108,7 @@ export function toRows(state: MatchState, placementOf?: (seat: Seat) => {
     match: {
       name: state.name,
       players: state.config.players,
+      redFives: state.config.redFives,
       length: state.config.length,
       startingPoints: state.config.startingPoints,
       returnScore: state.config.returnScore,
@@ -223,6 +225,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
 
   const config: MatchConfig = {
     players: rows.match.players,
+    redFives: rows.match.redFives,
     length: rows.match.length,
     startingPoints: rows.match.startingPoints,
     returnScore: rows.match.returnScore,

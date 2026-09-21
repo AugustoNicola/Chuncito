@@ -328,3 +328,22 @@ export function placements(scores: Delta, uma: readonly number[]): Placement[] {
     umaPoints: uma[index] ?? 0,
   }));
 }
+
+/** "1st", "2nd", ... -- a place as the table says it. */
+export const placeLabel = (place: number): string =>
+  `${place}${['st', 'nd', 'rd'][place - 1] ?? 'th'}`;
+
+/**
+ * Each seat's place right now, indexed by seat.
+ *
+ * The same ordering as the final standings, ties included, so the place a box
+ * shows at the last hand is the place the end screen gives. Null while every
+ * score is level: at the start of a match the seat-order tiebreak would rank
+ * four identical scores 1st to 4th, which reads as information and is not.
+ */
+export function placesOf(scores: Delta): number[] | null {
+  if (scores.every((score) => score === scores[0])) return null;
+  const places: number[] = [];
+  for (const p of placements(scores, [])) places[p.seat] = p.place;
+  return places;
+}

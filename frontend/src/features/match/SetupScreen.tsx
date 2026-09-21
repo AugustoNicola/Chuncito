@@ -14,8 +14,7 @@ import type { MatchLength, PlayerCount, Seat } from './seats';
 import { roundKanji, roundName, seatsOf } from './seats';
 import { SITUATION_WINDS } from '../../scorer/types';
 import { recallNames, rememberNames } from './persistence';
-
-const PLACE_LABEL = ['1st', '2nd', '3rd', '4th'];
+import { placeLabel } from './scoring';
 
 const umaFields = (players: PlayerCount): string[] => DEFAULTS[players].uma.map(String);
 
@@ -40,6 +39,7 @@ export function SetupScreen({ onStart, onCancel }: {
    */
   const [allNames, setAllNames] = useState<string[]>(['', '', '', '']);
   const [length, setLength] = useState<MatchLength>('south');
+  const [redFives, setRedFives] = useState(true);
   const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
   const [returnScore, setReturnScore] = useState(DEFAULTS[4].returnScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
@@ -85,6 +85,7 @@ export function SetupScreen({ onStart, onCancel }: {
     rememberNames(trimmed);
     onStart({
       players,
+      redFives,
       length,
       startingPoints,
       returnScore,
@@ -173,9 +174,23 @@ export function SetupScreen({ onStart, onCancel }: {
         </div>
 
         <div className="field">
+          <span className="field__label">Red fives</span>
+          <div className="segmented" role="group" aria-label="Red fives">
+            {[true, false].map((opt) => (
+              <button key={String(opt)} type="button"
+                      className={`segmented__btn${redFives === opt ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={redFives === opt}
+                      onClick={() => setRedFives(opt)}>
+                {opt ? 'With red fives' : 'Without'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
           <span className="field__label">Uma</span>
           <div className="setup__uma">
-            {PLACE_LABEL.slice(0, players).map((label, i) => (
+            {seats.map((seat) => placeLabel(seat + 1)).map((label, i) => (
               <label className="setup__umafield" key={label}>
                 <span className="setup__umaplace">{label}</span>
                 <input className="setup__number" type="text" inputMode="numeric"

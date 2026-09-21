@@ -61,6 +61,7 @@ function Check({ label, checked, disabled, hint, onChange }: {
 
 export function HandContextPanel({
   state, update, showWinds = true, showWinMode = true, riichiDeclared, showPlayers = false, onSanma,
+  showRedFives = false, onRedFives,
 }: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
@@ -83,6 +84,9 @@ export function HandContextPanel({
   /** Only in the plain calculator; the tracker's match already says. */
   showPlayers?: boolean;
   onSanma?: (on: boolean) => void;
+  /** Likewise only in the plain calculator. */
+  showRedFives?: boolean;
+  onRedFives?: (on: boolean) => void;
 }) {
   const riichiIssue = contextIssue(state, 'riichi');
   const issue = (k: Parameters<typeof contextIssue>[1]) => contextIssue(state, k);
@@ -96,6 +100,13 @@ export function HandContextPanel({
                    options={['four', 'three'] as const}
                    onChange={(v) => onSanma(v === 'three')}
                    render={(v) => (v === 'four' ? 'Four' : 'Three (sanma)')} />
+      )}
+
+      {showRedFives && onRedFives && (
+        <Segmented label="Red fives" value={state.redFives ? 'on' : 'off'}
+                   options={['on', 'off'] as const}
+                   onChange={(v) => onRedFives(v === 'on')}
+                   render={(v) => (v === 'on' ? 'With' : 'Without')} />
       )}
 
       {showWinMode && (

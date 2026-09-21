@@ -4,12 +4,15 @@ import {
   adjustScore, adjustScores, advanceRoundManually, createMatch, maxLevel, potOnTable,
   recordHand, toggleRiichi, undoLastHand,
 } from './matchState';
-import { basePoints, hanFuPossible, levelFor, paymentFor, placements } from './scoring';
+import {
+  type Delta, basePoints, hanFuPossible, levelFor, paymentFor, placeLabel, placements, placesOf,
+} from './scoring';
 import { dealerOf, seatWindOf } from './seats';
 import type { Seat } from './seats';
 
 const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   players: 4,
+  redFives: true,
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,
@@ -502,5 +505,20 @@ describe('correcting the whole table', () => {
   it('does nothing when nothing moved', () => {
     const s = adjustScores(start(), [25000, 25000, 25000, 25000]);
     expect(s.adjustments).toHaveLength(0);
+  });
+});
+
+describe('live places', () => {
+  it('has none while every score is level', () => {
+    expect(placesOf([25000, 25000, 25000, 25000] as Delta)).toBeNull();
+  });
+
+  it('ranks by score, indexed by seat, breaking ties by seat as the end screen does', () => {
+    expect(placesOf([24000, 30000, 24000, 22000] as Delta)).toEqual([2, 1, 3, 4]);
+    expect(placesOf([35800, 34500, 34700] as Delta)).toEqual([1, 3, 2]);
+  });
+
+  it('names places as the table says them', () => {
+    expect([1, 2, 3, 4].map(placeLabel)).toEqual(['1st', '2nd', '3rd', '4th']);
   });
 });
