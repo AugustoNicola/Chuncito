@@ -33,7 +33,7 @@ scorer/sync-prolog.sh        re-vendor with a test gate
 frontend/src/App.tsx         which screen is showing; no router yet
 frontend/src/scorer/         contract layer: types, order, serialize, decode, validate,
                              dora, engine (+ .node / .browser factories)
-frontend/src/features/hand/  hand input: handState (pure) + handTiles + components
+frontend/src/features/hand/  hand input: handState (pure) + handTiles + nukidora + components
 frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
                              rows (DB mapping), persistence, and the
                              table/menu/timeline components
@@ -82,6 +82,12 @@ validating before querying.
 *computed next state*, not a description of it, so the two can never disagree.
 That works because every transition in `matchState.ts` is pure: compute, review,
 then commit. Any new match-affecting action goes through it too.
+
+**The player count is part of the ruleset.** `MatchConfig.players` is 3 for
+sanma, and seats, rounds, tsumo payments, honba, noten and the hand scorer's
+tile set all follow from it. Iterate `seatsIn(state)` / `seatsOf(players)`,
+never four seats. Nukidora is added *after* the engine (`nukidora.ts`), since
+the engine has no input for it.
 
 **A hand has a list of winners.** Multiple ron is legal here, so `HandRow.wins`
 is a collection and there is no `winnerSeat` column. A draw has none, a tsumo

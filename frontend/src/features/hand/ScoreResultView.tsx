@@ -6,7 +6,7 @@
  */
 import type { Payment, ScoreResult } from '../../scorer/types';
 import { PSEUDO_YAKU } from '../../scorer/types';
-import { paymentTotal } from '../../scorer/decode';
+import { paymentTotal } from '../match/scoring';
 import { isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
 import { HandSummary } from './HandDisplay';
 import type { HandState } from './handState';
@@ -21,6 +21,20 @@ function paymentSplit(payment: Payment): string | null {
     case 'tsumoDealer': return `${payment.each.toLocaleString()} all`;
     case 'tsumo':
       return `${payment.nonDealer.toLocaleString()} / ${payment.dealer.toLocaleString()}`;
+  }
+}
+
+/**
+ * Said out loud on a sanma tsumo, since it is the one place the total differs
+ * from the table everybody knows: the same hand, one payer fewer.
+ */
+function tsumoLoss(payment: Payment): string | null {
+  switch (payment.kind) {
+    case 'ron': return null;
+    case 'tsumoDealer':
+      return `Sanma: 2 payers, not 3 (${paymentTotal(payment, 4).toLocaleString()} at four)`;
+    case 'tsumo':
+      return `Sanma: dealer + 1 non-dealer (${paymentTotal(payment, 4).toLocaleString()} at four)`;
   }
 }
 
@@ -47,6 +61,8 @@ export function ScoreResultView({
   // The engine reads dealership straight off the seat wind.
   const seat = hand ? (hand.seatWind === 'este' ? 'Dealer' : 'Non-dealer') : null;
   const winType = hand?.winMode === 'tsumo' ? 'tsumo' : 'ron';
+  const players = hand?.sanma ? 3 : 4;
+  const loss = hand?.sanma ? tsumoLoss(result.payment) : null;
 
   return (
     <div className="score" data-tier={levelTier(result.level)}>
@@ -80,9 +96,10 @@ export function ScoreResultView({
           {/* Fu is 0 whenever a yakuman applies, so showing it would be noise. */}
           {result.fu > 0 && ` · ${result.fu} fu`}
         </span>
-        <span className="score__points">{paymentTotal(result.payment).toLocaleString()}</span>
+        <span className="score__points">{paymentTotal(result.payment, players).toLocaleString()}</span>
         {seat && <span className="score__seat">{seat} {winType}</span>}
         {split && <span className="score__breakdown">{split}</span>}
+        {loss && <span className="score__breakdown score__breakdown--note">{loss}</span>}
       </div>
 
       <div className="score__actions">

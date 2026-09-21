@@ -76,7 +76,7 @@ export function EndScreen({ state, onSave, onTimeline }: {
               {state.config.seats[best.seat]!.name}
               {best.win.pointsWon !== null && ` · ${best.win.pointsWon.toLocaleString()}`}
             </span>
-            {best.win.handTiles && <HandSummary state={decodeHandTiles(best.win.handTiles)} />}
+            {best.win.handTiles && <HandSummary state={decodeHandTiles(best.win.handTiles, state.config.players === 3)} />}
           </div>
         )}
 

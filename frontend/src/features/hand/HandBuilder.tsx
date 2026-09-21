@@ -15,9 +15,11 @@ import { HandContextPanel } from './HandContextPanel';
 import { ScoreResultView } from './ScoreResultView';
 import {
   clearHand, currentSize, initialHandState, isComplete, pressTile, reconcile,
-  removeConcealed, removeDora, removeMeld, targetSize, toSituation, toggleMode,
-  toggleRed, winningTile, type CallMode, type HandState,
+  removeConcealed, removeDora, removeKita, removeMeld, setSanma, targetSize, toSituation,
+  toggleMode, toggleRed, winningTile, type CallMode, type HandState,
 } from './handState';
+import { withNukidora } from './nukidora';
+import type { PlayerCount } from '../match/seats';
 import { useScorer } from '../../scorer/useScorer';
 import { validateQuery } from '../../scorer/validate';
 import type {
@@ -40,6 +42,13 @@ export interface HandBuilderProps {
    * Asking again here could contradict the deal-in seat already chosen.
    */
   winMode?: WinMode;
+  /**
+   * Three or four players, from the match. Sanma changes which tiles exist,
+   * removes chii and adds kita -- and a sanma tsumo is paid by two players, so
+   * the total differs. The tracker fixes it; the plain calculator offers a
+   * toggle instead.
+   */
+  players?: PlayerCount;
   /**
    * Whether this player's riichi button was pressed on the table. The tracker
    * already knows, so the selector follows it: no riichi declared means riichi
@@ -74,10 +83,11 @@ function buildQuery(state: HandState): ScoreQuery | null {
 }
 
 export function HandBuilder({
-  winds, winMode, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
+  winds, winMode, players, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
 }: HandBuilderProps = {}) {
   const [state, setState] = useState<HandState>(() => ({
     ...initialHandState,
+    sanma: players === 3,
     ...winds,
     ...(winMode ? { winMode } : {}),
     ...(riichiDeclared ? { riichi: 'riichi' as const } : {}),
@@ -103,7 +113,8 @@ export function HandBuilder({
     setMessage(null);
     const outcome = scorer.scorer.score(query);
     if (outcome.ok) {
-      setResult(outcome.result);
+      // Pulled Norths are invisible to the engine; their han go on afterwards.
+      setResult(withNukidora(outcome.result, state));
     } else {
       // The engine cannot tell "no yaku" from "not a winning shape", so neither can we.
       setMessage('No score: those tiles are not a winning hand, or the win has no yaku.');
@@ -149,6 +160,7 @@ export function HandBuilder({
         onRemoveConcealed={(i) => apply((s) => removeConcealed(s, i))}
         onRemoveMeld={(i) => apply((s) => removeMeld(s, i))}
         onRemoveDora={(i, ura) => apply((s) => removeDora(s, i, ura))}
+        onRemoveKita={() => apply(removeKita)}
       />
 
       <div className="app__spacer" />
@@ -182,6 +194,8 @@ export function HandBuilder({
       ) : (
         <HandContextPanel state={state} update={update}
                           showWinds={!winds} showWinMode={!winMode}
+                          showPlayers={players === undefined}
+                          onSanma={(on) => apply((s) => setSanma(s, on))}
                           riichiDeclared={riichiDeclared} />
       )}
     </div>

@@ -21,11 +21,18 @@ import type {
   AbortiveReason, Adjustment, EndReason, HandRow, MatchConfig, MatchState, Outcome, SeatPlayer,
   WinRow,
 } from './matchState';
-import { type Delta, RIICHI_STICK } from './scoring';
-import { SEATS, type MatchLength, type Round, type Seat, dealerOf, nextRound } from './seats';
+import { type Delta, RIICHI_STICK, deltaOf } from './scoring';
+import {
+  type MatchLength, type PlayerCount, type Round, type Seat, dealerOf, nextRound, seatsOf,
+} from './seats';
 
 export interface MatchTableRow {
   name: string;
+  /**
+   * 3 or 4. Derivable from counting `match_players`, but it is the ruleset --
+   * sanma scores differently -- so it is a column, and history can filter on it.
+   */
+  players: PlayerCount;
   length: MatchLength;
   startingPoints: number;
   returnScore: number;
@@ -57,7 +64,7 @@ export interface HandTableRow {
   outcome: Outcome;
   abortiveReason: AbortiveReason | null;
   dealInSeat: Seat | null;
-  /** "+8000,-8000,0,0" across seats, as the data model spells it. */
+  /** "+8000,-8000,0,0" across seats, as the data model spells it; three in sanma. */
   scoreDelta: string;
 }
 
@@ -99,6 +106,7 @@ export function toRows(state: MatchState, placementOf?: (seat: Seat) => {
   const rows: MatchRows = {
     match: {
       name: state.name,
+      players: state.config.players,
       length: state.config.length,
       startingPoints: state.config.startingPoints,
       returnScore: state.config.returnScore,
@@ -110,7 +118,7 @@ export function toRows(state: MatchState, placementOf?: (seat: Seat) => {
       maxLevel: null,
       isTest: false,
     },
-    matchPlayers: SEATS.map((seat) => {
+    matchPlayers: seatsOf(state.config.players).map((seat) => {
       const player = state.config.seats[seat]!;
       const place = placementOf?.(seat);
       return {
@@ -182,11 +190,11 @@ const parseDelta = (text: string): Delta =>
  * outcome says whether the dealership moved. That is the same property that
  * makes undo exact.
  */
-function advance(row: HandTableRow, wins: HandWinRow[], tenpai: Seat[]): {
+function advance(players: PlayerCount, row: HandTableRow, wins: HandWinRow[], tenpai: Seat[]): {
   round: Round; honba: number; pot: number;
 } {
   const played: Round = { wind: row.roundWind, number: row.roundNumber };
-  const dealer = dealerOf(played);
+  const dealer = dealerOf(played, players);
   const isWin = row.outcome === 'ron' || row.outcome === 'tsumo';
 
   const repeats = isWin
@@ -194,7 +202,7 @@ function advance(row: HandTableRow, wins: HandWinRow[], tenpai: Seat[]): {
     : row.outcome === 'abortive_draw' || tenpai.includes(dealer);
 
   return {
-    round: repeats ? played : nextRound(played),
+    round: repeats ? played : nextRound(played, players),
     honba: isWin ? (repeats ? row.honba + 1 : 0) : row.honba + 1,
     // Only a win clears the table; every kind of draw leaves the sticks on it.
     pot: isWin ? 0 : row.riichiPotBefore,
@@ -211,9 +219,10 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     .map<SeatPlayer>((p) => ({
       playerId: p.playerId,
       name: p.guestName ?? (p.playerId ? nameOf?.(p.playerId) ?? p.playerId : ''),
-    })) as [SeatPlayer, SeatPlayer, SeatPlayer, SeatPlayer];
+    }));
 
   const config: MatchConfig = {
+    players: rows.match.players,
     length: rows.match.length,
     startingPoints: rows.match.startingPoints,
     returnScore: rows.match.returnScore,
@@ -263,16 +272,16 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
   });
 
   // Scores are the prefix sum the data model promises, plus any corrections.
-  const scores = SEATS.map((seat) => {
+  const scores: Delta = deltaOf(config.players, (seat) => {
     let total = config.startingPoints;
     for (const hand of hands) total += hand.scoreDelta[seat];
     for (const a of rows.adjustments) if (a.seat === seat) total += a.delta;
     return total;
-  }) as Delta;
+  });
 
   const last = ordered.at(-1);
   const after = last
-    ? advance(last, bySeq(rows.handWins, last.seq),
+    ? advance(config.players, last, bySeq(rows.handWins, last.seq),
               bySeq(rows.handTenpai, last.seq).map((r) => r.seat))
     : { round: { wind: 'este' as const, number: 1 }, honba: 0, pot: 0 };
 

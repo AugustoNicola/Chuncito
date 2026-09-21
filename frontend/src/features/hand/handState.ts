@@ -18,8 +18,15 @@ import { OPEN_MELD_KINDS } from '../../scorer/types';
 import { compareTiles, isRedFive, normalizeRed, numberOf, suitOf } from '../../scorer/order';
 import { doraFromIndicators } from '../../scorer/dora';
 
-/** Which keyboard button, if any, is armed. `null` means "add a concealed tile". */
-export type CallMode = 'chii' | 'pon' | 'kan' | 'closedKan' | 'dora' | 'uraDora';
+/**
+ * Which keyboard button, if any, is armed. `null` means "add a concealed tile".
+ * `kita` is sanma only: the tapped North is pulled aside as a nukidora.
+ */
+export type CallMode = 'chii' | 'pon' | 'kan' | 'closedKan' | 'dora' | 'uraDora' | 'kita';
+
+/** Modes that mark a tile rather than add one to the hand. */
+const isMarker = (mode: CallMode | null): boolean =>
+  mode === 'dora' || mode === 'uraDora' || mode === 'kita';
 
 export type RiichiChoice = 'none' | 'riichi' | 'dobleRiichi';
 
@@ -38,6 +45,19 @@ export interface HandState {
    */
   red: boolean;
 
+  /**
+   * A three-player hand: 2m-8m do not exist, there is no chii, and 1m/9m
+   * indicate each other as dora. Fixed by the tracker; a toggle in the plain
+   * calculator.
+   */
+  sanma: boolean;
+  /**
+   * Norths pulled aside as nukidora, sanma only. Each is a dora han of its own,
+   * and counts as a North for the four-copy limit, but is not part of the hand:
+   * a replacement tile is drawn, so the hand stays 14 tiles.
+   */
+  kita: number;
+
   winMode: WinMode;
   roundWind: SituationWind;
   seatWind: SituationWind;
@@ -53,6 +73,7 @@ export interface HandState {
 
 export const initialHandState: HandState = {
   concealed: [], melds: [], doraIndicators: [], uraIndicators: [], mode: null, red: false,
+  sanma: false, kita: 0,
   winMode: 'ron', roundWind: 'este', seatWind: 'este', riichi: 'none',
   ippatsu: false, chankan: false, rinshan: false, lastDraw: false, firstRound: false,
 };
@@ -72,8 +93,20 @@ export function heldTiles(state: HandState): Tile[] {
 /** Copies of a tile's value already used, treating a red five as its plain twin. */
 export function copiesUsed(state: HandState, tile: Tile): number {
   const base = normalizeRed(tile);
-  return heldTiles(state).filter((t) => normalizeRed(t) === base).length;
+  // A pulled North is out of the hand but still one of the four.
+  const pulled = base === 'n' ? state.kita : 0;
+  return heldTiles(state).filter((t) => normalizeRed(t) === base).length + pulled;
 }
+
+/** A three-player set has only the terminals of manzu. */
+export const missingInSanma = (tile: Tile): boolean => {
+  if (suitOf(tile) !== 'man') return false;
+  const n = numberOf(tile)!;
+  return n > 1 && n < 9;
+};
+
+/** At most four Norths exist, so at most four can be pulled. */
+export const MAX_KITA = 4;
 
 /** How many red copies of a given red-five atom are in play (at most one exists). */
 export function redsUsed(state: HandState, redTile: Tile): number {
@@ -171,8 +204,7 @@ function meldFor(mode: CallMode, tile: Tile): DeclaredMeld | null {
 
 /** The meld a press produces, with the red modifier applied. */
 function meldForPress(state: HandState, tile: Tile): DeclaredMeld | null {
-  const meld = state.mode && state.mode !== 'dora' && state.mode !== 'uraDora'
-    ? meldFor(state.mode, tile) : null;
+  const meld = state.mode && !isMarker(state.mode) ? meldFor(state.mode, tile) : null;
   if (!meld || !state.red) return meld;
   return { ...meld, tiles: reddenOne([...meld.tiles]) } as DeclaredMeld;
 }
@@ -189,6 +221,16 @@ function tileForPress(state: HandState, tile: Tile): Tile {
  */
 export function disabledReason(state: HandState, tile: Tile): string | null {
   const mode = state.mode;
+
+  // Checked before anything else, for every mode: these tiles are not in the
+  // wall, so they cannot be held, called, or turned up as an indicator either.
+  if (state.sanma && missingInSanma(tile)) return 'not in a three-player set';
+
+  if (mode === 'kita') {
+    if (normalizeRed(tile) !== 'n') return 'only a North can be pulled as nukidora';
+    if (copiesUsed(state, 'n') >= MAX_KITA) return 'all four Norths are already used';
+    return null;
+  }
 
   if (mode === 'dora' || mode === 'uraDora') {
     const list = mode === 'dora' ? state.doraIndicators : state.uraIndicators;
@@ -214,6 +256,7 @@ export function disabledReason(state: HandState, tile: Tile): string | null {
   }
 
   // A call mode.
+  if (mode === 'chii' && state.sanma) return 'there is no chii in sanma';
   if (state.melds.length >= 4) return 'a hand holds at most four melds';
 
   const meld = meldForPress(state, tile);
@@ -271,8 +314,8 @@ export const isDisabled = (state: HandState, tile: Tile): boolean =>
 
 export function toggleMode(state: HandState, mode: CallMode): HandState {
   const next = state.mode === mode ? null : mode;
-  // The red modifier is meaningless while marking dora indicators.
-  const red = next === 'dora' || next === 'uraDora' ? false : state.red;
+  // The red modifier is meaningless while marking dora indicators or a kita.
+  const red = isMarker(next) ? false : state.red;
   return { ...state, mode: next, red };
 }
 
@@ -283,13 +326,15 @@ export function toggleRed(state: HandState): HandState {
 
 /** Whether the red modifier can be armed at all right now. */
 export function redAvailable(state: HandState): boolean {
-  return state.mode !== 'dora' && state.mode !== 'uraDora';
+  return !isMarker(state.mode);
 }
 
 export function pressTile(state: HandState, tile: Tile): HandState {
   if (isDisabled(state, tile)) return state;
   const mode = state.mode;
 
+  // Like the dora modes, kita stays armed: pulling two Norths is routine.
+  if (mode === 'kita') return { ...state, kita: state.kita + 1 };
   if (mode === 'dora') return { ...state, doraIndicators: [...state.doraIndicators, tile] };
   if (mode === 'uraDora') return { ...state, uraIndicators: [...state.uraIndicators, tile] };
   if (mode === null) {
@@ -314,8 +359,28 @@ export const removeDora = (state: HandState, index: number, ura = false): HandSt
     ? { ...state, uraIndicators: state.uraIndicators.filter((_, i) => i !== index) }
     : { ...state, doraIndicators: state.doraIndicators.filter((_, i) => i !== index) };
 
-export const clearHand = (state: HandState): HandState =>
-  ({ ...initialHandState, winMode: state.winMode, roundWind: state.roundWind, seatWind: state.seatWind });
+export const removeKita = (state: HandState): HandState =>
+  reconcile({ ...state, kita: Math.max(0, state.kita - 1) });
+
+export const clearHand = (state: HandState): HandState => ({
+  ...initialHandState,
+  winMode: state.winMode, roundWind: state.roundWind, seatWind: state.seatWind, sanma: state.sanma,
+});
+
+/**
+ * Switches the plain calculator between four and three players. The hand is
+ * cleared, since it may hold tiles the other set does not have, and a North
+ * seat or round wind falls back to East -- nobody sits North in sanma.
+ */
+export function setSanma(state: HandState, sanma: boolean): HandState {
+  if (state.sanma === sanma) return state;
+  const cleared = clearHand({ ...state, sanma });
+  return {
+    ...cleared,
+    roundWind: sanma && state.roundWind === 'norte' ? 'este' : state.roundWind,
+    seatWind: sanma && state.seatWind === 'norte' ? 'este' : state.seatWind,
+  };
+}
 
 /**
  * Display order: concealed tiles sorted, but the winning tile pulled out so the
@@ -340,6 +405,12 @@ export function concealedForDisplay(state: HandState): {
 export function hasKan(state: HandState): boolean {
   return state.melds.some(isKan);
 }
+
+/**
+ * Pulling a North draws a replacement from the dead wall, exactly as a kan
+ * does, so winning on it is rinshan kaihou too.
+ */
+const hasReplacementDraw = (state: HandState): boolean => hasKan(state) || state.kita > 0;
 
 /**
  * Why a context option is unavailable, or null. Centralised so the panel and
@@ -372,7 +443,9 @@ export function contextIssue(state: HandState, option:
     case 'rinshan':
       if (state.winMode !== 'tsumo') return 'winning off a kan draw is always a tsumo';
       if (state.chankan || state.lastDraw) return 'conflicts with another circumstance';
-      if (!hasKan(state)) return 'the hand has no kan';
+      if (!hasReplacementDraw(state)) {
+        return state.sanma ? 'the hand has no kan or kita' : 'the hand has no kan';
+      }
       return null;
     case 'lastDraw':
       return state.rinshan || state.chankan ? 'conflicts with another circumstance' : null;
@@ -395,7 +468,7 @@ export function reconcile(state: HandState): HandState {
   if (contextIssue(s, 'riichi') && s.riichi !== 'none') s = { ...s, riichi: 'none' };
   if (contextIssue(s, 'ippatsu') && s.ippatsu) s = { ...s, ippatsu: false };
   if (contextIssue(s, 'chankan') && s.chankan) s = { ...s, chankan: false };
-  if (s.winMode !== 'tsumo' && s.rinshan) s = { ...s, rinshan: false };
+  if (contextIssue(s, 'rinshan') && s.rinshan) s = { ...s, rinshan: false };
   if (contextIssue(s, 'firstRound') && s.firstRound) s = { ...s, firstRound: false };
   // Ura indicators are deliberately kept even without a riichi: they are entered
   // on the tile flap, before the riichi is picked. validateQuery reports the
@@ -420,8 +493,8 @@ export function toSituation(state: HandState): Situation {
     roundWind: state.roundWind,
     seatWind: state.seatWind,
     // Indicators are what the UI collects; the engine wants the dora themselves.
-    dora: doraFromIndicators(state.doraIndicators),
-    uraDora: doraFromIndicators(state.uraIndicators),
+    dora: doraFromIndicators(state.doraIndicators, state.sanma),
+    uraDora: doraFromIndicators(state.uraIndicators, state.sanma),
     flags: toFlags(state),
   };
 }

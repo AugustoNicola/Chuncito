@@ -1,6 +1,9 @@
 /**
  * Mode buttons. At most one is armed; pressing the armed one disarms it.
- * Call modes disarm themselves after use; dora modes stay armed.
+ * Call modes disarm themselves after use; dora and kita modes stay armed.
+ *
+ * In sanma there is no chii, so its button is not shown at all rather than
+ * disabled -- and Kita joins the markers.
  */
 import { redAvailable, type CallMode, type HandState } from './handState';
 
@@ -18,6 +21,9 @@ const MARKERS: readonly ModeSpec[] = [
   { mode: 'dora', label: 'Dora', hint: 'Mark the tapped tile as a dora indicator' },
   { mode: 'uraDora', label: 'Ura Dora', hint: 'Mark the tapped tile as an ura dora indicator' },
 ];
+
+const KITA: ModeSpec =
+  { mode: 'kita', label: 'Kita', hint: 'Tap North to pull it aside as a nukidora' };
 
 export function CallModeBar({ state, onToggle, onToggleRed }: {
   state: HandState;
@@ -41,10 +47,10 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
 
   return (
     <div className="modebar">
-      <div className="modebar__row modebar__row--calls" role="group" aria-label="Calls">
-        {CALLS.map(modeButton)}
+      <div className="modebar__row" role="group" aria-label="Calls">
+        {CALLS.filter((c) => !(state.sanma && c.mode === 'chii')).map(modeButton)}
       </div>
-      <div className="modebar__row modebar__row--markers" role="group" aria-label="Tile markers">
+      <div className="modebar__row" role="group" aria-label="Tile markers">
         {/* Red is independent of the modes: it combines with any of them. */}
         <button
           type="button"
@@ -58,6 +64,7 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
           Red Five
         </button>
         {MARKERS.map(modeButton)}
+        {state.sanma && modeButton(KITA)}
       </div>
     </div>
   );

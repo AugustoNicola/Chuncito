@@ -244,8 +244,7 @@ button {
 
 .modebar { display: flex; flex-direction: column; gap: 4px; }
 .modebar__row { display: grid; gap: 4px; }
-.modebar__row--calls { grid-template-columns: repeat(4, 1fr); }
-.modebar__row--markers { grid-template-columns: repeat(3, 1fr); }
+.modebar__row { grid-auto-flow: column; grid-auto-columns: 1fr; }
 .modebar__btn {
   padding: 10px 4px;
   font-size: 0.8rem;
@@ -265,6 +264,7 @@ button {
 .modebar__btn[data-mode="closedKan"],
 .modebar__btn[data-mode="uraDora"]   { --on-bg: #5b2f92; --on-border: #b47ae8; }
 .modebar__btn[data-mode="red"]       { --on-bg: #7a2230; --on-border: #ff6b6b; }
+.modebar__btn[data-mode="kita"]      { --on-bg: #6b531d; --on-border: #e0b84e; }
 
 .modebar__btn--on {
   background: var(--on-bg);
@@ -373,6 +373,7 @@ button {
 .score__yaku--extra[data-yaku="dora"]    { --extra: #4ecd8a; }
 .score__yaku--extra[data-yaku="akaDora"] { --extra: #ff6b6b; }
 .score__yaku--extra[data-yaku="uraDora"] { --extra: #b47ae8; }
+.score__yaku--extra[data-yaku="nukiDora"] { --extra: #e0b84e; }
 .score__yaku--extra,
 .score__yaku--extra .score__han { color: var(--extra, var(--text-dim)); }
 .score__divider { height: 1px; background: var(--border); margin: 7px 0; }
@@ -407,6 +408,7 @@ button {
   font-size: 0.9rem;
 }
 .score__breakdown { color: var(--text-faint); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.score__breakdown--note { font-size: 0.78rem; font-style: italic; }
 
 /*
  * Gradient text. Guarded, because with background-clip unsupported the
@@ -817,7 +819,7 @@ button {
   font-size: 0.72rem; color: var(--text-dim);
   background: var(--bg-sunken); border-radius: 4px; padding: 2px 6px;
 }
-.timeline__deltas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.timeline__deltas { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
 .timeline__delta { display: flex; flex-direction: column; gap: 1px; font-size: 0.8rem; }
 .timeline__seatname {
   font-size: 0.68rem; color: var(--text-faint);
@@ -906,7 +908,7 @@ button {
 
 /* ---------- uma fields ---------- */
 
-.setup__uma { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.setup__uma { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
 .setup__umafield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .setup__umaplace {
   font-size: 0.7rem; color: var(--text-faint);

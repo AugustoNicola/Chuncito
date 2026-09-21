@@ -29,6 +29,8 @@ export const YAKU_NAMES: Readonly<Record<string, string>> = {
   suuKantsu: 'Suu Kantsu', tenhou: 'Tenhou', chiihou: 'Chiihou', renhou: 'Renhou',
   // appended last by the engine, counted rather than fixed
   dora: 'Dora', akaDora: 'Red Dora', uraDora: 'Ura Dora',
+  // sanma; added by the client, not the engine
+  nukiDora: 'Kita',
 };
 
 export const yakuName = (atom: string): string => YAKU_NAMES[atom] ?? atom;

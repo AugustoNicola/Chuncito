@@ -42,6 +42,28 @@ Guarded client-side for now (`contextIssue` in `handState.ts` refuses a riichi o
 an open hand, and retracts one if the hand is later opened), so the UI cannot
 produce this. **Reported to the user.**
 
+### No nukidora (sanma kita) input
+Sanma is supported by the client (2026-09-21), and pulled Norths are dora han
+there. `situacion/5` has no slot for them, and the Norths are no longer in the
+hand, so the engine cannot count them. Everything else in sanma needs nothing
+from upstream: the payment table is the same, a `Payment` is per payer (the
+client just has one payer fewer), and 1m→9m indicators are resolved client-side
+before the query like every other indicator.
+
+Implemented client-side in `frontend/src/features/hand/nukidora.ts`: the engine
+scores the hand without the kita, then each pulled North adds a han (plus one
+per dora/ura that is a North), and level and payment are re-derived from the new
+han and the engine's fu. It is skipped under a yakuman, as all dora are.
+
+One case this cannot get right. `resultadoDeVictoria/5` picks the decomposition
+with the best payment *without* the kita. Adding a constant han can reorder two
+decompositions that tied or nearly tied — e.g. 3 han 40 fu and 4 han 20 fu are
+both 1280 base, but with two kita they are 5 han (mangan) and 6 han (haneman). The
+client only sees the one the engine chose. Rare, and it needs a hand with two
+genuinely different readings; the fix is upstream taking a kita count (a
+`nukidora(N)` term in the situation, say) and counting it with the dora.
+**Reported to the user.**
+
 ## Ours to implement (not upstream bugs)
 
 ### No input validation in the entry point
@@ -59,6 +81,9 @@ does, and a dora is never the red copy).
 The UI collects **indicators**, which is what a player actually sees on the
 table, and displays the resolved dora next to each one. Match history should
 store the indicator, for the same reason.
+
+In sanma the manzu cycle is 1m→9m→1m, since 2m–8m are not in the set; that is
+`doraFromIndicator(tile, sanma)`.
 
 ## Known behaviour worth knowing (not bugs)
 

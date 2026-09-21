@@ -69,8 +69,21 @@ async function withStore<T>(
 export const saveMatch = (state: MatchState): Promise<unknown> =>
   withStore('readwrite', (store) => store.put(state, CURRENT));
 
-export const loadMatch = (): Promise<MatchState | null> =>
-  withStore<MatchState>('readonly', (store) => store.get(CURRENT) as IDBRequest<MatchState>);
+/**
+ * Mirrors written before sanma existed have no player count; they were all
+ * four-player matches. Filled in on the way out so nothing downstream has to
+ * guess.
+ */
+function upgrade(state: MatchState): MatchState {
+  if (state.config.players) return state;
+  return { ...state, config: { ...state.config, players: 4 } };
+}
+
+export const loadMatch = async (): Promise<MatchState | null> => {
+  const saved = await withStore<MatchState>(
+    'readonly', (store) => store.get(CURRENT) as IDBRequest<MatchState>);
+  return saved ? upgrade(saved) : null;
+};
 
 export const clearMatch = (): Promise<unknown> =>
   withStore('readwrite', (store) => store.delete(CURRENT));
@@ -92,7 +105,9 @@ export async function listArchived(): Promise<MatchState[]> {
       const tx = db.transaction(STORE, 'readonly');
       const request = tx.objectStore(STORE).getAll();
       request.onsuccess = () => {
-        const all = (request.result as MatchState[]).filter((m) => m?.status === 'finished');
+        const all = (request.result as MatchState[])
+          .filter((m) => m?.status === 'finished')
+          .map(upgrade);
         all.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
         resolve(all);
       };

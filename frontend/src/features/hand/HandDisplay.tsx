@@ -30,8 +30,8 @@ function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void
 }
 
 /** The indicators as they sit on the table. What each points at is left implicit. */
-function IndicatorRow({ label, indicators, onRemove }: {
-  label: string; indicators: TileAtom[]; onRemove: (i: number) => void;
+function IndicatorRow({ label, indicators, sanma, onRemove }: {
+  label: string; indicators: TileAtom[]; sanma: boolean; onRemove: (i: number) => void;
 }) {
   if (indicators.length === 0) return null;
   return (
@@ -39,7 +39,20 @@ function IndicatorRow({ label, indicators, onRemove }: {
       <span className="dorarow__label">{label}</span>
       {indicators.map((tile, i) => (
         <Tile key={i} face={tile} onClick={() => onRemove(i)}
-              label={`${label} indicator ${tile} — points at ${doraFromIndicator(tile)}`} />
+              label={`${label} indicator ${tile} — points at ${doraFromIndicator(tile, sanma)}`} />
+      ))}
+    </div>
+  );
+}
+
+/** Norths pulled aside in sanma, shown with the dora since that is what they are. */
+function KitaRow({ count, onRemove }: { count: number; onRemove: () => void }) {
+  if (count === 0) return null;
+  return (
+    <div className="dorarow">
+      <span className="dorarow__label">Kita</span>
+      {Array.from({ length: count }, (_, i) => (
+        <Tile key={i} face="n" onClick={onRemove} label="Pulled North — tap to put it back" />
       ))}
     </div>
   );
@@ -75,17 +88,23 @@ export function HandSummary({ state }: { state: HandState }) {
           </span>
         ))}
       </div>
-      <IndicatorRow label="Dora" indicators={state.doraIndicators} onRemove={() => {}} />
-      <IndicatorRow label="Ura" indicators={state.uraIndicators} onRemove={() => {}} />
+      <IndicatorRow label="Dora" indicators={state.doraIndicators} sanma={state.sanma}
+                    onRemove={() => {}} />
+      <IndicatorRow label="Ura" indicators={state.uraIndicators} sanma={state.sanma}
+                    onRemove={() => {}} />
+      <KitaRow count={state.kita} onRemove={() => {}} />
     </div>
   );
 }
 
-export function HandDisplay({ state, onRemoveConcealed, onRemoveMeld, onRemoveDora }: {
+export function HandDisplay({
+  state, onRemoveConcealed, onRemoveMeld, onRemoveDora, onRemoveKita,
+}: {
   state: HandState;
   onRemoveConcealed: (index: number) => void;
   onRemoveMeld: (index: number) => void;
   onRemoveDora: (index: number, ura: boolean) => void;
+  onRemoveKita: () => void;
 }) {
   const { sorted, winning } = concealedForDisplay(state);
   const empty = state.concealed.length === 0 && state.melds.length === 0;
@@ -113,10 +132,11 @@ export function HandDisplay({ state, onRemoveConcealed, onRemoveMeld, onRemoveDo
         </div>
       )}
 
-      <IndicatorRow label="Dora" indicators={state.doraIndicators}
+      <IndicatorRow label="Dora" indicators={state.doraIndicators} sanma={state.sanma}
                     onRemove={(i) => onRemoveDora(i, false)} />
-      <IndicatorRow label="Ura" indicators={state.uraIndicators}
+      <IndicatorRow label="Ura" indicators={state.uraIndicators} sanma={state.sanma}
                     onRemove={(i) => onRemoveDora(i, true)} />
+      <KitaRow count={state.kita} onRemove={onRemoveKita} />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import type { Seat } from './seats';
-import { SEATS, roundLabel } from './seats';
+import { roundLabel, seatsOf } from './seats';
 
 const OUTCOME_LABEL: Record<HandRow['outcome'], string> = {
   tsumo: 'tsumo',
@@ -37,8 +37,8 @@ function headline(row: HandRow, names: readonly string[]): string {
 }
 
 /** One winner's value line. A double ron shows one of these per winner. */
-function WinLine({ win, names, showName }: {
-  win: WinRow; names: readonly string[]; showName: boolean;
+function WinLine({ win, names, showName, sanma }: {
+  win: WinRow; names: readonly string[]; showName: boolean; sanma: boolean;
 }) {
   const real = win.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const level = win.level && win.level !== 'sinNombre' ? levelName(win.level) : null;
@@ -65,7 +65,7 @@ function WinLine({ win, names, showName }: {
       )}
       {/* This is what `hand_tiles` is stored for -- reviewing the hand, and one
           day re-scoring it. */}
-      {win.handTiles && <HandSummary state={decodeHandTiles(win.handTiles)} />}
+      {win.handTiles && <HandSummary state={decodeHandTiles(win.handTiles, sanma)} />}
     </div>
   );
 }
@@ -84,7 +84,9 @@ function tierOf(row: HandRow): string | undefined {
   return levelTier(level);
 }
 
-function HandEntry({ row, names }: { row: HandRow; names: readonly string[] }) {
+function HandEntry({ row, names, sanma }: {
+  row: HandRow; names: readonly string[]; sanma: boolean;
+}) {
   return (
     <li className="timeline__hand" data-tier={tierOf(row)}>
       <div className="timeline__head">
@@ -97,11 +99,11 @@ function HandEntry({ row, names }: { row: HandRow; names: readonly string[] }) {
 
       {row.wins.map((win) => (
         <WinLine key={win.winnerSeat} win={win} names={names}
-                 showName={row.wins.length > 1} />
+                 showName={row.wins.length > 1} sanma={sanma} />
       ))}
 
       <div className="timeline__deltas">
-        {SEATS.map((seat) => (
+        {seatsOf(sanma ? 3 : 4).map((seat) => (
           <span key={seat} className="timeline__delta">
             <span className="timeline__seatname">{names[seat]}</span>
             <span className={row.scoreDelta[seat] < 0 ? 'timeline__loss'
@@ -145,7 +147,8 @@ export function TimelineView({ state, onClose }: { state: MatchState; onClose: (
         <p className="timeline__empty">No hands recorded yet.</p>
       ) : (
         <ol className="timeline">
-          {rows.map((row) => <HandEntry key={row.clientUuid} row={row} names={names} />)}
+          {rows.map((row) => <HandEntry key={row.clientUuid} row={row} names={names}
+                                            sanma={state.config.players === 3} />)}
         </ol>
       )}
 

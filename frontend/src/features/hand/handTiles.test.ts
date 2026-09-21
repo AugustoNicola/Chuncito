@@ -30,7 +30,7 @@ describe('hand encoding', () => {
   it('keeps the concealed tiles in insertion order, winning tile last', () => {
     const state = hand({ concealed: ['m9', 'm1', 'm5R'] as Tile[] });
     expect(encodeHandTiles(state)).toBe('m9m1m5R');
-    expect(decodeHandTiles('m9m1m5R').concealed.at(-1)).toBe('m5R');
+    expect(decodeHandTiles('m9m1m5R', false).concealed.at(-1)).toBe('m5R');
   });
 
   it('records melds as melds, not as loose tiles', () => {
@@ -51,7 +51,7 @@ describe('hand encoding', () => {
       doraIndicators: ['m9', 'wh'] as Tile[],
       uraIndicators: ['s1'] as Tile[],
     });
-    const back = decodeHandTiles(encodeHandTiles(state));
+    const back = decodeHandTiles(encodeHandTiles(state), false);
     expect(back.concealed).toEqual(state.concealed);
     expect(back.melds).toEqual(state.melds);
     expect(back.doraIndicators).toEqual(state.doraIndicators);
@@ -60,14 +60,27 @@ describe('hand encoding', () => {
 
   it('round-trips a hand with no melds or indicators', () => {
     const state = hand({ concealed: ['e', 'e', 's', 's'] as Tile[] });
-    expect(decodeHandTiles(encodeHandTiles(state)).concealed).toEqual(state.concealed);
+    expect(decodeHandTiles(encodeHandTiles(state), false).concealed).toEqual(state.concealed);
   });
 
   it('rejects a meld of the wrong size', () => {
-    expect(() => decodeHandTiles('m1|pon:m2m2')).toThrow(HandTilesParseError);
+    expect(() => decodeHandTiles('m1|pon:m2m2', false)).toThrow(HandTilesParseError);
   });
 
   it('rejects an unknown section', () => {
-    expect(() => decodeHandTiles('m1|kong:m2m2m2m2')).toThrow(HandTilesParseError);
+    expect(() => decodeHandTiles('m1|kong:m2m2m2m2', false)).toThrow(HandTilesParseError);
+  });
+
+  it('round-trips pulled Norths in a sanma hand', () => {
+    const state = hand({
+      sanma: true, kita: 2,
+      concealed: ['m1', 'm1', 'm1', 'p2', 'p3', 'p4', 's5', 's6', 's7', 'wh', 'wh', 'wh', 'r', 'r'],
+    });
+    const text = encodeHandTiles(state);
+    expect(text).toMatch(/\|kita:nn$/);
+    const back = decodeHandTiles(text, true);
+    expect(back.kita).toBe(2);
+    expect(back.sanma).toBe(true);
+    expect(() => decodeHandTiles('m1|kita:ne', true)).toThrow(HandTilesParseError);
   });
 });

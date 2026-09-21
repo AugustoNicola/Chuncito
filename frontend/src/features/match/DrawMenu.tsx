@@ -8,9 +8,8 @@
  */
 import { useState } from 'react';
 import type { AbortiveReason, HandInput, MatchState } from './matchState';
-import { dealerSeat } from './matchState';
+import { dealerSeat, seatsIn } from './matchState';
 import type { Seat } from './seats';
-import { SEATS } from './seats';
 
 type Kind = 'exhaustive' | 'abortive' | 'nagashi';
 
@@ -47,6 +46,9 @@ export function DrawMenu({ state, onRecord, onCancel }: {
   const fourRiichiReady = state.pendingRiichi.length === 4;
   const reasonBlocked = (value: AbortiveReason) =>
     value === 'four_riichi' && !fourRiichiReady;
+  // Three players cannot put four riichi on the table, so sanma never offers it.
+  const reasons = ABORTIVE_REASONS.filter(
+    (opt) => opt.value !== 'four_riichi' || state.config.players === 4);
 
   const input: HandInput | null =
     kind === 'exhaustive' ? { kind: 'exhaustiveDraw', tenpai }
@@ -86,7 +88,7 @@ export function DrawMenu({ state, onRecord, onCancel }: {
           <div className="field">
             <span className="field__label">Whose discards</span>
             <div className="segmented" role="group" aria-label="Whose discards">
-              {SEATS.map((seat) => (
+              {seatsIn(state).map((seat) => (
                 <button key={seat} type="button"
                         className={`segmented__btn${nagashiSeat === seat ? ' segmented__btn--on' : ''}`}
                         aria-pressed={nagashiSeat === seat}
@@ -102,7 +104,7 @@ export function DrawMenu({ state, onRecord, onCancel }: {
           <div className="field">
             <span className="field__label">Reason</span>
             <div className="stack" role="group" aria-label="Reason">
-              {ABORTIVE_REASONS.map((opt) => (
+              {reasons.map((opt) => (
                 <button key={opt.value} type="button"
                         className={`stack__btn${reason === opt.value ? ' stack__btn--on' : ''}`}
                         aria-pressed={reason === opt.value}
@@ -123,7 +125,7 @@ export function DrawMenu({ state, onRecord, onCancel }: {
           <div className="field">
             <span className="field__label">Tenpai</span>
             <div className="checks">
-              {SEATS.map((seat) => (
+              {seatsIn(state).map((seat) => (
                 <button key={seat} type="button"
                         className={`check${tenpai.includes(seat) ? ' check--on' : ''}`}
                         aria-pressed={tenpai.includes(seat)}

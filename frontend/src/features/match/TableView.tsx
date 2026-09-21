@@ -1,5 +1,6 @@
 /**
- * The table: four player boxes around a centre box, as seen from above.
+ * The table: a player box per seat around a centre box, as seen from above.
+ * In sanma the fourth chair -- the one that would start North -- stays empty.
  *
  * Seat 0 sits at the bottom and the others run clockwise around the screen,
  * which puts the player to your right on the right -- the same arrangement every
@@ -8,9 +9,9 @@
  * phone can be laid flat in the middle and still read correctly from any chair.
  */
 import type { MatchState } from './matchState';
-import { dealerSeat, potOnTable } from './matchState';
+import { dealerSeat, potOnTable, seatsIn } from './matchState';
 import type { Seat } from './seats';
-import { SEATS, roundKanji, roundLabel, roundName, seatWindOf } from './seats';
+import { roundKanji, roundLabel, roundName, seatWindOf } from './seats';
 
 const SEAT_POSITION: Record<Seat, string> = {
   0: 'bottom', 1: 'right', 2: 'top', 3: 'left',
@@ -23,7 +24,7 @@ function PlayerBox({ state, seat, onOpen, onRiichi }: {
   onRiichi: (seat: Seat) => void;
 }) {
   const player = state.config.seats[seat]!;
-  const wind = seatWindOf(seat, state.round);
+  const wind = seatWindOf(seat, state.round, state.config.players);
   const isDealer = seat === dealerSeat(state);
   const declared = state.pendingRiichi.includes(seat);
   const score = state.scores[seat];
@@ -71,7 +72,7 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
 
   return (
     <div className="table">
-      {SEATS.map((seat) => (
+      {seatsIn(state).map((seat) => (
         <PlayerBox key={seat} state={state} seat={seat}
                    onOpen={onOpenSeat} onRiichi={onRiichi} />
       ))}

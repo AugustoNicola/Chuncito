@@ -60,7 +60,7 @@ function Check({ label, checked, disabled, hint, onChange }: {
 }
 
 export function HandContextPanel({
-  state, update, showWinds = true, showWinMode = true, riichiDeclared,
+  state, update, showWinds = true, showWinMode = true, riichiDeclared, showPlayers = false, onSanma,
 }: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
@@ -80,12 +80,24 @@ export function HandContextPanel({
   showWinMode?: boolean;
   /** See `HandBuilderProps.riichiDeclared`. Undefined leaves the choice free. */
   riichiDeclared?: boolean;
+  /** Only in the plain calculator; the tracker's match already says. */
+  showPlayers?: boolean;
+  onSanma?: (on: boolean) => void;
 }) {
   const riichiIssue = contextIssue(state, 'riichi');
   const issue = (k: Parameters<typeof contextIssue>[1]) => contextIssue(state, k);
+  // Nobody sits North in sanma, and the round never reaches it.
+  const winds = state.sanma ? SITUATION_WINDS.filter((w) => w !== 'norte') : SITUATION_WINDS;
 
   return (
     <div className="context">
+      {showPlayers && onSanma && (
+        <Segmented label="Players" value={state.sanma ? 'three' : 'four'}
+                   options={['four', 'three'] as const}
+                   onChange={(v) => onSanma(v === 'three')}
+                   render={(v) => (v === 'four' ? 'Four' : 'Three (sanma)')} />
+      )}
+
       {showWinMode && (
         <Segmented label="Win" value={state.winMode}
                    options={['ron', 'tsumo'] as WinMode[]}
@@ -95,11 +107,11 @@ export function HandContextPanel({
 
       {showWinds && (
         <>
-          <Segmented label="Round wind" value={state.roundWind} options={SITUATION_WINDS}
+          <Segmented label="Round wind" value={state.roundWind} options={winds}
                      onChange={(v) => update({ roundWind: v })}
                      render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
 
-          <Segmented label="Seat wind" value={state.seatWind} options={SITUATION_WINDS}
+          <Segmented label="Seat wind" value={state.seatWind} options={winds}
                      onChange={(v) => update({ seatWind: v })}
                      render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
         </>

@@ -13,7 +13,7 @@ See `ARCHITECTURE.md` for why there is no event log.
 ```
 players(id, display_name, slug UNIQUE, avatar, created_at)
 
-matches(id, name, length ENUM(east,south), starting_points, uma_json,
+matches(id, name, players ENUM(3,4), length ENUM(east,south), starting_points, uma_json,
         return_score,     -- the sudden-death threshold this match was played to
         status ENUM(in_progress,finished,abandoned),
         end_reason ENUM(final_round,bust,manual) NULL,
@@ -21,7 +21,7 @@ matches(id, name, length ENUM(east,south), starting_points, uma_json,
         max_level,        -- denormalised: best limit hand in the match
         is_test)          -- dev rows, hidden from the UI by default
 
-match_players(match_id, seat 0..3, player_id NULL, guest_name NULL,
+match_players(match_id, seat 0..players-1, player_id NULL, guest_name NULL,
               final_score, placement, uma_points)
               PK(match_id, seat)        -- player_id NULL => named guest
 
@@ -29,7 +29,7 @@ hands(id, match_id, seq, round_wind, round_number, honba, riichi_pot_before,
       outcome ENUM(tsumo,ron,exhaustive_draw,abortive_draw,nagashi_mangan,chombo),
       abortive_reason NULL,             -- nine_terminals, four_riichi, ...
       deal_in_seat NULL,
-      score_delta,                      -- "+8000,-8000,0,0" across seats
+      score_delta,                      -- "+8000,-8000,0,0" across seats (3 in sanma)
       client_uuid UNIQUE)               -- sync idempotency key
       UNIQUE(match_id, seq)
 
@@ -67,6 +67,14 @@ Notes:
   a call from loose tiles. Something like
   `"m2m2m3m4m5p3p4p5|chii:s3s4s5R"` rather than a bare tile run.
 - `hand_yakus` is what makes "filter by yaku achieved" a join instead of a scan.
+- **`players` is the ruleset, not just a head count.** A sanma match (3) has
+  three `match_players` rows and three-entry `score_delta`s, and scores
+  differently: tsumo loss, honba at 1000, the noten 3000 split three ways, and
+  kita. It is a column rather than a count of `match_players` so history can
+  filter on it and so nothing has to infer the rules. `hand_tiles` carries a
+  sanma hand's pulled Norths as a `kita:nn` section; whether 1m indicated 9m
+  follows from `players`. `hand_yakus` gets a `nukiDora` row for the kita han,
+  which is client-generated but otherwise a dora like the others.
 - `base_points` and `points_won` are both kept because they answer different
   questions. `base_points` compares hands ("whose best hand was bigger"), and is
   independent of who was dealing and of honba. `points_won` is what changed

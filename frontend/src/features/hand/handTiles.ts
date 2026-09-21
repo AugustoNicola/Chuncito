@@ -10,6 +10,10 @@
  *
  *   m2m2m3m4p3p4p5s3s4s5m6m7m8m5|chii:s3s4s5R|dora:m9|ura:s1
  *
+ * A sanma hand adds a `kita:` section, one `n` per North pulled as nukidora --
+ * they are off the hand but worth han, so re-scoring needs them. Whether the
+ * hand was sanma at all is the match's `players`, not something stored here.
+ *
  * The concealed section comes first and keeps *insertion order*, because the
  * last tile in it is the winning tile. Everything else is sorted already.
  *
@@ -40,6 +44,7 @@ export function encodeHandTiles(state: HandState): string {
   for (const meld of state.melds) sections.push(`${meld.kind}:${joinTiles(meld.tiles)}`);
   if (state.doraIndicators.length > 0) sections.push(`dora:${joinTiles(state.doraIndicators)}`);
   if (state.uraIndicators.length > 0) sections.push(`ura:${joinTiles(state.uraIndicators)}`);
+  if (state.kita > 0) sections.push(`kita:${'n'.repeat(state.kita)}`);
   return sections.join('|');
 }
 
@@ -67,12 +72,14 @@ function parseMeld(kind: DeclaredMeldKind, tiles: Tile[]): DeclaredMeld {
 /**
  * Rebuilds the tile half of a `HandState`. The context flags -- riichi, winds,
  * circumstances -- are stored in their own columns, so they are not in here and
- * come back at their defaults.
+ * come back at their defaults. `sanma` comes from the match, which is what
+ * knows; it decides which tile each dora indicator points at.
  */
-export function decodeHandTiles(text: string): HandState {
+export function decodeHandTiles(text: string, sanma: boolean): HandState {
   const [concealed, ...rest] = text.split('|');
   const state: HandState = {
     ...initialHandState,
+    sanma,
     concealed: parseTiles(concealed ?? ''),
     melds: [],
     doraIndicators: [],
@@ -87,7 +94,10 @@ export function decodeHandTiles(text: string): HandState {
 
     if (prefix === 'dora') state.doraIndicators = tiles;
     else if (prefix === 'ura') state.uraIndicators = tiles;
-    else if ((MELD_KINDS as readonly string[]).includes(prefix)) {
+    else if (prefix === 'kita') {
+      if (tiles.some((t) => t !== 'n')) throw new HandTilesParseError('kita holds only Norths');
+      state.kita = tiles.length;
+    } else if ((MELD_KINDS as readonly string[]).includes(prefix)) {
       state.melds.push(parseMeld(prefix as DeclaredMeldKind, tiles));
     } else throw new HandTilesParseError(`unknown section prefix "${prefix}"`);
   }

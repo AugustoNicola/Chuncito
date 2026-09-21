@@ -178,6 +178,46 @@ Deferred out of Phase 2:
 - [ ] Landscape / tablet layout for the table
 - [ ] A "who am I" seat, to put the phone's owner at the bottom of the table
 
+## Sanma (three-player) — DONE (2026-09-21)
+
+Added between Phases 2 and 3 at the user's request. `MatchConfig.players` (3 | 4)
+is the switch; every rule follows from it rather than from a separate flag.
+
+Rules settled with the user:
+- Same payment table; a tsumo is simply paid by the seats that exist ("tsumo
+  loss": a 1000 non-dealer tsumo is 500 + 300 = 800). The score screen says so,
+  with the four-player figure alongside.
+- **Honba 1000** — 1000 on a ron, 500 from each payer on a tsumo.
+- **Noten 3000**, split three ways (one tenpai: +3000 / −1500 each; two: +1500
+  each / −3000).
+- **Nukidora on**, **no chii**. Manzu 2–8 are not in the set; a 1m indicator
+  makes 9m the dora.
+- Defaults (editable at setup, not confirmed as house rules — ask if they look
+  wrong): 35,000 start, 40,000 target, uma +15/0/−15.
+- Assumed without asking, as the standard sanma shape: three rounds per wind;
+  sudden death runs into West and stops at West 3; the four-riichi abort is not
+  offered; at most two ron winners; winning on a kita replacement is rinshan; a
+  pulled North also counts for any dora/ura that is a North.
+
+What changed:
+- [x] `seats.ts` takes the player count everywhere (`seatsOf`, `dealerOf`,
+      `nextRound`, `lastWind`, …). Seat 3 is the absent chair.
+- [x] `scoring.ts`: `Delta` is one entry per seat in play; `HONBA` per count;
+      `paymentTotal(payment, players)`.
+- [x] `rows.ts` / `DATA_MODEL.md`: `matches.players`; the round trip is tested
+      for sanma too. Old IndexedDB mirrors load as four-player.
+- [x] Setup toggle, three-seat table (left box gone), menus and timeline sized
+      to the seats.
+- [x] Hand scorer: `HandState.sanma` + `kita`, a Kita marker mode, Chii hidden,
+      `withNukidora()` applied after the engine. `hand_tiles` gains `kita:nn`.
+- [x] Plain calculator has a Four / Three toggle on the Details flap.
+- [x] 33 unit tests (`sanma.test.ts` ×2, incl. two against the real engine),
+      11 browser checks.
+
+Open: the engine has no nukidora input, so a hand whose best decomposition
+changes once kita are added is priced off the engine's choice. Logged in
+`SCORER_GAPS.md` and reported.
+
 ## Phase 3 — Backend and sync — NEXT
 
 **Start here.** Phases 1 and 2 are closed and need no revisiting. The client is
@@ -236,10 +276,14 @@ was learned building Phases 1 and 2:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry 142 tests between them. Fix
-  rules there, not in a component.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 177 unit tests.
+  Fix rules there, not in a component.
+- **Never assume four seats.** Sanma is a `players: 3` match; iterate
+  `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
+  to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 89 checks, including a match played end to end. Several real
+  UI in Firefox — 100 checks, including a four-player match played end to end
+  and a sanma match with a tile-scored kita hand. Several real
   bugs this session were caught only there: a ron reaching the reducer with no
   discarder, and a CSS specificity bug that made a change apply to nothing.
 - Screenshots: `SHOT_DIR=/some/dir npm run test:browser`. The one-off probe

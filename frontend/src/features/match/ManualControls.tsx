@@ -4,7 +4,7 @@
  *
  * Score correction is a field per player showing what each *will* hold, rather
  * than a delta to apply. That is how the table talks about it -- "you should be
- * on 23,400" -- and it makes the safety check obvious: the four numbers have to
+ * on 23,400" -- and it makes the safety check obvious: the numbers have to
  * still add up to what they added up to before. Points do not enter or leave a
  * riichi table, so a total that has moved means a typo, and the screen says so
  * instead of quietly banking it.
@@ -14,10 +14,9 @@
  */
 import { useState } from 'react';
 import type { MatchState } from './matchState';
-import { potOnTable } from './matchState';
+import { potOnTable, seatsIn } from './matchState';
 import { roundLabel } from './seats';
 import type { Seat } from './seats';
-import { SEATS } from './seats';
 
 export function ManualControls({
   state, onAdjust, onAdvanceRound, onSetHonba, onUndo, onEnd, onLeave, onDiscard, onClose,
@@ -46,7 +45,7 @@ export function ManualControls({
   const wasTotal = state.scores.reduce((a, b) => a + b, 0);
   const nowTotal = valid ? parsed.reduce((a, b) => a + b, 0) : NaN;
   const balanced = valid && nowTotal === wasTotal;
-  const changed = valid && SEATS.some((s) => parsed[s] !== state.scores[s]);
+  const changed = valid && seatsIn(state).some((s) => parsed[s] !== state.scores[s]);
 
   const setSeat = (seat: Seat, value: string) =>
     setDraft((d) => d.map((v, i) => (i === seat ? value : v)));
@@ -62,7 +61,7 @@ export function ManualControls({
       <div className="manual">
         <div className="field">
           <span className="field__label">Scores</span>
-          {SEATS.map((seat) => (
+          {seatsIn(state).map((seat) => (
             <div className="manual__seat" key={seat}>
               <span className="manual__seatname">{names[seat]}</span>
               <input className="setup__name manual__score"

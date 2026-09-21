@@ -651,6 +651,92 @@ try {
   check(standings[3]?.uma === '-20', `last place takes the bottom uma (got ${standings[3]?.uma})`);
   await shot('16-endscreen.png');
 
+  // ==================== sanma ====================
+
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home');
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  await byText('Three (sanma)');
+
+  const sanmaInputs = await page.$$('.setup__name');
+  check(sanmaInputs.length === 3, `sanma setup asks for three names (got ${sanmaInputs.length})`);
+  for (let i = 0; i < 3; i++) await sanmaInputs[i].type(names[i]);
+  const sanmaUma = await page.$$eval('.setup__uma input', (els) => els.map((e) => e.value));
+  check(JSON.stringify(sanmaUma) === JSON.stringify(['15', '0', '-15']),
+        `sanma uma is three fields (got ${JSON.stringify(sanmaUma)})`);
+  await shot('30-sanma-setup.png');
+  await byText('Start match');
+  await page.waitForSelector('.table');
+
+  const boxes = await page.$$eval('.seat', (els) => els.map((e) => e.className));
+  check(boxes.length === 3 && !boxes.some((c) => c.includes('seat--left')),
+        `the table has no North box (got ${JSON.stringify(boxes)})`);
+  check(JSON.stringify(await scores()) === JSON.stringify(['35,000', '35,000', '35,000']),
+        'everyone starts on 35,000');
+  await shot('31-sanma-table.png');
+
+  // A 1 han 30 fu non-dealer tsumo: 500 + 300, the third payer is gone.
+  await page.click('.seat--right .playerbox__main');     // Beto
+  await page.waitForSelector('.winmenu');
+  await byText('Tsumo');
+  await byText('1');
+  await byText('30');
+  const tsumoPreview = await page.$eval('.status', (el) => el.textContent);
+  check(tsumoPreview.startsWith('800 points'),
+        `a sanma tsumo previews the reduced total (got "${tsumoPreview}")`);
+  await byText('Review');
+  await page.waitForSelector('.confirm');
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+  check(JSON.stringify(await scores()) === JSON.stringify(['34,500', '35,800', '34,700']),
+        `the dealer pays 500 and the other 300 (got ${JSON.stringify(await scores())})`);
+
+  // The same tanyao as the unit test, with two Norths pulled, entered as tiles.
+  await page.click('.seat--top .playerbox__main');       // Cami
+  await page.waitForSelector('.winmenu');
+  await byText('Tsumo');
+  await byText('Enter the hand and score it');
+  await page.waitForSelector('.keyboard');
+  const manzuGone = await page.$eval('.keyboard [data-key="m5"]', (el) => el.disabled);
+  check(manzuGone, 'the calculator disables 2m-8m in sanma');
+  const modeLabels = await page.$$eval('.modebar__btn', (els) => els.map((e) => e.textContent));
+  check(!modeLabels.includes('Chii') && modeLabels.includes('Kita'),
+        `sanma swaps Chii for Kita (got ${JSON.stringify(modeLabels)})`);
+  for (const tile of 'p2 p3 p4 p5 p6 p7 s2 s3 s4 s6 s7 s8 s5 s5'.split(' ')) {
+    await page.click(`.keyboard [data-key="${tile}"]`);
+  }
+  await arm('Kita');
+  await page.click('.keyboard [data-key="n"]');
+  await page.click('.keyboard [data-key="n"]');
+  await shot('32-sanma-hand.png');
+  await page.waitForFunction(
+    () => !document.querySelector('.btn--primary')?.disabled, { timeout: 90_000 });
+  await byText('Score hand');
+  await page.waitForSelector('.score__points');
+  const sanmaPoints = await page.$eval('.score__points', (el) => el.textContent);
+  check(sanmaPoints === '5,900', `2 kita make it 4 han, 5,900 from two payers (got ${sanmaPoints})`);
+  const kitaLine = await page.$eval('.score__yaku[data-yaku="nukiDora"]', (el) => el.textContent);
+  check(kitaLine.includes('Kita') && kitaLine.includes('2 han'),
+        `the kita are listed with the dora (got "${kitaLine}")`);
+  const note = await page.$eval('.score__breakdown--note', (el) => el.textContent);
+  check(note.includes('Sanma') && note.includes('7,900'),
+        `the score notes the tsumo loss (got "${note}")`);
+  await shot('33-sanma-score.png');
+  await byText('Record this hand');
+  await page.waitForSelector('.confirm');
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+  check(JSON.stringify(await scores()) === JSON.stringify(['32,500', '31,900', '40,600']),
+        `the dealer pays 3,900 and the other 2,000 (got ${JSON.stringify(await scores())})`);
+  await shot('34-sanma-after.png');
+
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Discard this match');
+  await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
+
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {
   failed = true;

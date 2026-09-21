@@ -11,20 +11,20 @@
  * differ.
  */
 import type { HandRow, MatchState } from './matchState';
-import { potOnTable } from './matchState';
+import { potOnTable, seatsIn } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
-import { SEATS, roundLabel } from './seats';
+import { roundLabel } from './seats';
 
 /** "East 3 · 1 repeat", the state of the round as a player would say it. */
 function roundPhrase(label: string, honba: number): string {
   return `${label} · ${honba} repeat${honba === 1 ? '' : 's'}`;
 }
 
-function ValueLine({ win, name, showName }: {
-  win: HandRow['wins'][number]; name: string; showName: boolean;
+function ValueLine({ win, name, showName, sanma }: {
+  win: HandRow['wins'][number]; name: string; showName: boolean; sanma: boolean;
 }) {
   const real = win.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const level = win.level && win.level !== 'sinNombre' ? levelName(win.level) : null;
@@ -53,7 +53,7 @@ function ValueLine({ win, name, showName }: {
       )}
       {/* Only a hand entered as tiles has any to show; a typed-in value has
           nothing but its number. */}
-      {win.handTiles && <HandSummary state={decodeHandTiles(win.handTiles)} />}
+      {win.handTiles && <HandSummary state={decodeHandTiles(win.handTiles, sanma)} />}
     </div>
   );
 }
@@ -75,7 +75,8 @@ export function ConfirmChange({
   const names = before.config.seats.map((p) => p.name);
   // What the players will actually see move, which is the honest thing to show:
   // a riichi declared this hand already came off the score before this screen.
-  const delta = SEATS.map((s) => after.scores[s] - before.scores[s]);
+  const seats = seatsIn(before);
+  const delta = seats.map((s) => after.scores[s] - before.scores[s]);
   const moved = delta.some((d) => d !== 0);
 
   const roundChanged = roundLabel(before.round) !== roundLabel(after.round)
@@ -111,7 +112,8 @@ export function ConfirmChange({
             {row.wins.map((win) => (
               <ValueLine key={win.winnerSeat} win={win}
                          name={names[win.winnerSeat] ?? ''}
-                         showName={row.wins.length > 1} />
+                         showName={row.wins.length > 1}
+                         sanma={before.config.players === 3} />
             ))}
           </div>
         )}
@@ -119,7 +121,7 @@ export function ConfirmChange({
         <div className="field">
           <span className="field__label">Points</span>
           <div className="confirm__table">
-            {SEATS.map((seat) => (
+            {seats.map((seat) => (
               <div key={seat} className="confirm__row">
                 <span className="confirm__name">{names[seat]}</span>
                 <span className="confirm__was">{before.scores[seat].toLocaleString()}</span>

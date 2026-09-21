@@ -192,6 +192,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
               Manual
             </button>
             <h1 className="app__title app__title--match">
+              {match.config.players === 3 && 'Sanma · '}
               {match.config.length === 'east' ? 'East match' : 'South match'}
             </h1>
             <button type="button" className="btn btn--quiet"

@@ -97,8 +97,12 @@ export interface ScoreResult {
   payment: Payment;
 }
 
-/** The three pseudo-yaku the engine appends last; rendered apart from real yaku. */
-export const PSEUDO_YAKU: ReadonlySet<string> = new Set(['dora', 'akaDora', 'uraDora']);
+/**
+ * The three pseudo-yaku the engine appends last; rendered apart from real yaku.
+ * `nukiDora` is the client's own, added for sanma kita (see `nukidora.ts`).
+ */
+export const PSEUDO_YAKU: ReadonlySet<string> =
+  new Set(['dora', 'akaDora', 'uraDora', 'nukiDora']);
 
 /**
  * The engine is semidet: it *fails* for a non-winning or yaku-less hand rather

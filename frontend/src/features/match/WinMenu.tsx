@@ -28,12 +28,12 @@ import { encodeHandTiles } from '../hand/handTiles';
 import { isHandOpen, toFlags, type HandState } from '../hand/handState';
 import { levelName, levelTier } from '../hand/yakuNames';
 import type { HandValue, MatchState, WinEntry } from './matchState';
-import { dealerSeat } from './matchState';
+import { dealerSeat, seatsIn } from './matchState';
 import {
   LIMIT_BASE, basePoints, hanFuPossible, levelFor, paymentFor, paymentTotal,
 } from './scoring';
 import type { Seat } from './seats';
-import { SEATS, seatWindOf } from './seats';
+import { seatWindOf } from './seats';
 
 /**
  * Fu values the rules can actually produce. 25 is chiitoitsu; 20 is a pinfu
@@ -50,8 +50,6 @@ const HAN_STEPS = [1, 2, 3, 4];
  */
 const LIMITS = ['mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman'] as const;
 
-/** Three players can ron the same discard; a fourth would have nobody to pay. */
-const MAX_WINNERS = 3;
 
 type Route = 'menu' | 'tiles';
 
@@ -73,8 +71,15 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const [open, setOpen] = useState(false);
   const [route, setRoute] = useState<Route>('menu');
 
+  const players = state.config.players;
+  const seats = seatsIn(state);
   const dealer = dealerSeat(state);
   const isDealer = current === dealer;
+  /**
+   * Everybody but the discarder can ron the same tile: three winners at a
+   * four-player table, two in sanma.
+   */
+  const maxWinners = players - 1;
   const nameOf = (seat: Seat) => state.config.seats[seat]!.name;
 
   /** Seats already holding a winning hand this discard. */
@@ -102,8 +107,8 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
     setRoute('menu');
   };
 
-  /** Room for another winner: three can ron one discard, a fourth has nobody to pay. */
-  const roomForMore = mode === 'ron' && staged.length + 1 < MAX_WINNERS;
+  /** Room for another winner: everyone but the discarder can ron one discard. */
+  const roomForMore = mode === 'ron' && staged.length + 1 < maxWinners;
 
   if (route === 'tiles' && current !== null) {
     const scored = (result: ScoreResult, hand: HandState): WinEntry => ({
@@ -127,8 +132,9 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         title={nameOf(current)}
         winds={{
           roundWind: state.round.wind,
-          seatWind: seatWindOf(current, state.round),
+          seatWind: seatWindOf(current, state.round, players),
         }}
+        players={players}
         winMode={mode}
         riichiDeclared={state.pendingRiichi.includes(current)}
         onCancel={() => setRoute('menu')}
@@ -144,7 +150,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
     : (han !== null && fu !== null ? basePoints(han, fu) : null);
 
   const preview = manualBase !== null
-    ? paymentTotal(paymentFor(manualBase, isDealer, mode))
+    ? paymentTotal(paymentFor(manualBase, isDealer, mode), players)
     : null;
 
   const manualValue = (): HandValue | null => {
@@ -214,7 +220,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
                 <button key={w.winner} type="button" className="chip chip--staged"
                         onClick={() => setStaged(staged.filter((x) => x.winner !== w.winner))}
                         title="Remove this winner">
-                  {nameOf(w.winner)} · {paymentTotal(w.value.payment).toLocaleString()} ✕
+                  {nameOf(w.winner)} · {paymentTotal(w.value.payment, players).toLocaleString()} ✕
                 </button>
               ))}
             </div>
@@ -224,7 +230,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         <div className="field">
           <span className="field__label">Winner</span>
           <div className="segmented segmented--gain" role="group" aria-label="Winner">
-            {SEATS.map((seat) => (
+            {seats.map((seat) => (
               <button key={seat} type="button"
                       className={`segmented__btn${current === seat ? ' segmented__btn--on' : ''}`}
                       aria-pressed={current === seat}
@@ -262,7 +268,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         <div className="field">
           <span className="field__label">Dealt in</span>
           <div className="segmented segmented--loss" role="group" aria-label="Dealt in">
-            {SEATS.map((seat) => (
+            {seats.map((seat) => (
               <button key={seat} type="button"
                       className={`segmented__btn${dealIn === seat ? ' segmented__btn--on' : ''}`}
                       aria-pressed={dealIn === seat}

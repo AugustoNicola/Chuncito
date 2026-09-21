@@ -11,22 +11,40 @@
  *
  * Both paths converge on a `Payment`, and everything downstream -- honba, the
  * riichi pot, the per-seat delta -- is computed once from that.
+ *
+ * Sanma uses the same payment table. A `Payment` is what each *payer* owes, so
+ * it means the same thing at either table; what changes is how many payers a
+ * tsumo has. With the fourth seat gone, a non-dealer tsumo collects from the
+ * dealer and one non-dealer only -- 1000 is 500 + 300 = 800, not 1100. That
+ * "tsumo loss" falls out of paying the seats that exist, and `paymentTotal`
+ * has to be told the player count to report it.
  */
 import type { Level, Payment, WinMode } from '../../scorer/types';
-import type { Seat } from './seats';
-import { SEATS, turnDistance } from './seats';
+import type { PlayerCount, Seat } from './seats';
+import { seatsOf, turnDistance } from './seats';
 
 /** Payments round up to the nearest 100. */
 export const ceil100 = (points: number): number => Math.ceil(points / 100) * 100;
 
-/** Points a player pays per honba stick: 300 on a ron, 100 each on a tsumo. */
-export const HONBA_RON = 300;
-export const HONBA_TSUMO_EACH = 100;
+/**
+ * Points paid per honba stick.
+ *
+ * Four players: 300 on a ron, 100 from each payer on a tsumo. This group plays
+ * sanma honba at 1000 -- 1000 on a ron, 500 from each of the two payers on a
+ * tsumo -- so the counter is worth chasing with one player fewer to pay it.
+ */
+export const HONBA: Readonly<Record<PlayerCount, { ron: number; tsumoEach: number }>> = {
+  4: { ron: 300, tsumoEach: 100 },
+  3: { ron: 1000, tsumoEach: 500 },
+};
 
 /** A riichi declaration costs 1000, which becomes a stick on the table. */
 export const RIICHI_STICK = 1000;
 
-/** Total paid out at an exhaustive draw, split between tenpai and noten players. */
+/**
+ * Total paid out at an exhaustive draw, split between tenpai and noten players.
+ * The same 3000 at either table; in sanma it is simply split three ways.
+ */
 export const NOTEN_PENALTY_TOTAL = 3000;
 
 /**
@@ -95,12 +113,15 @@ export function baseFromResult(level: Level, han: number, fu: number): number {
   return LIMIT_BASE[level] ?? basePoints(han, fu);
 }
 
-/** The headline number: everything the winner takes from the table, sticks aside. */
-export function paymentTotal(payment: Payment): number {
+/**
+ * The headline number: everything the winner takes from the table, sticks
+ * aside. A tsumo counts one payment per opponent, so sanma comes out smaller.
+ */
+export function paymentTotal(payment: Payment, players: PlayerCount): number {
   switch (payment.kind) {
     case 'ron': return payment.total;
-    case 'tsumoDealer': return payment.each * 3;
-    case 'tsumo': return payment.nonDealer * 2 + payment.dealer;
+    case 'tsumoDealer': return payment.each * (players - 1);
+    case 'tsumo': return payment.nonDealer * (players - 2) + payment.dealer;
   }
 }
 
@@ -122,9 +143,21 @@ export function hanFuPossible(han: number, fu: number, mode: WinMode): boolean {
   return true;
 }
 
-export type Delta = [number, number, number, number];
+/**
+ * One number per seat in play: four entries, or three in sanma.
+ *
+ * Typed as indexable by any `Seat` so that `delta[seat]` reads as a number, but
+ * only the seats of the match are ever present -- iterate with `seatsOf`, never
+ * over all four.
+ */
+export type Delta = number[] & Record<Seat, number>;
 
-export const zeroDelta = (): Delta => [0, 0, 0, 0];
+export const zeroDelta = (players: PlayerCount): Delta =>
+  Array<number>(players).fill(0) as Delta;
+
+/** A per-seat array built from a function of the seat. */
+export const deltaOf = (players: PlayerCount, f: (seat: Seat) => number): Delta =>
+  seatsOf(players).map(f) as Delta;
 
 /** One winner of a hand, with the payment their hand earns. */
 export interface WinPayment {
@@ -142,8 +175,12 @@ function payRiichi(delta: Delta, riichiSeats: readonly Seat[]): void {
   for (const seat of riichiSeats) delta[seat] -= RIICHI_STICK;
 }
 
-/** Per-seat point change for a tsumo. */
+/**
+ * Per-seat point change for a tsumo. Only the seats in play pay, which is all
+ * the tsumo loss in sanma amounts to.
+ */
 export function tsumoDelta(args: {
+  players: PlayerCount;
   winner: Seat;
   dealer: Seat;
   payment: Payment;
@@ -151,12 +188,12 @@ export function tsumoDelta(args: {
   potBefore: number;
   riichiSeats: readonly Seat[];
 }): Delta {
-  const { winner, dealer, payment, honba, potBefore, riichiSeats } = args;
+  const { players, winner, dealer, payment, honba, potBefore, riichiSeats } = args;
   if (payment.kind === 'ron') throw new Error('a tsumo cannot carry a ron payment');
-  const delta = zeroDelta();
-  const honbaEach = HONBA_TSUMO_EACH * honba;
+  const delta = zeroDelta(players);
+  const honbaEach = HONBA[players].tsumoEach * honba;
 
-  for (const seat of SEATS) {
+  for (const seat of seatsOf(players)) {
     if (seat === winner) continue;
     const owed = payment.kind === 'tsumoDealer'
       ? payment.each
@@ -182,15 +219,16 @@ export function tsumoDelta(args: {
  *   to the nearest winner as well.
  */
 export function ronDelta(args: {
+  players: PlayerCount;
   dealIn: Seat;
   wins: readonly WinPayment[];
   honba: number;
   potBefore: number;
   riichiSeats: readonly Seat[];
 }): Delta {
-  const { dealIn, wins, honba, potBefore, riichiSeats } = args;
+  const { players, dealIn, wins, honba, potBefore, riichiSeats } = args;
   if (wins.length === 0) throw new Error('a ron needs at least one winner');
-  const delta = zeroDelta();
+  const delta = zeroDelta(players);
 
   for (const win of wins) {
     if (win.payment.kind !== 'ron') throw new Error('a ron needs a ron payment');
@@ -199,9 +237,9 @@ export function ronDelta(args: {
   }
 
   const [nearest] = [...wins].sort(
-    (a, b) => turnDistance(dealIn, a.winner) - turnDistance(dealIn, b.winner),
+    (a, b) => turnDistance(dealIn, a.winner, players) - turnDistance(dealIn, b.winner, players),
   );
-  const honbaPaid = HONBA_RON * honba;
+  const honbaPaid = HONBA[players].ron * honba;
   delta[nearest!.winner] += honbaPaid;
   delta[dealIn] -= honbaPaid;
 
@@ -220,14 +258,19 @@ export function ronDelta(args: {
  * side. Nobody pays when everyone or no-one is tenpai. Riichi sticks stay on the
  * table, so they are not collected here -- but the ones declared this hand are
  * still part of this hand's delta.
+ *
+ * In sanma the same 3000 splits three ways: one tenpai takes 3000 at 1500 from
+ * each of the others, two tenpai take 1500 each from the one who is not.
  */
-export function drawDelta(tenpai: readonly Seat[], riichiSeats: readonly Seat[]): Delta {
-  const delta = zeroDelta();
+export function drawDelta(
+  players: PlayerCount, tenpai: readonly Seat[], riichiSeats: readonly Seat[],
+): Delta {
+  const delta = zeroDelta(players);
   const count = tenpai.length;
-  if (count > 0 && count < 4) {
+  if (count > 0 && count < players) {
     const gain = NOTEN_PENALTY_TOTAL / count;
-    const loss = NOTEN_PENALTY_TOTAL / (4 - count);
-    for (const seat of SEATS) {
+    const loss = NOTEN_PENALTY_TOTAL / (players - count);
+    for (const seat of seatsOf(players)) {
       delta[seat] += tenpai.includes(seat) ? gain : -loss;
     }
   }
@@ -243,13 +286,15 @@ export function drawDelta(tenpai: readonly Seat[], riichiSeats: readonly Seat[])
  * collected. Honba is paid, on the reading that it pays *as* a mangan tsumo.
  */
 export function nagashiDelta(args: {
+  players: PlayerCount;
   winner: Seat;
   dealer: Seat;
   honba: number;
   riichiSeats: readonly Seat[];
 }): Delta {
-  const { winner, dealer, honba, riichiSeats } = args;
+  const { players, winner, dealer, honba, riichiSeats } = args;
   return tsumoDelta({
+    players,
     winner,
     dealer,
     payment: paymentFor(LIMIT_BASE.mangan!, winner === dealer, 'tsumo'),
@@ -261,7 +306,7 @@ export function nagashiDelta(args: {
 
 export interface Placement {
   seat: Seat;
-  /** 1st through 4th. */
+  /** 1st through 4th, or 3rd in sanma. */
   place: 1 | 2 | 3 | 4;
   score: number;
   umaPoints: number;
@@ -274,7 +319,8 @@ export interface Placement {
  * the higher place -- the usual convention, and it keeps placement total.
  */
 export function placements(scores: Delta, uma: readonly number[]): Placement[] {
-  const ordered = [...SEATS].sort((a, b) => scores[b] - scores[a] || a - b);
+  const seats = seatsOf(scores.length as PlayerCount);
+  const ordered = [...seats].sort((a, b) => scores[b] - scores[a] || a - b);
   return ordered.map((seat, index) => ({
     seat,
     place: (index + 1) as 1 | 2 | 3 | 4,

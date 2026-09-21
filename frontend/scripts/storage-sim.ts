@@ -19,7 +19,10 @@ import {
   type HandInput, type HandValue, type MatchConfig, type MatchState,
 } from '../src/features/match/matchState';
 import { basePoints, levelFor, paymentFor, placements } from '../src/features/match/scoring';
-import { SEATS, type Seat } from '../src/features/match/seats';
+import { seatsOf, type Seat } from '../src/features/match/seats';
+
+// The simulation plays four-player matches; sanma only has fewer rows.
+const SEATS = seatsOf(4);
 import { encodeHandTiles } from '../src/features/hand/handTiles';
 import { initialHandState } from '../src/features/hand/handState';
 import type { DeclaredMeld, Tile, YakuHan } from '../src/scorer/types';
@@ -202,6 +205,7 @@ function nextInput(s: Scenario, state: MatchState): HandInput {
 }
 
 const config = (): MatchConfig => ({
+  players: 4,
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,

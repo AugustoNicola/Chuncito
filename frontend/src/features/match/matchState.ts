@@ -18,10 +18,12 @@
  * with no compensating event and no replay.
  */
 import type { Flag, Level, Payment, SituationWind, WinMode, YakuHan } from '../../scorer/types';
-import type { Seat, MatchLength, Round } from './seats';
-import { SEATS, dealerOf, finalRound, isSuddenDeath, nextRound, windIndex } from './seats';
+import type { Seat, MatchLength, PlayerCount, Round } from './seats';
 import {
-  LIMIT_BASE, RIICHI_STICK, type Delta, type WinPayment, baseFromResult, drawDelta,
+  dealerOf, finalRound, isLastRound, isSuddenDeath, nextRound, seatsOf, windIndex,
+} from './seats';
+import {
+  LIMIT_BASE, RIICHI_STICK, type Delta, type WinPayment, baseFromResult, deltaOf, drawDelta,
   nagashiDelta, paymentFor, paymentTotal, ronDelta, tsumoDelta, zeroDelta,
 } from './scoring';
 
@@ -40,6 +42,12 @@ export interface SeatPlayer {
 }
 
 export interface MatchConfig {
+  /**
+   * Four players, or three for sanma. Everything rule-shaped follows from it:
+   * rounds per wind, tsumo loss, honba value, the noten split, and in the hand
+   * scorer the missing manzu and the nukidora.
+   */
+  players: PlayerCount;
   length: MatchLength;
   startingPoints: number;
   /**
@@ -48,16 +56,17 @@ export interface MatchConfig {
    * else.
    */
   returnScore: number;
-  /** By placement, 1st to 4th. */
-  uma: readonly [number, number, number, number];
-  seats: readonly [SeatPlayer, SeatPlayer, SeatPlayer, SeatPlayer];
+  /** By placement, 1st to last; one entry per player. */
+  uma: readonly number[];
+  /** Indexed by seat; one entry per player. */
+  seats: readonly SeatPlayer[];
 }
 
 /**
  * One winner's hand -- a `hand_wins` row.
  *
  * A hand has a *list* of these rather than a winner column, because this
- * ruleset allows multiple ron: two or three players can win the same discard,
+ * ruleset allows multiple ron: everyone but the discarder can win the same discard,
  * each with their own hand, and each is scored separately.
  */
 export interface WinRow {
@@ -165,7 +174,7 @@ export interface WinEntry {
 }
 
 export type HandInput =
-  /** `wins` holds one entry on a tsumo, and one to three on a ron. */
+  /** `wins` holds one entry on a tsumo, and one to three on a ron (two in sanma). */
   | { kind: 'win'; mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }
   | { kind: 'exhaustiveDraw'; tenpai: Seat[] }
   | { kind: 'abortiveDraw'; reason: AbortiveReason }
@@ -181,19 +190,31 @@ export function winnersOf(input: HandInput): Seat[] {
 const uuid = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2)}-${Date.now()}`);
 
-export const DEFAULT_UMA: readonly [number, number, number, number] = [20, 10, -10, -20];
+/** Setup defaults, per player count. Every one of them is editable at setup. */
+export const DEFAULTS: Readonly<Record<PlayerCount, {
+  uma: readonly number[]; startingPoints: number; returnScore: number;
+}>> = {
+  4: { uma: [20, 10, -10, -20], startingPoints: 25000, returnScore: 30000 },
+  3: { uma: [15, 0, -15], startingPoints: 35000, returnScore: 40000 },
+};
+
+export const DEFAULT_UMA: readonly number[] = DEFAULTS[4].uma;
+
+/** The seats of this match, in turn order. */
+export const seatsIn = (state: { config: MatchConfig }): readonly Seat[] =>
+  seatsOf(state.config.players);
 
 export function createMatch(config: MatchConfig, now = new Date()): MatchState {
+  if (config.seats.length !== config.players || config.uma.length !== config.players) {
+    throw new Error(`a ${config.players}-player match needs ${config.players} seats and uma`);
+  }
   return {
     config,
     round: { wind: 'este', number: 1 },
     honba: 0,
     potCarried: 0,
     pendingRiichi: [],
-    scores: [
-      config.startingPoints, config.startingPoints,
-      config.startingPoints, config.startingPoints,
-    ],
+    scores: deltaOf(config.players, () => config.startingPoints),
     hands: [],
     adjustments: [],
     status: 'in_progress',
@@ -228,7 +249,7 @@ export function toggleRiichi(state: MatchState, seat: Seat): MatchState {
 // --- recording a hand ---
 
 const applyDelta = (scores: Delta, delta: Delta): Delta =>
-  SEATS.map((s) => scores[s] + delta[s]) as Delta;
+  scores.map((score, s) => score + delta[s as Seat]) as Delta;
 
 /**
  * The riichi part of a hand's delta is applied the moment it is declared, so it
@@ -236,8 +257,8 @@ const applyDelta = (scores: Delta, delta: Delta): Delta =>
  * carries the full delta, including the sticks, so a replay from the starting
  * score is correct.
  */
-const alreadyPaid = (riichiSeats: readonly Seat[]): Delta => {
-  const paid = zeroDelta();
+const alreadyPaid = (players: PlayerCount, riichiSeats: readonly Seat[]): Delta => {
+  const paid = zeroDelta(players);
   for (const seat of riichiSeats) paid[seat] -= RIICHI_STICK;
   return paid;
 };
@@ -282,12 +303,14 @@ const nagashiPayment = (winner: Seat, dealer: Seat): Payment =>
 
 function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: number): Delta {
   const riichiSeats = state.pendingRiichi;
+  const players = state.config.players;
   switch (input.kind) {
     case 'win': {
       const first = input.wins[0];
       if (!first) throw new Error('a win needs a winner');
       if (input.mode === 'tsumo') {
         return tsumoDelta({
+          players,
           winner: first.winner,
           dealer,
           payment: first.value.payment,
@@ -301,15 +324,17 @@ function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: 
         winner: w.winner, payment: w.value.payment,
       }));
       return ronDelta({
-        dealIn: input.dealIn, wins, honba: state.honba, potBefore, riichiSeats,
+        players, dealIn: input.dealIn, wins, honba: state.honba, potBefore, riichiSeats,
       });
     }
     case 'exhaustiveDraw':
-      return drawDelta(input.tenpai, riichiSeats);
+      return drawDelta(players, input.tenpai, riichiSeats);
     case 'abortiveDraw':
-      return drawDelta([], riichiSeats);
+      return drawDelta(players, [], riichiSeats);
     case 'nagashiMangan':
-      return nagashiDelta({ winner: input.winner, dealer, honba: state.honba, riichiSeats });
+      return nagashiDelta({
+        players, winner: input.winner, dealer, honba: state.honba, riichiSeats,
+      });
   }
 }
 
@@ -324,16 +349,16 @@ function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: 
 function endCheck(
   scores: Delta, round: Round, config: MatchConfig, dealerPassed: boolean,
 ): EndReason | null {
-  if (SEATS.some((s) => scores[s] < 0)) return 'bust';
+  if (scores.some((score) => score < 0)) return 'bust';
 
-  const reached = SEATS.some((s) => scores[s] >= config.returnScore);
-  const final = finalRound(config.length);
+  const reached = scores.some((score) => score >= config.returnScore);
+  const final = finalRound(config.length, config.players);
 
   if (isSuddenDeath(round, config.length)) {
     // Already past the nominal end: any hand that puts somebody over finishes it.
     if (reached) return 'final_round';
-    // North 4 is the hard stop -- there is no wind after it.
-    if (round.wind === 'norte' && round.number === 4 && dealerPassed) return 'final_round';
+    // North 4 (West 3 in sanma) is the hard stop -- there is no wind after it.
+    if (isLastRound(round, config.players) && dealerPassed) return 'final_round';
     return null;
   }
 
@@ -348,7 +373,8 @@ export interface RecordResult {
 }
 
 export function recordHand(state: MatchState, input: HandInput, now = new Date()): RecordResult {
-  const dealer = dealerOf(state.round);
+  const players = state.config.players;
+  const dealer = dealerOf(state.round, players);
   const riichiSeats = [...state.pendingRiichi];
   const potBefore = state.potCarried + riichiSeats.length;
   const delta = deltaFor(input, state, dealer, potBefore);
@@ -365,7 +391,7 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
         basePoints: value.source === 'manual'
           ? value.basePoints
           : baseFromResult(value.level, value.han, value.fu),
-        pointsWon: paymentTotal(value.payment),
+        pointsWon: paymentTotal(value.payment, players),
         isManual: value.source === 'manual',
         winnerOpen: value.open,
         handTiles: value.source === 'scored' ? value.handTiles : null,
@@ -379,7 +405,7 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
           fu: null,
           level: 'mangan',
           basePoints: LIMIT_BASE.mangan!,
-          pointsWon: paymentTotal(nagashiPayment(input.winner, dealer)),
+          pointsWon: paymentTotal(nagashiPayment(input.winner, dealer), players),
           isManual: true,
           winnerOpen: null,
           handTiles: null,
@@ -406,12 +432,11 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
   };
 
   // The sticks were deducted at declaration time; only the rest of the delta is new.
-  const scores = applyDelta(state.scores, SEATS.map(
-    (s) => delta[s] - alreadyPaid(riichiSeats)[s],
-  ) as Delta);
+  const paid = alreadyPaid(players, riichiSeats);
+  const scores = applyDelta(state.scores, deltaOf(players, (s) => delta[s] - paid[s]));
 
   const repeats = dealerRepeats(input, dealer);
-  const round = repeats ? state.round : nextRound(state.round);
+  const round = repeats ? state.round : nextRound(state.round, players);
   const endReason = endCheck(scores, state.round, state.config, !repeats);
 
   return {
@@ -448,7 +473,8 @@ export function undoLastHand(state: MatchState): MatchState {
     honba: row.honba,
     potCarried: row.riichiPotBefore - row.riichiSeats.length,
     pendingRiichi: [...row.riichiSeats],
-    scores: SEATS.map((s) => state.scores[s] - row.scoreDelta[s] + alreadyPaid(row.riichiSeats)[s]) as Delta,
+    scores: deltaOf(state.config.players, (s) =>
+      state.scores[s] - row.scoreDelta[s] + alreadyPaid(state.config.players, row.riichiSeats)[s]),
     hands: state.hands.slice(0, -1),
     status: 'in_progress',
     endReason: null,
@@ -486,7 +512,7 @@ export function adjustScores(
   state: MatchState, targets: readonly number[], note = '',
 ): MatchState {
   let next = state;
-  for (const seat of SEATS) {
+  for (const seat of seatsIn(state)) {
     const delta = (targets[seat] ?? state.scores[seat]) - state.scores[seat];
     if (delta !== 0) next = adjustScore(next, seat, delta, note);
   }
@@ -496,7 +522,7 @@ export function adjustScores(
 /** Passes the dealership without recording a hand, for fixing a mis-entry. */
 export function advanceRoundManually(state: MatchState): MatchState {
   if (state.status !== 'in_progress') return state;
-  return { ...state, round: nextRound(state.round), honba: 0 };
+  return { ...state, round: nextRound(state.round, state.config.players), honba: 0 };
 }
 
 /** Steps the honba counter directly, for the same reason. */
@@ -519,7 +545,8 @@ export const setMatchName = (state: MatchState, name: string): MatchState =>
 
 // --- derived ---
 
-export const dealerSeat = (state: MatchState): Seat => dealerOf(state.round);
+export const dealerSeat = (state: MatchState): Seat =>
+  dealerOf(state.round, state.config.players);
 
 /** Sticks visible on the table right now, including this hand's declarations. */
 export const potOnTable = (state: MatchState): number =>

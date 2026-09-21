@@ -9,45 +9,63 @@
  */
 import { useState } from 'react';
 import type { MatchConfig, SeatPlayer } from './matchState';
-import type { MatchLength, Seat } from './seats';
-import { SEATS, roundKanji, roundName } from './seats';
+import { DEFAULTS } from './matchState';
+import type { MatchLength, PlayerCount, Seat } from './seats';
+import { roundKanji, roundName, seatsOf } from './seats';
 import { SITUATION_WINDS } from '../../scorer/types';
 import { recallNames, rememberNames } from './persistence';
 
-type Names = [string, string, string, string];
-
-type Uma = [number, number, number, number];
-
-const DEFAULT_UMA_FIELDS: readonly string[] = ['20', '10', '-10', '-20'];
-
 const PLACE_LABEL = ['1st', '2nd', '3rd', '4th'];
 
+const umaFields = (players: PlayerCount): string[] => DEFAULTS[players].uma.map(String);
+
 /** Fisher-Yates, so every seating is equally likely. */
-function shuffled(names: Names): Names {
+function shuffled(names: readonly string[]): string[] {
   const out = [...names];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [out[i], out[j]] = [out[j]!, out[i]!];
   }
-  return out as Names;
+  return out;
 }
 
 export function SetupScreen({ onStart, onCancel }: {
   onStart: (config: MatchConfig) => void;
   onCancel?: () => void;
 }) {
-  const [names, setNames] = useState<Names>(['', '', '', '']);
+  const [players, setPlayers] = useState<PlayerCount>(4);
+  /**
+   * Always four slots, so switching to sanma and back does not lose the name
+   * typed for the fourth seat. Only the first `players` are used.
+   */
+  const [allNames, setAllNames] = useState<string[]>(['', '', '', '']);
   const [length, setLength] = useState<MatchLength>('south');
-  const [startingPoints, setStartingPoints] = useState(25000);
-  const [returnScore, setReturnScore] = useState(30000);
-  const [uma, setUma] = useState<string[]>([...DEFAULT_UMA_FIELDS]);
+  const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
+  const [returnScore, setReturnScore] = useState(DEFAULTS[4].returnScore);
+  const [uma, setUma] = useState<string[]>(() => umaFields(4));
   const [remembered] = useState<string[]>(() => recallNames());
 
+  const seats = seatsOf(players);
+  const names = allNames.slice(0, players);
+
   const setName = (seat: Seat, value: string) =>
-    setNames((n) => n.map((v, i) => (i === seat ? value : v)) as Names);
+    setAllNames((n) => n.map((v, i) => (i === seat ? value : v)));
+
+  /**
+   * The point defaults and uma differ between the two, so changing the player
+   * count resets them to that table's defaults rather than carrying a 25,000
+   * start into sanma.
+   */
+  const pickPlayers = (count: PlayerCount) => {
+    if (count === players) return;
+    setPlayers(count);
+    setUma(umaFields(count));
+    setStartingPoints(DEFAULTS[count].startingPoints);
+    setReturnScore(DEFAULTS[count].returnScore);
+  };
 
   const filled = names.every((n) => n.trim().length > 0);
-  const duplicate = new Set(names.map((n) => n.trim().toLowerCase())).size < 4;
+  const duplicate = new Set(names.map((n) => n.trim().toLowerCase())).size < players;
   const umaValues = uma.map((v) => Number(v.trim()));
   const umaValid = umaValues.every((n) => Number.isFinite(n) && Number.isInteger(n));
   // Uma that does not sum to zero would invent or destroy points across the
@@ -63,16 +81,15 @@ export function SetupScreen({ onStart, onCancel }: {
 
   function start() {
     if (!ready) return;
-    const trimmed = names.map((n) => n.trim()) as Names;
+    const trimmed = names.map((n) => n.trim());
     rememberNames(trimmed);
-    const seats = trimmed.map<SeatPlayer>((name) => ({ playerId: null, name })) as
-      [SeatPlayer, SeatPlayer, SeatPlayer, SeatPlayer];
     onStart({
+      players,
       length,
       startingPoints,
       returnScore,
-      uma: umaValues as Uma,
-      seats,
+      uma: umaValues,
+      seats: trimmed.map<SeatPlayer>((name) => ({ playerId: null, name })),
     });
   }
 
@@ -84,7 +101,7 @@ export function SetupScreen({ onStart, onCancel }: {
         )}
         <h1 className="app__title">New match</h1>
         <button type="button" className="btn btn--quiet"
-                onClick={() => setNames(shuffled(names))}
+                onClick={() => setAllNames([...shuffled(names), ...allNames.slice(players)])}
                 disabled={!filled}
                 title="Shuffle the seating">
           Shuffle
@@ -93,15 +110,29 @@ export function SetupScreen({ onStart, onCancel }: {
 
       <div className="setup">
         <div className="field">
+          <span className="field__label">Table</span>
+          <div className="segmented" role="group" aria-label="Table">
+            {([4, 3] as PlayerCount[]).map((opt) => (
+              <button key={opt} type="button"
+                      className={`segmented__btn${players === opt ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={players === opt}
+                      onClick={() => pickPlayers(opt)}>
+                {opt === 4 ? 'Four players' : 'Three (sanma)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
           <span className="field__label">Players</span>
-          {SEATS.map((seat) => (
+          {seats.map((seat) => (
             <div className="setup__seat" key={seat}>
               <span className="setup__seatno"
                     title={`Starts as ${roundName(SITUATION_WINDS[seat]!)}`}>
                 {roundKanji(SITUATION_WINDS[seat]!)}
               </span>
               <input className="setup__name"
-                     value={names[seat]}
+                     value={allNames[seat]}
                      placeholder={roundName(SITUATION_WINDS[seat]!)}
                      onChange={(e) => setName(seat, e.target.value)}
                      aria-label={`${roundName(SITUATION_WINDS[seat]!)} seat name`} />
@@ -144,7 +175,7 @@ export function SetupScreen({ onStart, onCancel }: {
         <div className="field">
           <span className="field__label">Uma</span>
           <div className="setup__uma">
-            {PLACE_LABEL.map((label, i) => (
+            {PLACE_LABEL.slice(0, players).map((label, i) => (
               <label className="setup__umafield" key={label}>
                 <span className="setup__umaplace">{label}</span>
                 <input className="setup__number" type="text" inputMode="numeric"
@@ -162,6 +193,12 @@ export function SetupScreen({ onStart, onCancel }: {
             </span>
           )}
           <span className="field__hint">Placement points only — no oka.</span>
+          {players === 3 && (
+            <span className="field__hint">
+              Sanma: no chii, manzu 2–8 removed, North pulled as nukidora, tsumo
+              paid by two players only, honba worth 1,000.
+            </span>
+          )}
         </div>
 
         <div className="setup__numbers">

@@ -16,6 +16,7 @@ import { fromRows, toRows } from './rows';
 import type { Seat } from './seats';
 
 const config: MatchConfig = {
+  players: 4,
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,

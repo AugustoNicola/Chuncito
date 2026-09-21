@@ -9,6 +9,7 @@ import { dealerOf, seatWindOf } from './seats';
 import type { Seat } from './seats';
 
 const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
+  players: 4,
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,
@@ -62,23 +63,23 @@ const total = (s: MatchState) => s.scores.reduce((a, b) => a + b, 0);
 
 describe('seats and winds', () => {
   it('starts with seat 0 dealing East 1', () => {
-    expect(dealerOf({ wind: 'este', number: 1 })).toBe(0);
-    expect(seatWindOf(0, { wind: 'este', number: 1 })).toBe('este');
-    expect(seatWindOf(3, { wind: 'este', number: 1 })).toBe('norte');
+    expect(dealerOf({ wind: 'este', number: 1 }, 4)).toBe(0);
+    expect(seatWindOf(0, { wind: 'este', number: 1 }, 4)).toBe('este');
+    expect(seatWindOf(3, { wind: 'este', number: 1 }, 4)).toBe('norte');
   });
 
   it('passes the dealership one seat per round, across winds', () => {
-    expect(dealerOf({ wind: 'este', number: 4 })).toBe(3);
-    expect(dealerOf({ wind: 'sur', number: 1 })).toBe(0);
-    expect(dealerOf({ wind: 'sur', number: 3 })).toBe(2);
+    expect(dealerOf({ wind: 'este', number: 4 }, 4)).toBe(3);
+    expect(dealerOf({ wind: 'sur', number: 1 }, 4)).toBe(0);
+    expect(dealerOf({ wind: 'sur', number: 3 }, 4)).toBe(2);
   });
 
   it('makes the dealer East and reads the other winds off the seat', () => {
     const round = { wind: 'sur' as const, number: 2 };
-    expect(dealerOf(round)).toBe(1);
-    expect(seatWindOf(1, round)).toBe('este');
-    expect(seatWindOf(2, round)).toBe('sur');
-    expect(seatWindOf(0, round)).toBe('norte');
+    expect(dealerOf(round, 4)).toBe(1);
+    expect(seatWindOf(1, round, 4)).toBe('este');
+    expect(seatWindOf(2, round, 4)).toBe('sur');
+    expect(seatWindOf(0, round, 4)).toBe('norte');
   });
 });
 
@@ -371,7 +372,7 @@ describe('rows for the history', () => {
 
   it('numbers hands from one, in order', () => {
     let s = start();
-    for (let i = 0; i < 3; i++) s = play(s, win(1, dealerOf(s.round), { dealIn: 2 }));
+    for (let i = 0; i < 3; i++) s = play(s, win(1, dealerOf(s.round, 4), { dealIn: 2 }));
     expect(s.hands.map((h) => h.seq)).toEqual([1, 2, 3]);
   });
 
