@@ -28,6 +28,11 @@
   --limit-yakuman:   #ffd24a;
 
   --tile-w: 40px;
+  /* The glyph artwork is drawn nearly edge to edge on its 300x400 canvas, so
+     the face reads as cramped. Inset the glyph layer rather than shrinking the
+     tile: the footprint stays --tile-w and no layout moves. Proportional, so
+     it holds wherever a tile is sized by something other than --tile-w. */
+  --tile-glyph: 0.84;
   --radius: 10px;
   --gap: 8px;
 
@@ -70,7 +75,10 @@ button {
   user-select: none;
 }
 
-.tile img {
+/* Both layers are styled by class, not by `.tile img` -- the glyph's own rule
+   has to be able to override these, and an element selector would outrank it. */
+.tile__face,
+.tile__glyph {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -79,18 +87,34 @@ button {
   pointer-events: none;
 }
 
+/* Only the glyph is inset. The face and the back stay full bleed. */
+.tile__glyph {
+  inset: calc((100% - 100% * var(--tile-glyph)) / 2);
+  /* Sized, not left to `auto`: an img is a replaced element, so `auto` takes the
+     SVG's intrinsic 300x400 instead of filling the inset box. */
+  width: calc(100% * var(--tile-glyph));
+  height: calc(100% * var(--tile-glyph));
+}
+
 /* Called melds show one tile turned on its side, as on a real table. */
 .tile--rotated {
   width: calc(var(--tile-w) * 4 / 3);
   aspect-ratio: 4 / 3;
 }
-.tile--rotated img {
+.tile--rotated .tile__face,
+.tile--rotated .tile__glyph {
   width: calc(var(--tile-w) * 4 / 3 * 3 / 4);
   height: calc(var(--tile-w) * 4 / 3);
+  inset: auto;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center;
+}
+/* A rotated layer is sized explicitly, so the glyph scales rather than insets. */
+.tile--rotated .tile__glyph {
+  width: calc(var(--tile-w) * var(--tile-glyph));
+  height: calc(var(--tile-w) * 4 / 3 * var(--tile-glyph));
 }
 
 .tile--button { cursor: pointer; transition: transform 80ms ease, filter 80ms ease; }

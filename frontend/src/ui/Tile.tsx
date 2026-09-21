@@ -36,11 +36,11 @@ export function Tile({ face, rotated, disabled, winning, onClick, label, keyTile
   ].filter(Boolean).join(' ');
 
   const layers = face === 'back'
-    ? <img src="/tiles/back.svg" alt="" />
+    ? <img className="tile__face" src="/tiles/back.svg" alt="" />
     : (
       <>
-        <img src="/tiles/front.svg" alt="" />
-        {face !== 'blank' && <img src={`/tiles/${face}.svg`} alt="" />}
+        <img className="tile__face" src="/tiles/front.svg" alt="" />
+        {face !== 'blank' && <img className="tile__glyph" src={`/tiles/${face}.svg`} alt="" />}
       </>
     );
 
