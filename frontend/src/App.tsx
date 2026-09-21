@@ -54,6 +54,12 @@ export function App() {
         match={match}
         onChange={setMatch}
         onFinished={() => { setMatch(null); setScreen('home'); }}
+        onLeave={() => setScreen('home')}
+        onDiscard={() => {
+          void clearMatch();
+          setMatch(null);
+          setScreen('home');
+        }}
       />
     );
   }

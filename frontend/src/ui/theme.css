@@ -995,6 +995,8 @@ button {
 }
 .manual__total--off { border-color: var(--danger); color: var(--loss); }
 
+.btn--danger { background: #7a2230; border-color: var(--danger); color: var(--text); }
+
 /* ---------- timeline: one line per winner ---------- */
 
 .timeline__win { display: flex; flex-direction: column; gap: 4px; }

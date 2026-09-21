@@ -20,7 +20,7 @@ import type { Seat } from './seats';
 import { SEATS } from './seats';
 
 export function ManualControls({
-  state, onAdjust, onAdvanceRound, onSetHonba, onUndo, onEnd, onClose,
+  state, onAdjust, onAdvanceRound, onSetHonba, onUndo, onEnd, onLeave, onDiscard, onClose,
 }: {
   state: MatchState;
   onAdjust: (targets: number[], note: string) => void;
@@ -28,10 +28,15 @@ export function ManualControls({
   onSetHonba: (honba: number) => void;
   onUndo: () => void;
   onEnd: () => void;
+  /** Back to the home screen, leaving the match where it is. */
+  onLeave: () => void;
+  /** Throws the match away, mirror and all. */
+  onDiscard: () => void;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<string[]>(() => state.scores.map(String));
   const [note, setNote] = useState('');
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const last = state.hands.at(-1);
   const names = state.config.seats.map((p) => p.name);
@@ -149,8 +154,47 @@ export function ManualControls({
             End early
           </button>
           <span className="field__hint">
-            Placements are worked out from the scores as they stand.
+            Placements are worked out from the scores as they stand, and the match
+            is saved to the history.
           </span>
+        </div>
+
+        <div className="field">
+          <span className="field__label">Leave this match</span>
+          <button type="button" className="btn btn--wide" onClick={onLeave}>
+            Back to the home screen
+          </button>
+          <span className="field__hint">
+            The match is kept and waiting; reopening the app returns to it.
+          </span>
+
+          {/*
+            The only way to get rid of a half-played match. Without it a match
+            opened by mistake follows you around: the app restores whatever is in
+            progress on every load, so there is nowhere else to go.
+          */}
+          {confirmDiscard ? (
+            <div className="manual__row">
+              <button type="button" className="btn btn--danger" onClick={onDiscard}>
+                Yes, throw it away
+              </button>
+              <button type="button" className="btn" onClick={() => setConfirmDiscard(false)}>
+                Keep it
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn btn--quiet"
+                    onClick={() => setConfirmDiscard(true)}>
+              Discard this match
+            </button>
+          )}
+          {confirmDiscard && (
+            <span className="setup__warn">
+              {state.hands.length === 0
+                ? 'Nothing has been recorded yet.'
+                : `${state.hands.length} recorded hand${state.hands.length === 1 ? '' : 's'} will be lost. This cannot be undone.`}
+            </span>
+          )}
         </div>
       </div>
     </div>

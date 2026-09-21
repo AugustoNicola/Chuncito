@@ -108,6 +108,11 @@ After a round of on-device feedback:
       unified, since `:root` had drifted from what the score screen used
 - [x] Fixed: a disabled segmented button (riichi on an open hand) refused the tap
       while still looking available — `.segmented__btn:disabled` had no rule
+- [x] Fixed: **no way out of a match**. The app restores whatever is in progress
+      on every load, and the only exit was finishing it — so a match started by
+      mistake followed you around and the home screen was unreachable. Manual
+      control now has "Back to the home screen" (keeps it) and "Discard this
+      match" (clears the mirror, two-tap).
 
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now

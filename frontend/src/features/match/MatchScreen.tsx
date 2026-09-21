@@ -52,10 +52,14 @@ const DRAW_TITLE: Record<string, string> = {
   nagashiMangan: 'Nagashi mangan',
 };
 
-export function MatchScreen({ match, onChange, onFinished }: {
+export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }: {
   match: MatchState;
   onChange: (state: MatchState) => void;
   onFinished: () => void;
+  /** Home, with the match left in progress. */
+  onLeave: () => void;
+  /** Home, with the match thrown away. */
+  onDiscard: () => void;
 }) {
   const [menu, setMenu] = useState<Menu>({ at: 'table' });
   const [pending, setPending] = useState<Pending | null>(null);
@@ -173,6 +177,8 @@ export function MatchScreen({ match, onChange, onFinished }: {
             'Placements are worked out from the scores as they stand. Any riichi sticks on the table are lost, as they would be at a real table.',
             'End it now',
           )}
+          onLeave={onLeave}
+          onDiscard={onDiscard}
           onClose={() => setMenu({ at: 'table' })}
         />
       );

@@ -428,7 +428,35 @@ try {
   check(JSON.stringify(afterReload) === JSON.stringify(afterDraw),
         `the match is restored from IndexedDB (got ${JSON.stringify(afterReload)})`);
 
+  // --- a match can be left and thrown away, which is the only way out of one ---
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Back to the home screen');
+  await page.waitForSelector('.home');
+  const resumable = await page.$$eval('button', (els) =>
+    els.some((b) => b.textContent.includes('Resume match')));
+  check(resumable, 'leaving a match offers to resume it');
+
+  await byText('Resume match');
+  await page.waitForSelector('.table');
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Discard this match');
+  await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home', { timeout: 20_000 });
+  const stillThere = await page.$$eval('button', (els) =>
+    els.some((b) => b.textContent.includes('Resume match')));
+  check(!stillThere, 'a discarded match does not come back on the next load');
+
   // --- ending the match shows placements ---
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  const again = await page.$$('.setup__name');
+  for (let i = 0; i < names.length; i++) await again[i].type(names[i]);
+  await byText('Start match');
+  await page.waitForSelector('.table');
   await byText('Manual');
   await page.waitForSelector('.manual');
   await byText('End early');
@@ -439,7 +467,8 @@ try {
     name: el.querySelector('.standings__name').textContent,
     uma: el.querySelector('.standings__uma').textContent,
   })));
-  check(standings[0]?.name === 'Beto', `the leader places first (got ${standings[0]?.name})`);
+  check(standings[0]?.name === 'Ana',
+        `a level table places by seat order (got ${standings[0]?.name})`);
   check(standings[0]?.uma === '+20', `uma is applied by placement (got ${standings[0]?.uma})`);
   check(standings[3]?.uma === '-20', `last place takes the bottom uma (got ${standings[3]?.uma})`);
   await shot('16-endscreen.png');
