@@ -95,8 +95,45 @@ Notes:
 
 ## Size
 
-Per hanchan: match ~120 B, four `match_players` ~160 B, ~12 `hands` ~1.3 KB,
-riichi/tenpai/yaku rows ~800 B — roughly **2.5 KB raw, 6–10 KB with index
-overhead**. So even a 5 MB tier holds 500–800 matches. Vendor choice is therefore
-about **backup retention and durability**, not capacity. See the plan's storage
-table; Neon is the recommendation.
+**Measured**, not estimated — `npm run measure:storage` in `frontend/`. The
+matches come out of the real reducer, so hands per match follow the actual rules
+(dealer repeats, draws, sudden death) rather than an assumption; the contents of
+a hand are synthesised, since only field *lengths* matter here and running the
+engine a hundred thousand times would not change them. Rows are then loaded into
+a real SQLite database with this schema and its indexes and the file is measured.
+Postgres is modelled on top of that, because its 23-byte tuple header, 4-byte
+line pointer and column alignment cost roughly 1.7x what SQLite does.
+
+Two scenarios, 1000 matches each:
+
+| | hands/match | SQLite (measured) | Postgres (modelled) | 5 MB holds |
+|---|---|---|---|---|
+| **typical** — 55% of wins entered as tiles, 20% riichi rate | 9.5 avg, 17 max | 3.3 KB | **5.5 KB** | ~925 matches |
+| **heavy** — every win as tiles, 4 melds, 5 indicators, 6–11 yaku, 45% riichi | 9.7 avg, 15 max | 8.8 KB | **15.0 KB** | ~340 matches |
+
+About 600 B per hand typical, 1.6 KB per hand heavy.
+
+Where it goes, per match, modelled for Postgres:
+
+| table | typical | heavy |
+|---|---|---|
+| `hand_yakus` | 1.7 KB (29%) | **9.7 KB (64%)** |
+| `hands` | 1.8 KB (33%) | 1.9 KB (13%) |
+| `hand_wins` | 1.1 KB (19%) | 1.7 KB (11%) |
+| everything else | 1.0 KB | 1.6 KB |
+
+Two things worth knowing from this:
+
+- **`hand_tiles` is not the problem.** It is the one variable-length field and
+  the obvious suspect, but a stored hand runs 45 chars typical, 96 at the heavy
+  p95, and `hand_wins` is only 11–19% of the total. Keeping history re-scorable
+  is close to free.
+- **`hand_yakus` dominates, and more than half of it is index.** Every yaku is a
+  row carrying the 28-byte Postgres tuple overhead plus two index entries, for a
+  payload of about 20 bytes. If storage ever became tight, the lever is that
+  table's indexing — not the tiles, and not dropping history.
+
+So the vendor question stays about **backup retention and durability**, not
+capacity. A group playing weekly gets a few hundred matches a year; 5 MB is
+several years even on the heavy figures, and the typical case is closer to a
+decade. See the plan's storage table; Neon is the recommendation.

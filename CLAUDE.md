@@ -17,6 +17,7 @@ All from `frontend/`:
 | `npm test` | Contract + unit tests (vitest, Node swipl bundle) |
 | `npm run test:browser` | Boots the app in the system Firefox and asserts a real score |
 | `npm run build` | Typecheck + production build |
+| `npm run measure:storage` | Simulates matches and sizes the database (see `DATA_MODEL.md`) |
 
 From the repo root:
 
