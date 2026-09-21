@@ -540,6 +540,55 @@ try {
   check(afterMulti[0] === '26,000',
         `the further winner is paid her hand alone (got ${afterMulti[0]})`);
 
+  // --- a scored hand can be staged, so a double ron can mix both routes ---
+  await page.click('.seat--right .playerbox__main');    // Beto
+  await page.waitForSelector('.winmenu');
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Dealt in');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Cami').click();
+  });
+  await byText('Enter the hand and score it');
+  await page.waitForSelector('.keyboard');
+  for (const t of HAND) await page.click(`.keyboard [data-key="${t}"]`);
+  await page.waitForFunction(
+    () => !document.querySelector('.btn--primary')?.disabled, { timeout: 30_000 });
+  await byText('Score hand');
+  await page.waitForSelector('.score');
+  const scoreActions = await page.$$eval('.score__actions .btn',
+                                         (els) => els.map((e) => e.textContent.trim()));
+  check(scoreActions.includes('Add another winner on this discard'),
+        `a scored hand can be staged rather than recorded (got ${JSON.stringify(scoreActions)})`);
+  await shot('34-score-stage.png');
+  await byText('Add another winner on this discard');
+  await page.waitForSelector('.winmenu');
+  const mixedStaged = await page.$$eval('.chip--staged', (els) => els.map((e) => e.textContent));
+  check(mixedStaged.length === 1 && mixedStaged[0].includes('Beto'),
+        `the scored hand is staged (got ${JSON.stringify(mixedStaged)})`);
+
+  // The second winner's hand is typed in, so one ron carries both routes.
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Winner');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Dani').click();
+  });
+  await pick('Han', '2');
+  await pick('Fu', '30');
+  // The tiles button is also a wide primary, so take the last one on the page.
+  const reviewLabel = await page.$$eval('.btn--primary.btn--wide',
+                                        (els) => els[els.length - 1].textContent.trim());
+  check(reviewLabel === 'Review 2 hands',
+        `the button counts the hands it will record (got "${reviewLabel}")`);
+  await shot('35-mixed-multiron.png');
+  await byText('Review 2 hands');
+  await page.waitForSelector('.confirm');
+  const mixedHands = await page.$$eval('.confirm__value', (els) => els.length);
+  check(mixedHands === 2, `both hands reach the review (got ${mixedHands})`);
+  const mixedTiles = await page.$$eval('.confirm__value .handsummary', (els) => els.length);
+  check(mixedTiles === 1, `only the scored hand carries tiles (got ${mixedTiles})`);
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+
   // --- four riichi needs four riichi ---
   await page.click('.centre');
   await page.waitForSelector('.drawmenu');

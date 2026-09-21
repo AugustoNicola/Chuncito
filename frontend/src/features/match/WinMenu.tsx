@@ -13,7 +13,13 @@
  *
  * A ron can have more than one winner: this ruleset pays every player who wins
  * on the discard rather than aborting the hand. Winners are staged one at a
- * time, and the whole set is recorded as a single hand.
+ * time -- by either route, in any mix -- and the whole set is recorded as a
+ * single hand.
+ *
+ * Each winner's hand is scored on its own. Nothing checks that they share a
+ * winning tile: in a real double ron they do, but the engine is asked one hand
+ * at a time and has no way to be told about the other, so there is nothing to
+ * be gained by enforcing it here.
  */
 import { useState } from 'react';
 import type { ScoreResult, WinMode } from '../../scorer/types';
@@ -77,7 +83,42 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const outcomeSettled = current !== null
     && (mode === 'tsumo' || (dealIn !== null && dealIn !== current));
 
+  const clearValue = () => { setHan(null); setFu(null); setLimit(null); setOpen(false); };
+
+  /** Everything entered so far, plus the hand on screen if it is complete. */
+  const allWins = (extra?: WinEntry): WinEntry[] => [...staged, ...(extra ? [extra] : [])];
+
+  const record = (extra?: WinEntry) => onRecord({
+    mode,
+    dealIn: mode === 'ron' ? dealIn : null,
+    wins: allWins(extra),
+  });
+
+  /** Puts a hand aside and goes back for the next winner's. */
+  const stage = (entry: WinEntry) => {
+    setStaged([...staged, entry]);
+    setCurrent(null);
+    clearValue();
+    setRoute('menu');
+  };
+
+  /** Room for another winner: three can ron one discard, a fourth has nobody to pay. */
+  const roomForMore = mode === 'ron' && staged.length + 1 < MAX_WINNERS;
+
   if (route === 'tiles' && current !== null) {
+    const scored = (result: ScoreResult, hand: HandState): WinEntry => ({
+      winner: current,
+      value: {
+        source: 'scored',
+        payment: result.payment,
+        han: result.han,
+        fu: result.fu,
+        level: result.level,
+        yakus: result.yakus,
+        handTiles: encodeHandTiles(hand),
+        open: isHandOpen(hand),
+      },
+    });
     return (
       <HandBuilder
         title={nameOf(current)}
@@ -88,23 +129,8 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         winMode={mode}
         riichiDeclared={state.pendingRiichi.includes(current)}
         onCancel={() => setRoute('menu')}
-        onConfirm={(result: ScoreResult, hand: HandState) => {
-          const value: HandValue = {
-            source: 'scored',
-            payment: result.payment,
-            han: result.han,
-            fu: result.fu,
-            level: result.level,
-            yakus: result.yakus,
-            handTiles: encodeHandTiles(hand),
-            open: isHandOpen(hand),
-          };
-          onRecord({
-            mode,
-            dealIn: mode === 'ron' ? dealIn : null,
-            wins: [...staged, { winner: current, value }],
-          });
-        }}
+        onConfirm={(result, hand) => record(scored(result, hand))}
+        onAddAnother={roomForMore ? (result, hand) => stage(scored(result, hand)) : undefined}
       />
     );
   }
@@ -114,9 +140,6 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
     ? LIMIT_BASE[limit] ?? null
     : (han !== null && fu !== null ? basePoints(han, fu) : null);
 
-  const valueSet = manualBase !== null;
-  const ready = valueSet && outcomeSettled;
-  const canAddWinner = mode === 'ron' && ready && staged.length + 1 < MAX_WINNERS;
   const preview = manualBase !== null
     ? paymentTotal(paymentFor(manualBase, isDealer, mode))
     : null;
@@ -134,30 +157,21 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
     };
   };
 
-  const clearValue = () => { setHan(null); setFu(null); setLimit(null); setOpen(false); };
-
-  function recordManual() {
-    const value = manualValue();
-    if (!value || current === null) return;
-    onRecord({
-      mode,
-      dealIn: mode === 'ron' ? dealIn : null,
-      wins: [...staged, { winner: current, value }],
-    });
-  }
-
   /**
-   * Puts the hand being entered aside and waits for the next winner to be
-   * picked. It deliberately does not choose one: an earlier version did, which
-   * left the seat selector looking like it was still asking who dealt in.
+   * The hand on screen, if it has a value yet. A winner can be selected with
+   * nothing filled in -- that is a hand still being entered, not one to record.
    */
-  function addWinner() {
+  const currentEntry: WinEntry | null = (() => {
     const value = manualValue();
-    if (!value || current === null) return;
-    setStaged([...staged, { winner: current, value }]);
-    setCurrent(null);
-    clearValue();
-  }
+    return value && current !== null ? { winner: current, value } : null;
+  })();
+  const currentIncomplete = current !== null && currentEntry === null;
+
+  const pending = allWins(currentEntry ?? undefined);
+  const canRecord = pending.length > 0
+    && (mode === 'tsumo' || dealIn !== null)
+    && !currentIncomplete;
+  const canAddWinner = currentEntry !== null && roomForMore;
 
   /** Picking a limit clears the han/fu pair, and vice versa. */
   const pickLimit = (value: string) => {
@@ -182,7 +196,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         <button type="button" className="btn btn--quiet" onClick={onCancel}>Cancel</button>
         <h1 className="app__title">
           {current === null
-            ? 'Who else won?'
+            ? (staged.length > 0 ? 'Who else won?' : 'Who won?')
             : `${nameOf(current)} wins${isDealer ? ' (dealer)' : ''}`}
         </h1>
         <span className="app__barspacer" />
@@ -214,7 +228,9 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
                       // Only two things rule a seat out as winner: it already
                       // has a hand on this discard, or it is the discarder.
                       disabled={taken.has(seat) || seat === dealIn}
-                      onClick={() => setCurrent(seat)}>
+                      // Toggles: picking a winner by mistake must be undoable,
+                      // since an unfinished hand blocks recording.
+                      onClick={() => { setCurrent(current === seat ? null : seat); clearValue(); }}>
                 {nameOf(seat)}
               </button>
             ))}
@@ -351,21 +367,24 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
 
       <div className="status">
         {current === null
-          ? 'Pick the other winner.'
+          ? (staged.length > 0
+              ? `${staged.length} hand${staged.length === 1 ? '' : 's'} entered — add another winner, or review.`
+              : 'Pick the winner.')
           : preview !== null
-          ? `${preview.toLocaleString()} points${state.honba > 0 ? ` + ${state.honba} honba` : ''}`
-            : 'Pick han and fu, or a limit.'}
+            ? `${preview.toLocaleString()} points${state.honba > 0 ? ` + ${state.honba} honba` : ''}`
+            : 'Pick han and fu, or a limit — or enter the tiles above.'}
       </div>
 
       {canAddWinner && (
-        <button type="button" className="btn btn--wide" onClick={addWinner}>
+        <button type="button" className="btn btn--wide"
+                onClick={() => stage(currentEntry!)}>
           Add another winner on this discard
         </button>
       )}
 
       <button type="button" className="btn btn--primary btn--wide"
-              disabled={!ready} onClick={recordManual}>
-        Review
+              disabled={!canRecord} onClick={() => record(currentEntry ?? undefined)}>
+        {pending.length > 1 ? `Review ${pending.length} hands` : 'Review'}
       </button>
     </div>
   );

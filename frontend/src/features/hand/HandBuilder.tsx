@@ -51,6 +51,12 @@ export interface HandBuilderProps {
   riichiDeclared?: boolean;
   /** Called with a confirmed score. Absent when used as a plain calculator. */
   onConfirm?: (result: ScoreResult, state: HandState) => void;
+  /**
+   * Offered alongside `onConfirm` during a multiple ron: the scored hand is put
+   * aside and the caller collects the next winner's, rather than the flow
+   * ending at this one.
+   */
+  onAddAnother?: (result: ScoreResult, state: HandState) => void;
   onCancel?: () => void;
   /** Replaces the "Hand" header, e.g. with the winner's name. */
   title?: string;
@@ -68,7 +74,7 @@ function buildQuery(state: HandState): ScoreQuery | null {
 }
 
 export function HandBuilder({
-  winds, winMode, riichiDeclared, onConfirm, onCancel, title,
+  winds, winMode, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
 }: HandBuilderProps = {}) {
   const [state, setState] = useState<HandState>(() => ({
     ...initialHandState,
@@ -108,7 +114,8 @@ export function HandBuilder({
     return (
       <div className="app">
         <ScoreResultView result={result} hand={state} onBack={() => setResult(null)}
-                         onConfirm={onConfirm ? () => onConfirm(result, state) : undefined} />
+                         onConfirm={onConfirm ? () => onConfirm(result, state) : undefined}
+                         onAddAnother={onAddAnother ? () => onAddAnother(result, state) : undefined} />
       </div>
     );
   }

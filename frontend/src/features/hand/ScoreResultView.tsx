@@ -24,7 +24,9 @@ function paymentSplit(payment: Payment): string | null {
   }
 }
 
-export function ScoreResultView({ result, hand, onBack, onConfirm, confirmLabel }: {
+export function ScoreResultView({
+  result, hand, onBack, onConfirm, confirmLabel, onAddAnother,
+}: {
   result: ScoreResult;
   /** Omitted by the limit-theming preview; the score stands on its own. */
   hand?: HandState;
@@ -32,6 +34,11 @@ export function ScoreResultView({ result, hand, onBack, onConfirm, confirmLabel 
   /** Set when the score is about to be recorded against a match. */
   onConfirm?: () => void;
   confirmLabel?: string;
+  /**
+   * Set during a multiple ron: puts this hand aside and goes back for the next
+   * winner's, instead of ending the flow here.
+   */
+  onAddAnother?: () => void;
 }) {
   const real = result.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const extras = result.yakus.filter((y) => PSEUDO_YAKU.has(y.yaku));
@@ -82,6 +89,11 @@ export function ScoreResultView({ result, hand, onBack, onConfirm, confirmLabel 
         <button type="button" className="btn btn--wide" onClick={onBack}>
           {onConfirm ? 'Edit the hand' : 'Back to the hand'}
         </button>
+        {onAddAnother && (
+          <button type="button" className="btn btn--wide" onClick={onAddAnother}>
+            Add another winner on this discard
+          </button>
+        )}
         {onConfirm && (
           <button type="button" className="btn btn--primary btn--wide" onClick={onConfirm}>
             {confirmLabel ?? 'Record this hand'}

@@ -156,6 +156,16 @@ Fourth feedback round:
 - [x] `.btn--quiet` has a box again. Without one the Back/Cancel/Manual buttons
       read as labels rather than controls.
 
+Fifth feedback round:
+- [x] A scored hand can be **staged** instead of recorded, so a multiple ron can
+      mix both routes freely — tiles for one winner, a typed value for the next.
+      Both feed one list of winners, recorded as a single hand.
+- [x] Winner selection toggles, and a hand can be recorded while no winner is
+      selected, so an accidental pick cannot lock the form.
+- [x] Nothing checks that the winners share a winning tile. In a real double ron
+      they do, but the engine is asked one hand at a time and cannot be told
+      about the other, so there is nothing to gain by enforcing it.
+
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
 - [ ] Landscape / tablet layout for the table
