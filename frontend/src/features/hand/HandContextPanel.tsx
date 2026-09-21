@@ -60,7 +60,7 @@ function Check({ label, checked, disabled, hint, onChange }: {
 }
 
 export function HandContextPanel({
-  state, update, showWinds = true, showWinMode = true,
+  state, update, showWinds = true, showWinMode = true, riichiDeclared,
 }: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
@@ -78,6 +78,8 @@ export function HandContextPanel({
    * would leave the recorded deal-in pointing at nobody.
    */
   showWinMode?: boolean;
+  /** See `HandBuilderProps.riichiDeclared`. Undefined leaves the choice free. */
+  riichiDeclared?: boolean;
 }) {
   const riichiIssue = contextIssue(state, 'riichi');
   const issue = (k: Parameters<typeof contextIssue>[1]) => contextIssue(state, k);
@@ -109,13 +111,24 @@ export function HandContextPanel({
           {(['none', 'riichi', 'dobleRiichi'] as RiichiChoice[]).map((opt) => {
             // A riichi is impossible on an open hand; the engine does not
             // enforce that, so the UI must.
-            const blocked = opt !== 'none' && riichiIssue !== null;
+            let blocked = opt !== 'none' && riichiIssue !== null;
+            let why = blocked ? riichiIssue : null;
+            // The table is the authority on whether a riichi was declared --
+            // but only where one is possible at all. An open hand has already
+            // retracted it, and None has to stay reachable to say so.
+            if (riichiDeclared === false && opt !== 'none') {
+              blocked = true;
+              why = 'no riichi was declared on the table';
+            } else if (riichiDeclared === true && opt === 'none' && riichiIssue === null) {
+              blocked = true;
+              why = 'a riichi was declared on the table';
+            }
             return (
               <button key={opt} type="button"
                       className={`segmented__btn${state.riichi === opt ? ' segmented__btn--on' : ''}`}
                       aria-pressed={state.riichi === opt}
                       disabled={blocked}
-                      title={blocked ? riichiIssue! : undefined}
+                      title={why ?? undefined}
                       onClick={() => update({ riichi: opt, ...(opt === 'none' ? { ippatsu: false } : {}) })}>
                 {opt === 'none' ? 'None' : opt === 'riichi' ? 'Riichi' : 'Double'}
               </button>

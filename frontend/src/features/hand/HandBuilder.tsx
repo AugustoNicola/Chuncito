@@ -40,6 +40,15 @@ export interface HandBuilderProps {
    * Asking again here could contradict the deal-in seat already chosen.
    */
   winMode?: WinMode;
+  /**
+   * Whether this player's riichi button was pressed on the table. The tracker
+   * already knows, so the selector follows it: no riichi declared means riichi
+   * cannot be claimed here, and a declared one cannot be dropped. The double is
+   * left open either way, since the tracker does not distinguish the two.
+   *
+   * Undefined in the standalone calculator, which has no table to consult.
+   */
+  riichiDeclared?: boolean;
   /** Called with a confirmed score. Absent when used as a plain calculator. */
   onConfirm?: (result: ScoreResult, state: HandState) => void;
   onCancel?: () => void;
@@ -59,10 +68,13 @@ function buildQuery(state: HandState): ScoreQuery | null {
 }
 
 export function HandBuilder({
-  winds, winMode, onConfirm, onCancel, title,
+  winds, winMode, riichiDeclared, onConfirm, onCancel, title,
 }: HandBuilderProps = {}) {
   const [state, setState] = useState<HandState>(() => ({
-    ...initialHandState, ...winds, ...(winMode ? { winMode } : {}),
+    ...initialHandState,
+    ...winds,
+    ...(winMode ? { winMode } : {}),
+    ...(riichiDeclared ? { riichi: 'riichi' as const } : {}),
   }));
   const [flap, setFlap] = useState<Flap>('tiles');
   const [result, setResult] = useState<ScoreResult | null>(null);
@@ -162,7 +174,8 @@ export function HandBuilder({
         </>
       ) : (
         <HandContextPanel state={state} update={update}
-                          showWinds={!winds} showWinMode={!winMode} />
+                          showWinds={!winds} showWinMode={!winMode}
+                          riichiDeclared={riichiDeclared} />
       )}
     </div>
   );

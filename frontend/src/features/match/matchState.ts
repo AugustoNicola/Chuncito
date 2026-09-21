@@ -521,6 +521,22 @@ const rankOf = (level: Level): number => {
   return at < 0 ? LEVEL_RANK.length : at;
 };
 
+/**
+ * The biggest level among a hand's winners.
+ *
+ * A double ron is themed by its most expensive hand, on the reasoning that what
+ * makes a hand worth spotting in the timeline is the best thing that happened
+ * in it.
+ */
+export function topLevel(wins: readonly WinRow[]): Level | null {
+  let best: Level | null = null;
+  for (const win of wins) {
+    if (!win.level) continue;
+    if (best === null || rankOf(win.level) > rankOf(best)) best = win.level;
+  }
+  return best;
+}
+
 export interface BestHand {
   seat: Seat;
   win: WinRow;

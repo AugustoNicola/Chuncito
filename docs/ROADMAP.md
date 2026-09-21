@@ -131,6 +131,23 @@ Second feedback round:
 - [x] Dropped the point preview from the tenpai picker, now the review screen
       shows it against the real next state one tap later
 
+Third feedback round:
+- [x] Centre box carries a wordmark ("<logo> Chuncito") above the round, with
+      Riichi and Honba stacked on their own lines. The logo is the chun glyph
+      used as a CSS **mask** rather than an image, so it takes the app's accent
+      colour — a placeholder until the real red dragon exists.
+- [x] Limits laid out as Mangan/Haneman, Baiman/Sanbaiman, then Yakuman across
+      the bottom, each row filling the width evenly
+- [x] The discarder is locked once a winner is staged — however many players win,
+      they all win off the same tile
+- [x] **The riichi selector follows the table.** No riichi declared means it
+      cannot be claimed in the builder; a declared one is preselected and cannot
+      be dropped, though the double stays open. Falls back to free choice when
+      the hand is open, where a riichi is impossible anyway.
+- [x] Timeline entries are themed by limit — a double ron takes its best hand's —
+      and draws share a red palette. Same treatment on the best-hand panel and
+      the review screen.
+
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
 - [ ] Landscape / tablet layout for the table

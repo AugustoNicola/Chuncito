@@ -80,6 +80,12 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
               disabled={state.status !== 'in_progress'}
               onClick={onOpenCentre}
               aria-label="Record a draw">
+        <span className="centre__brand">
+          {/* Stands in for the red dragon logo; the tile glyph is masked rather
+              than drawn, so it takes the app's colour instead of its own. */}
+          <span className="centre__logo" aria-hidden="true" />
+          Chuncito
+        </span>
         <span className="centre__round">{roundLabel(state.round)}</span>
         <div className="centre__counters">
           <span className="centre__counter">

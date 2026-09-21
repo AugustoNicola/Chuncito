@@ -30,7 +30,8 @@ function ValueLine({ win, name, showName }: {
   const level = win.level && win.level !== 'sinNombre' ? levelName(win.level) : null;
 
   return (
-    <div className="confirm__value">
+    <div className="confirm__value"
+         data-tier={win.level ? levelTier(win.level) : undefined}>
       <div className="confirm__valuehead">
         {showName && <span className="confirm__winner">{name}</span>}
         {win.han !== null

@@ -6,6 +6,7 @@
  * timeline being a plain list of rows rather than a fold over events.
  */
 import type { HandRow, MatchState, WinRow } from './matchState';
+import { topLevel } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
@@ -69,9 +70,23 @@ function WinLine({ win, names, showName }: {
   );
 }
 
+/**
+ * Which palette an entry wears.
+ *
+ * A limit hand is worth spotting while scrolling, so it carries its tier's
+ * colour; a double ron takes its best hand's. Draws share a red one -- they are
+ * the other thing you scan for, and they are not a limit of anything.
+ */
+function tierOf(row: HandRow): string | undefined {
+  if (row.outcome === 'exhaustive_draw' || row.outcome === 'abortive_draw') return 'draw';
+  const level = topLevel(row.wins);
+  if (!level || level === 'sinNombre') return undefined;
+  return levelTier(level);
+}
+
 function HandEntry({ row, names }: { row: HandRow; names: readonly string[] }) {
   return (
-    <li className="timeline__hand">
+    <li className="timeline__hand" data-tier={tierOf(row)}>
       <div className="timeline__head">
         <span className="timeline__round">
           {roundLabel({ wind: row.roundWind, number: row.roundNumber })}

@@ -666,8 +666,26 @@ button {
 }
 .centre:disabled { opacity: 0.6; }
 .centre__round { font-size: 1.75rem; font-weight: 600; letter-spacing: 0.02em; }
-.centre__counters { display: flex; gap: 22px; }
-.centre__counter { display: flex; align-items: baseline; gap: 7px; }
+.centre__brand {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--accent);
+  font-size: 0.95rem; font-weight: 600; letter-spacing: 0.06em;
+}
+/* The chun glyph as a mask rather than an image, so it takes the app's colour
+   instead of its own red. Stands in until the real logo exists. */
+.centre__logo {
+  width: 18px; height: 24px;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: url('/tiles/r.svg') center / contain no-repeat;
+  mask: url('/tiles/r.svg') center / contain no-repeat;
+}
+.centre__counters { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.centre__counter {
+  display: grid; grid-template-columns: 3.6rem auto;
+  align-items: baseline; gap: 8px;
+}
+.centre__counter .centre__countername { text-align: right; }
 .centre__countername {
   color: var(--text-dim); font-size: 0.95rem;
   text-transform: uppercase; letter-spacing: 0.06em;
@@ -699,7 +717,9 @@ button {
 .pills--fill .pill { flex: 1; min-width: 0; text-align: center; }
 /* A fixed grid, so a wrapped row keeps the same button width as the one above
    it instead of stretching two buttons across the whole panel. */
-.pills--grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+.pills--grid { display: grid; grid-template-columns: 1fr 1fr; }
+/* Mangan & Haneman, Baiman & Sanbaiman, then the yakuman filling its own row. */
+.pills--grid > :last-child { grid-column: 1 / -1; }
 .pill {
   min-width: 44px;
   padding: 9px 11px;
@@ -746,6 +766,12 @@ button {
   background: var(--bg-raised);
   border: 1px solid var(--border);
 }
+.timeline__hand[data-tier] {
+  border-color: color-mix(in srgb, var(--tier) 45%, var(--border));
+  background: color-mix(in srgb, var(--tier) 9%, var(--bg-raised));
+}
+/* The round marker picks the tint up too, so the eye lands on it first. */
+.timeline__hand[data-tier] .timeline__round { color: var(--tier); }
 .timeline__head { display: flex; align-items: baseline; gap: 8px; }
 .timeline__round {
   font-size: 0.75rem; color: var(--text-faint);
@@ -829,6 +855,13 @@ button {
   background: var(--bg-sunken);
   border: 1px solid var(--border);
 }
+.endscreen__best[data-tier]:not([data-tier="none"]) {
+  border-color: color-mix(in srgb, var(--tier) 55%, var(--border));
+  background: color-mix(in srgb, var(--tier) 12%, var(--bg-sunken));
+}
+.endscreen__best[data-tier]:not([data-tier="none"]) .endscreen__bestvalue {
+  color: var(--tier);
+}
 .endscreen__bestlabel {
   font-size: 0.7rem; color: var(--text-faint);
   text-transform: uppercase; letter-spacing: 0.08em;
@@ -886,12 +919,15 @@ button {
 
 .pill:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.pill--limit[data-tier="mangan"]    { --tier: var(--limit-mangan); }
-.pill--limit[data-tier="haneman"]   { --tier: var(--limit-haneman); }
-.pill--limit[data-tier="baiman"]    { --tier: var(--limit-baiman); }
-.pill--limit[data-tier="sanbaiman"] { --tier: var(--limit-sanbaiman); }
-.pill--limit[data-tier="kazoe"]     { --tier: var(--limit-kazoe); }
-.pill--limit[data-tier="yakuman"]   { --tier: var(--limit-yakuman); }
+[data-tier="mangan"]    { --tier: var(--limit-mangan); }
+[data-tier="haneman"]   { --tier: var(--limit-haneman); }
+[data-tier="baiman"]    { --tier: var(--limit-baiman); }
+[data-tier="sanbaiman"] { --tier: var(--limit-sanbaiman); }
+[data-tier="kazoe"]     { --tier: var(--limit-kazoe); }
+[data-tier="yakuman"]   { --tier: var(--limit-yakuman); }
+/* Draws are not a limit of anything, so they get their own. */
+[data-tier="draw"]      { --tier: #c45a6a; }
+
 /* Idle they only tint the text, so the row stays calm; armed they fill, the
    same bargain the mode buttons on the hand screen strike. */
 .pill--limit { color: var(--tier, var(--text-dim)); border-color: var(--border); }
@@ -917,6 +953,10 @@ button {
   border-radius: 8px;
   background: var(--bg-sunken);
   border: 1px solid var(--border);
+}
+.confirm__value[data-tier]:not([data-tier="none"]) {
+  border-color: color-mix(in srgb, var(--tier) 50%, var(--border));
+  background: color-mix(in srgb, var(--tier) 10%, var(--bg-sunken));
 }
 .confirm__valuehead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .confirm__winner { font-weight: 600; }

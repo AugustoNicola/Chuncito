@@ -38,7 +38,10 @@ const FU_COMMON = [20, 25, 30, 40, 50];
 const FU_REST = [60, 70, 80, 90, 100, 110];
 const HAN_STEPS = [1, 2, 3, 4];
 
-/** Limits offered directly, for when nobody counted the fu. */
+/**
+ * Limits offered directly, for when nobody counted the fu. Two to a row, in
+ * ascending pairs, with the yakuman alone across the bottom.
+ */
 const LIMITS = ['mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman'] as const;
 
 /** Three players can ron the same discard; a fourth would have nobody to pay. */
@@ -83,6 +86,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
           seatWind: seatWindOf(current, state.round),
         }}
         winMode={mode}
+        riichiDeclared={state.pendingRiichi.includes(current)}
         onCancel={() => setRoute('menu')}
         onConfirm={(result: ScoreResult, hand: HandState) => {
           const value: HandValue = {
@@ -244,13 +248,21 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
                       className={`segmented__btn${dealIn === seat ? ' segmented__btn--on' : ''}`}
                       aria-pressed={dealIn === seat}
                       // Nobody deals into their own hand, and a seat that won
-                      // this discard cannot also have thrown it.
-                      disabled={mode === 'tsumo' || seat === current || taken.has(seat)}
+                      // this discard cannot also have thrown it. Once a winner
+                      // is staged the discarder is settled too -- however many
+                      // players win, they all win off the same tile.
+                      disabled={mode === 'tsumo' || staged.length > 0
+                                || seat === current || taken.has(seat)}
                       onClick={() => setDealIn(dealIn === seat ? null : seat)}>
                 {nameOf(seat)}
               </button>
             ))}
           </div>
+          {staged.length > 0 && (
+            <span className="field__hint">
+              One discard, one discarder — {nameOf(dealIn!)} pays every winner.
+            </span>
+          )}
         </div>
 
         <button type="button" className="btn btn--primary btn--wide winmenu__tiles"

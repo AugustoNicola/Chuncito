@@ -257,6 +257,13 @@ try {
   const counters = await page.$$eval('.centre__counter', (els) => els.map((e) => e.textContent));
   check(counters[0] === 'Riichi1' && counters[1] === 'Honba0',
         `the counters are labelled (got ${JSON.stringify(counters)})`);
+  const brand = await page.$eval('.centre__brand', (el) => el.textContent.trim());
+  check(brand === 'Chuncito', `the centre box carries the app name (got "${brand}")`);
+  const stacked = await page.evaluate(() => {
+    const [a, b] = document.querySelectorAll('.centre__counter');
+    return b.getBoundingClientRect().top >= a.getBoundingClientRect().bottom - 1;
+  });
+  check(stacked, 'the counters are on their own lines');
 
   // --- a manual win pays out, sticks included ---
   await page.click('.seat--right .playerbox__main');
@@ -344,7 +351,9 @@ try {
   // Beto deals East 2, and a tenpai dealer keeps the deal rather than passing it.
   check(await centreText() === 'East 2', `a tenpai dealer keeps the deal (got ${await centreText()})`);
   const honbaText = await page.$eval('.centre__counter:nth-child(2)', (el) => el.textContent);
-  check(honbaText === 'Honba1', `the repeat adds a honba (got ${honbaText})`);
+  void honbaText;
+  const honbaLine = await page.$$eval('.centre__counter', (els) => els[1].textContent);
+  check(honbaLine === 'Honba1', `the repeat adds a honba (got ${honbaLine})`);
 
   // --- the engine scores a hand from inside the match ---
   // The integration that matters: the winds come from the match rather than
@@ -370,6 +379,16 @@ try {
   const asked = ['Round wind', 'Seat wind', 'Win'].filter((f) => windFields.includes(f));
   check(asked.length === 0,
         `the match supplies the winds and the win mode, so none are asked for (got ${JSON.stringify(windFields)})`);
+
+  // Dani did not declare riichi on the table, so it cannot be claimed here.
+  const riichiRow = await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Riichi');
+    return [...field.querySelectorAll('.segmented__btn')].map(
+      (b) => [b.textContent.trim(), b.disabled, b.getAttribute('aria-pressed')]);
+  });
+  check(riichiRow[0][2] === 'true' && riichiRow[1][1] === true && riichiRow[2][1] === true,
+        `an undeclared riichi cannot be claimed in the builder (got ${JSON.stringify(riichiRow)})`);
   await shot('17-nowinds.png');
   await page.click('.flaps__tab:nth-child(1)');
 
@@ -402,6 +421,9 @@ try {
   const firstEntry = await page.$eval('.timeline__what', (el) => el.textContent);
   check(firstEntry === 'Dani ron off Ana', `newest hand first (got ${firstEntry})`);
   // A scored hand carries its yaku, which is what makes the Phase 4 filters work.
+  const tiers = await page.$$eval('.timeline__hand',
+                                  (els) => els.map((e) => e.dataset.tier ?? null));
+  check(tiers[1] === 'draw', `a draw is themed as one (got ${JSON.stringify(tiers)})`);
   const loggedYakus = await page.$$eval('.timeline__hand:first-child .timeline__yaku',
                                         (els) => els.map((e) => e.textContent));
   check(JSON.stringify(loggedYakus) === JSON.stringify(['Pinfu', 'Tanyao', 'Sanshoku Doujun']),
@@ -469,6 +491,10 @@ try {
   const waiting = await page.$eval('.app__title', (el) => el.textContent);
   check(waiting === 'Who else won?',
         `the next winner is asked for, not assumed (got "${waiting}")`);
+
+  const lockedDealIn = await seatField('Dealt in');
+  check(lockedDealIn.every(([, disabled]) => disabled),
+        `the discarder is settled once a winner is staged (got ${JSON.stringify(lockedDealIn)})`);
 
   const secondRow = await seatField('Winner');
   check(secondRow.every(([name, disabled]) =>
