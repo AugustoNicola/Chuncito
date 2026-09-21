@@ -76,6 +76,15 @@ stray tap on a duplicate picker would mis-score the hand *silently* — the engi
 would happily return a valid-looking non-dealer payment. Same reasoning as
 validating before querying.
 
+**Nothing reaches the match without a confirmation.** `ConfirmChange` shows the
+*computed next state*, not a description of it, so the two can never disagree.
+That works because every transition in `matchState.ts` is pure: compute, review,
+then commit. Any new match-affecting action goes through it too.
+
+**A hand has a list of winners.** Multiple ron is legal here, so `HandRow.wins`
+is a collection and there is no `winnerSeat` column. A draw has none, a tsumo
+one, a ron one to three.
+
 **A hand row carries the round state it was played under.** That is what makes
 undo exact without an event log; see `docs/ARCHITECTURE.md`. Riichi sticks move
 live *and* appear in the row's `scoreDelta`, so anything applying a delta must

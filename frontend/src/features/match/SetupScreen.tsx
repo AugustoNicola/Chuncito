@@ -8,18 +8,19 @@
  * data model already says a guest is.
  */
 import { useState } from 'react';
-import { DEFAULT_UMA, type MatchConfig, type SeatPlayer } from './matchState';
+import type { MatchConfig, SeatPlayer } from './matchState';
 import type { MatchLength, Seat } from './seats';
-import { SEATS } from './seats';
+import { SEATS, roundKanji, roundName } from './seats';
+import { SITUATION_WINDS } from '../../scorer/types';
 import { recallNames, rememberNames } from './persistence';
 
 type Names = [string, string, string, string];
 
-const UMA_PRESETS: { label: string; uma: readonly [number, number, number, number] }[] = [
-  { label: '10 / 20', uma: [20, 10, -10, -20] },
-  { label: '10 / 30', uma: [30, 10, -10, -30] },
-  { label: '5 / 15', uma: [15, 5, -5, -15] },
-];
+type Uma = [number, number, number, number];
+
+const DEFAULT_UMA_FIELDS: readonly string[] = ['20', '10', '-10', '-20'];
+
+const PLACE_LABEL = ['1st', '2nd', '3rd', '4th'];
 
 /** Fisher-Yates, so every seating is equally likely. */
 function shuffled(names: Names): Names {
@@ -39,7 +40,7 @@ export function SetupScreen({ onStart, onCancel }: {
   const [length, setLength] = useState<MatchLength>('south');
   const [startingPoints, setStartingPoints] = useState(25000);
   const [returnScore, setReturnScore] = useState(30000);
-  const [umaIndex, setUmaIndex] = useState(0);
+  const [uma, setUma] = useState<string[]>([...DEFAULT_UMA_FIELDS]);
   const [remembered] = useState<string[]>(() => recallNames());
 
   const setName = (seat: Seat, value: string) =>
@@ -47,7 +48,12 @@ export function SetupScreen({ onStart, onCancel }: {
 
   const filled = names.every((n) => n.trim().length > 0);
   const duplicate = new Set(names.map((n) => n.trim().toLowerCase())).size < 4;
-  const ready = filled && !duplicate;
+  const umaValues = uma.map((v) => Number(v.trim()));
+  const umaValid = umaValues.every((n) => Number.isFinite(n) && Number.isInteger(n));
+  // Uma that does not sum to zero would invent or destroy points across the
+  // group's whole history, so it is worth refusing rather than warning about.
+  const umaBalanced = umaValid && umaValues.reduce((a, b) => a + b, 0) === 0;
+  const ready = filled && !duplicate && umaBalanced;
 
   /** Free names, for the quick-fill chips: those not already seated. */
   const unused = remembered.filter(
@@ -65,7 +71,7 @@ export function SetupScreen({ onStart, onCancel }: {
       length,
       startingPoints,
       returnScore,
-      uma: UMA_PRESETS[umaIndex]?.uma ?? DEFAULT_UMA,
+      uma: umaValues as Uma,
       seats,
     });
   }
@@ -87,15 +93,18 @@ export function SetupScreen({ onStart, onCancel }: {
 
       <div className="setup">
         <div className="field">
-          <span className="field__label">Players — seat 1 starts as dealer</span>
+          <span className="field__label">Players</span>
           {SEATS.map((seat) => (
             <div className="setup__seat" key={seat}>
-              <span className="setup__seatno">{seat + 1}</span>
+              <span className="setup__seatno"
+                    title={`Starts as ${roundName(SITUATION_WINDS[seat]!)}`}>
+                {roundKanji(SITUATION_WINDS[seat]!)}
+              </span>
               <input className="setup__name"
                      value={names[seat]}
-                     placeholder={`Player ${seat + 1}`}
+                     placeholder={roundName(SITUATION_WINDS[seat]!)}
                      onChange={(e) => setName(seat, e.target.value)}
-                     aria-label={`Seat ${seat + 1} name`} />
+                     aria-label={`${roundName(SITUATION_WINDS[seat]!)} seat name`} />
             </div>
           ))}
           {duplicate && filled && (
@@ -126,29 +135,33 @@ export function SetupScreen({ onStart, onCancel }: {
                       className={`segmented__btn${length === opt ? ' segmented__btn--on' : ''}`}
                       aria-pressed={length === opt}
                       onClick={() => setLength(opt)}>
-                {opt === 'east' ? 'East (tonpuusen)' : 'South (hanchan)'}
+                {opt === 'east' ? 'East match' : 'South match'}
               </button>
             ))}
           </div>
         </div>
 
         <div className="field">
-          <span className="field__label">Uma — 1st / 2nd / 3rd / 4th</span>
-          <div className="segmented" role="group" aria-label="Uma">
-            {UMA_PRESETS.map((preset, i) => (
-              <button key={preset.label} type="button"
-                      className={`segmented__btn${umaIndex === i ? ' segmented__btn--on' : ''}`}
-                      aria-pressed={umaIndex === i}
-                      onClick={() => setUmaIndex(i)}>
-                {preset.label}
-              </button>
+          <span className="field__label">Uma</span>
+          <div className="setup__uma">
+            {PLACE_LABEL.map((label, i) => (
+              <label className="setup__umafield" key={label}>
+                <span className="setup__umaplace">{label}</span>
+                <input className="setup__number" type="text" inputMode="numeric"
+                       value={uma[i]}
+                       aria-label={`Uma for ${label}`}
+                       onChange={(e) => setUma(
+                         (u) => u.map((v, j) => (j === i ? e.target.value : v)))} />
+              </label>
             ))}
           </div>
-          <span className="field__hint">
-            {(UMA_PRESETS[umaIndex]?.uma ?? DEFAULT_UMA)
-              .map((u) => (u > 0 ? `+${u}` : `${u}`)).join(' · ')}
-            {' — placement points only, no oka.'}
-          </span>
+          {!umaValid && <span className="setup__warn">Uma must be whole numbers.</span>}
+          {umaValid && !umaBalanced && (
+            <span className="setup__warn">
+              Uma has to sum to zero; this adds up to {umaValues.reduce((a, b) => a + b, 0)}.
+            </span>
+          )}
+          <span className="field__hint">Placement points only — no oka.</span>
         </div>
 
         <div className="setup__numbers">

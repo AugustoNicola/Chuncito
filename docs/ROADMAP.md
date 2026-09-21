@@ -85,6 +85,30 @@ Rules settled with the user this session:
   **Chombo is deliberately not in the UI** (the enum value stays in the data
   model); a chombo is handled as a manual adjustment with a note.
 
+After a round of on-device feedback:
+- [x] **Confirmation before anything touches the match** — wins, draws, score
+      corrections, undo, manual round moves. It runs the change and shows the
+      result rather than describing it, which is possible because every
+      transition is pure. One component covers all of them: it diffs two states.
+- [x] **Multiple ron.** This ruleset pays every player who wins on the discard,
+      so a triple ron is a win with three winners, not an abortive draw. The pot
+      is split (odd stick to the winner nearest the discarder) and the honba is
+      paid once, to the same winner.
+- [x] Impossible han/fu combinations disabled, from both directions and
+      depending on ron/tsumo: 20 fu is a pinfu tsumo (2+ han, never a ron), 25 fu
+      is chiitoitsu (2+ han on a ron, 3+ on a tsumo).
+- [x] Manual score correction is a field per player with a balance check — the
+      four numbers must still total what they totalled, since points cannot enter
+      or leave a riichi table.
+- [x] Uma is four editable fields that must sum to zero; seats are marked with
+      wind kanji; "East match" / "South match"
+- [x] Bigger type on the table, smaller centre box, labelled Riichi/Honba
+      counters, each seat's wind spelled out as well as in kanji
+- [x] Limit buttons themed to the score screen's tiers — and the two palettes
+      unified, since `:root` had drifted from what the score screen used
+- [x] Fixed: a disabled segmented button (riichi on an open hand) refused the tap
+      while still looking available — `.segmented__btn:disabled` had no rule
+
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
 - [ ] Landscape / tablet layout for the table

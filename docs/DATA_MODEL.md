@@ -25,18 +25,21 @@ match_players(match_id, seat 0..3, player_id NULL, guest_name NULL,
 hands(id, match_id, seq, round_wind, round_number, honba, riichi_pot_before,
       outcome ENUM(tsumo,ron,exhaustive_draw,abortive_draw,nagashi_mangan,chombo),
       abortive_reason NULL,             -- nine_terminals, four_riichi, ...
-      winner_seat NULL, deal_in_seat NULL,
-      han NULL, fu NULL, level NULL,
-      base_points NULL,                 -- before the dealer/ron multiplier
-      points_won NULL,                  -- what the winner actually collected
-      is_manual, winner_open NULL, hand_tiles NULL,
+      deal_in_seat NULL,
       score_delta,                      -- "+8000,-8000,0,0" across seats
       client_uuid UNIQUE)               -- sync idempotency key
       UNIQUE(match_id, seq)
 
+hand_wins(hand_id, winner_seat,         -- one row per winner; see below
+          han NULL, fu NULL, level NULL,
+          base_points NULL,             -- before the dealer/ron multiplier
+          points_won NULL,              -- what this winner collected
+          is_manual, winner_open NULL, hand_tiles NULL)
+          PK(hand_id, winner_seat)
+
 hand_riichi(hand_id, seat)      PK(hand_id, seat)
 hand_tenpai(hand_id, seat)      PK(hand_id, seat)   -- exhaustive draws
-hand_yakus(hand_id, yaku, han)  PK(hand_id, yaku)
+hand_yakus(hand_id, winner_seat, yaku, han)  PK(hand_id, winner_seat, yaku)
 adjustments(id, match_id, after_seq, seat, delta, note)
 ```
 
@@ -64,6 +67,16 @@ Notes:
   win-method pie, where "no winner" is not "closed".
 - `chombo` stays in the enum but Phase 2 does **not** produce it: the group
   handles a chombo as an `adjustments` row with a note. See `ROADMAP.md`.
+- **A hand has a *list* of winners, not a winner.** This ruleset pays every
+  player who wins on a discard rather than treating two or three ron as an
+  abortive draw, so `hand_wins` is a child table. A draw has none, a tsumo or
+  nagashi has one, a ron has one to three. `hand_yakus` hangs off the winner as
+  well, since each winner has their own hand. Phase 4's "filter by yaku" and
+  "best hand" both join through `hand_wins`, which they would have had to do
+  anyway.
+- The riichi pot is split between multiple winners and the honba is paid once,
+  both settled by turn order from the discarder — but that is already baked into
+  `score_delta`, so nothing downstream has to know the rule.
 
 ## Required queries
 

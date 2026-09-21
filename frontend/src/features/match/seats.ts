@@ -62,6 +62,15 @@ export function isSuddenDeath(round: Round, length: MatchLength): boolean {
   return windIndex(round.wind) > windIndex(final.wind);
 }
 
+/**
+ * How far `to` sits from `from` in turn order, which runs counter-clockwise --
+ * the same direction the dealership moves. 1 is the next player to act.
+ *
+ * Used to settle multiple ron: the winner nearest the discarder takes the honba
+ * and any riichi stick that will not divide evenly.
+ */
+export const turnDistance = (from: Seat, to: Seat): number => (to - from + 4) % 4;
+
 const ROUND_KANJI: Record<SituationWind, string> = {
   este: '東', sur: '南', oeste: '西', norte: '北',
 };

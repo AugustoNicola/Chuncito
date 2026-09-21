@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UMA, type HandInput, type MatchConfig, type MatchState,
-  adjustScore, advanceRoundManually, createMatch, maxLevel, potOnTable,
+  adjustScore, adjustScores, advanceRoundManually, createMatch, maxLevel, potOnTable,
   recordHand, toggleRiichi, undoLastHand,
 } from './matchState';
-import { basePoints, levelFor, paymentFor, placements } from './scoring';
+import { basePoints, hanFuPossible, levelFor, paymentFor, placements } from './scoring';
 import { dealerOf, seatWindOf } from './seats';
 import type { Seat } from './seats';
 
@@ -31,13 +31,30 @@ const win = (winner: Seat, dealer: Seat, opts: {
   const fu = opts.fu ?? 30;
   const base = basePoints(han, fu);
   return {
-    kind: 'win', winner, mode, dealIn: opts.dealIn ?? null,
-    value: {
-      source: 'manual', payment: paymentFor(base, winner === dealer, mode),
-      han, fu, level: levelFor(han, fu), basePoints: base, open: false,
-    },
+    kind: 'win', mode, dealIn: opts.dealIn ?? null,
+    wins: [{
+      winner,
+      value: {
+        source: 'manual', payment: paymentFor(base, winner === dealer, mode),
+        han, fu, level: levelFor(han, fu), basePoints: base, open: false,
+      },
+    }],
   };
 };
+
+/** A ron won by several players off one discard. */
+const multiRon = (dealIn: Seat, dealer: Seat, winners: readonly Seat[],
+                  han = 3, fu = 30): HandInput => ({
+  kind: 'win', mode: 'ron', dealIn,
+  wins: winners.map((winner) => ({
+    winner,
+    value: {
+      source: 'manual' as const,
+      payment: paymentFor(basePoints(han, fu), winner === dealer, 'ron'),
+      han, fu, level: levelFor(han, fu), basePoints: basePoints(han, fu), open: false,
+    },
+  })),
+});
 
 const play = (state: MatchState, input: HandInput): MatchState => recordHand(state, input).state;
 
@@ -340,9 +357,12 @@ describe('rows for the history', () => {
     const { row } = recordHand(start(), win(1, 0, { mode: 'ron', dealIn: 2, han: 3, fu: 30 }));
     expect(row).toMatchObject({
       seq: 1, roundWind: 'este', roundNumber: 1, honba: 0, riichiPotBefore: 0,
-      outcome: 'ron', winnerSeat: 1, dealInSeat: 2, han: 3, fu: 30,
-      level: 'sinNombre', basePoints: 960, pointsWon: 3900, isManual: true, handTiles: null,
+      outcome: 'ron', dealInSeat: 2,
     });
+    expect(row.wins).toEqual([{
+      winnerSeat: 1, han: 3, fu: 30, level: 'sinNombre', basePoints: 960,
+      pointsWon: 3900, isManual: true, winnerOpen: false, handTiles: null, yakus: [],
+    }]);
     expect(row.scoreDelta).toEqual([0, 3900, -3900, 0]);
     expect(row.clientUuid).toBeTruthy();
   });
@@ -379,5 +399,105 @@ describe('placements', () => {
   it('sums uma to zero', () => {
     const result = placements([40000, 30000, 20000, 10000], DEFAULT_UMA);
     expect(result.reduce((a, p) => a + p.umaPoints, 0)).toBe(0);
+  });
+});
+
+
+describe('han and fu that cannot happen', () => {
+  it('allows 20 fu only on a tsumo, from two han', () => {
+    expect(hanFuPossible(1, 20, 'tsumo')).toBe(false);   // pinfu alone is 1 han
+    expect(hanFuPossible(2, 20, 'tsumo')).toBe(true);    // pinfu + menzen tsumo
+    expect(hanFuPossible(2, 20, 'ron')).toBe(false);     // a closed ron adds 10 fu
+    expect(hanFuPossible(4, 20, 'ron')).toBe(false);
+  });
+
+  it('allows 25 fu from two han on a ron and three on a tsumo', () => {
+    expect(hanFuPossible(1, 25, 'ron')).toBe(false);     // chiitoitsu is 2 han
+    expect(hanFuPossible(2, 25, 'ron')).toBe(true);
+    expect(hanFuPossible(2, 25, 'tsumo')).toBe(false);   // + menzen tsumo
+    expect(hanFuPossible(3, 25, 'tsumo')).toBe(true);
+  });
+
+  it('leaves 30 fu and up open at every han', () => {
+    for (const fu of [30, 40, 50, 60, 70, 80, 90, 100, 110]) {
+      for (const han of [1, 2, 3, 4]) {
+        expect(hanFuPossible(han, fu, 'ron')).toBe(true);
+        expect(hanFuPossible(han, fu, 'tsumo')).toBe(true);
+      }
+    }
+  });
+});
+
+describe('multiple ron', () => {
+  it('makes the discarder pay every winner', () => {
+    const s = play(start(), multiRon(2, 0, [1, 3]));
+    expect(s.scores[1]).toBe(25000 + 3900);
+    expect(s.scores[3]).toBe(25000 + 3900);
+    expect(s.scores[2]).toBe(25000 - 7800);
+    expect(total(s)).toBe(100000);
+  });
+
+  it('pays the honba once, to the winner nearest the discarder', () => {
+    let s = play(start(), win(0, 0, { dealIn: 1 }));     // dealer win: honba 1
+    const before = [...s.scores];
+    // Seat 1 discards; seats 2 and 0 ron. Seat 2 is next in turn order.
+    s = play(s, multiRon(1, 0, [2, 0]));
+    expect(s.scores[2]).toBe(before[2]! + 3900 + 300);
+    expect(s.scores[0]).toBe(before[0]! + 5800);          // dealer rate, no honba
+    expect(s.scores[1]).toBe(before[1]! - 3900 - 5800 - 300);
+    expect(total(s)).toBe(100000);
+  });
+
+  it('splits the riichi pot, giving the odd stick to the nearest winner', () => {
+    let s = start();
+    s = toggleRiichi(s, 0);
+    s = toggleRiichi(s, 1);
+    s = toggleRiichi(s, 3);                              // three sticks on the table
+    // Seat 1 discards; seats 2 and 3 ron. Seat 2 is nearest in turn order.
+    s = play(s, multiRon(1, 0, [2, 3]));
+    expect(s.scores[2]).toBe(25000 + 3900 + 2000);       // one stick plus the odd one
+    expect(s.scores[3]).toBe(25000 - 1000 + 3900 + 1000);
+    expect(potOnTable(s)).toBe(0);
+    expect(total(s)).toBe(100000);
+  });
+
+  it('repeats the dealer when the dealer is any of the winners', () => {
+    const s = play(start(), multiRon(2, 0, [1, 0]));
+    expect(s.round).toEqual({ wind: 'este', number: 1 });
+    expect(s.honba).toBe(1);
+  });
+
+  it('passes the deal when the dealer is not among the winners', () => {
+    const s = play(start(), multiRon(0, 0, [1, 2]));
+    expect(s.round).toEqual({ wind: 'este', number: 2 });
+  });
+
+  it('records one win row per winner, each with its own value', () => {
+    const { row } = recordHand(start(), multiRon(2, 0, [1, 3]));
+    expect(row.wins).toHaveLength(2);
+    expect(row.wins.map((w) => w.winnerSeat)).toEqual([1, 3]);
+    expect(row.outcome).toBe('ron');
+    expect(row.dealInSeat).toBe(2);
+  });
+
+  it('undoes cleanly', () => {
+    const before = start();
+    const after = play(before, multiRon(2, 0, [1, 3]));
+    expect(undoLastHand(after)).toEqual(before);
+  });
+});
+
+describe('correcting the whole table', () => {
+  it('writes one adjustment per seat that moved', () => {
+    const s = adjustScores(start(), [26000, 24000, 25000, 25000], 'miscount');
+    expect(s.scores).toEqual([26000, 24000, 25000, 25000]);
+    expect(s.adjustments).toHaveLength(2);
+    expect(s.adjustments.map((a) => a.seat)).toEqual([0, 1]);
+    expect(s.adjustments.every((a) => a.note === 'miscount')).toBe(true);
+  });
+
+  it('does nothing when nothing moved', () => {
+    const s = adjustScores(start(), [25000, 25000, 25000, 25000]);
+    expect(s.adjustments).toHaveLength(0);
   });
 });

@@ -5,8 +5,8 @@
  * screen will do against the server in Phase 4, which is the point of the
  * timeline being a plain list of rows rather than a fold over events.
  */
-import type { HandRow, MatchState } from './matchState';
-import { levelName, yakuName } from '../hand/yakuNames';
+import type { HandRow, MatchState, WinRow } from './matchState';
+import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import type { Seat } from './seats';
 import { SEATS, roundLabel } from './seats';
@@ -20,24 +20,51 @@ const OUTCOME_LABEL: Record<HandRow['outcome'], string> = {
 };
 
 function headline(row: HandRow, names: readonly string[]): string {
-  const winner = row.winnerSeat === null ? null : names[row.winnerSeat];
+  const winners = row.wins.map((w) => names[w.winnerSeat]).join(' and ');
   switch (row.outcome) {
     case 'ron':
-      return `${winner} ron off ${names[row.dealInSeat ?? 0]}`;
+      return `${winners} ron off ${names[row.dealInSeat ?? 0]}`;
     case 'tsumo':
-      return `${winner} tsumo`;
+      return `${winners} tsumo`;
     case 'nagashi_mangan':
-      return `${winner} — nagashi mangan`;
+      return `${winners} — nagashi mangan`;
     default:
       return OUTCOME_LABEL[row.outcome];
   }
 }
 
-function HandEntry({ row, names }: { row: HandRow; names: readonly string[] }) {
-  const real = row.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
-  const isWin = row.outcome === 'ron' || row.outcome === 'tsumo';
-  const level = row.level && row.level !== 'sinNombre' ? levelName(row.level) : null;
+/** One winner's value line. A double ron shows one of these per winner. */
+function WinLine({ win, names, showName }: {
+  win: WinRow; names: readonly string[]; showName: boolean;
+}) {
+  const real = win.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
+  const level = win.level && win.level !== 'sinNombre' ? levelName(win.level) : null;
 
+  return (
+    <div className="timeline__win">
+      <div className="timeline__value">
+        {showName && <span className="timeline__winner">{names[win.winnerSeat]}</span>}
+        {win.han !== null && (
+          <span>{win.han} han{win.fu ? ` · ${win.fu} fu` : ''}</span>
+        )}
+        {level && <span className="timeline__level" data-tier={levelTier(win.level!)}>{level}</span>}
+        {win.pointsWon !== null && (
+          <span className="timeline__points">{win.pointsWon.toLocaleString()}</span>
+        )}
+        {win.isManual && <span className="timeline__manual" title="Value typed in">manual</span>}
+      </div>
+      {real.length > 0 && (
+        <div className="timeline__yakus">
+          {real.map((y) => (
+            <span key={y.yaku} className="timeline__yaku">{yakuName(y.yaku)}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HandEntry({ row, names }: { row: HandRow; names: readonly string[] }) {
   return (
     <li className="timeline__hand">
       <div className="timeline__head">
@@ -48,24 +75,10 @@ function HandEntry({ row, names }: { row: HandRow; names: readonly string[] }) {
         <span className="timeline__what">{headline(row, names)}</span>
       </div>
 
-      {isWin && (
-        <div className="timeline__value">
-          {row.han !== null && (
-            <span>{row.han} han{row.fu ? ` · ${row.fu} fu` : ''}</span>
-          )}
-          {level && <span className="timeline__level">{level}</span>}
-          {row.pointsWon !== null && (
-            <span className="timeline__points">{row.pointsWon.toLocaleString()}</span>
-          )}
-          {row.isManual && <span className="timeline__manual" title="Value typed in">manual</span>}
-        </div>
-      )}
-
-      {real.length > 0 && (
-        <div className="timeline__yakus">
-          {real.map((y) => <span key={y.yaku} className="timeline__yaku">{yakuName(y.yaku)}</span>)}
-        </div>
-      )}
+      {row.wins.map((win) => (
+        <WinLine key={win.winnerSeat} win={win} names={names}
+                 showName={row.wins.length > 1} />
+      ))}
 
       <div className="timeline__deltas">
         {SEATS.map((seat) => (

@@ -7,18 +7,25 @@
  * what you use when the hand has already been scattered back into the wall and
  * somebody just says the number.
  *
- * Either way the winner's seat is known, so the seat wind is derived rather than
- * asked for -- see `HandBuilderProps.winds`.
+ * The winner's seat is known, so the seat wind is derived rather than asked for,
+ * and the win mode is settled here rather than in the builder -- see
+ * `HandBuilderProps.winds`.
+ *
+ * A ron can have more than one winner: this ruleset pays every player who wins
+ * on the discard rather than aborting the hand. Winners are staged one at a
+ * time, and the whole set is recorded as a single hand.
  */
 import { useState } from 'react';
 import type { ScoreResult, WinMode } from '../../scorer/types';
 import { HandBuilder } from '../hand/HandBuilder';
 import { encodeHandTiles } from '../hand/handTiles';
 import { isHandOpen, type HandState } from '../hand/handState';
-import { levelName } from '../hand/yakuNames';
-import type { HandValue, MatchState } from './matchState';
+import { levelName, levelTier } from '../hand/yakuNames';
+import type { HandValue, MatchState, WinEntry } from './matchState';
 import { dealerSeat } from './matchState';
-import { LIMIT_BASE, basePoints, levelFor, paymentFor, paymentTotal } from './scoring';
+import {
+  LIMIT_BASE, basePoints, hanFuPossible, levelFor, paymentFor, paymentTotal,
+} from './scoring';
 import type { Seat } from './seats';
 import { SEATS, seatWindOf } from './seats';
 
@@ -29,16 +36,22 @@ const HAN_STEPS = [1, 2, 3, 4];
 /** Limits offered directly, for when nobody counted the fu. */
 const LIMITS = ['mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman'] as const;
 
+/** Three players can ron the same discard; a fourth would have nobody to pay. */
+const MAX_WINNERS = 3;
+
 type Route = 'menu' | 'tiles';
 
 export function WinMenu({ state, winner, onRecord, onCancel }: {
   state: MatchState;
   winner: Seat;
-  onRecord: (args: { mode: WinMode; dealIn: Seat | null; value: HandValue }) => void;
+  onRecord: (args: { mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }) => void;
   onCancel: () => void;
 }) {
   const [mode, setMode] = useState<WinMode>('ron');
   const [dealIn, setDealIn] = useState<Seat | null>(null);
+  /** Winners already settled; the form below is the one being entered now. */
+  const [staged, setStaged] = useState<WinEntry[]>([]);
+  const [current, setCurrent] = useState<Seat>(winner);
   const [han, setHan] = useState<number | null>(null);
   const [fu, setFu] = useState<number | null>(null);
   const [limit, setLimit] = useState<string | null>(null);
@@ -46,33 +59,38 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const [route, setRoute] = useState<Route>('menu');
 
   const dealer = dealerSeat(state);
-  const isDealer = winner === dealer;
-  const winnerName = state.config.seats[winner]!.name;
+  const isDealer = current === dealer;
+  const nameOf = (seat: Seat) => state.config.seats[seat]!.name;
+
+  const taken = new Set(staged.map((w) => w.winner));
+  /** A ron needs a discarder, and nobody may win off their own discard. */
+  const outcomeSettled = mode === 'tsumo' || (dealIn !== null && dealIn !== current);
 
   if (route === 'tiles') {
     return (
       <HandBuilder
-        title={winnerName}
+        title={nameOf(current)}
         winds={{
           roundWind: state.round.wind,
-          seatWind: seatWindOf(winner, state.round),
+          seatWind: seatWindOf(current, state.round),
         }}
         winMode={mode}
         onCancel={() => setRoute('menu')}
         onConfirm={(result: ScoreResult, hand: HandState) => {
+          const value: HandValue = {
+            source: 'scored',
+            payment: result.payment,
+            han: result.han,
+            fu: result.fu,
+            level: result.level,
+            yakus: result.yakus,
+            handTiles: encodeHandTiles(hand),
+            open: isHandOpen(hand),
+          };
           onRecord({
             mode,
             dealIn: mode === 'ron' ? dealIn : null,
-            value: {
-              source: 'scored',
-              payment: result.payment,
-              han: result.han,
-              fu: result.fu,
-              level: result.level,
-              yakus: result.yakus,
-              handTiles: encodeHandTiles(hand),
-              open: isHandOpen(hand),
-            },
+            wins: [...staged, { winner: current, value }],
           });
         }}
       />
@@ -84,28 +102,47 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
     ? LIMIT_BASE[limit] ?? null
     : (han !== null && fu !== null ? basePoints(han, fu) : null);
 
-  /** A ron needs a discarder before anything can be recorded against it. */
-  const outcomeSettled = mode === 'tsumo' || dealIn !== null;
-  const ready = manualBase !== null && outcomeSettled;
+  const valueSet = manualBase !== null;
+  const ready = valueSet && outcomeSettled;
+  const canAddWinner = mode === 'ron' && ready && staged.length + 1 < MAX_WINNERS;
   const preview = manualBase !== null
     ? paymentTotal(paymentFor(manualBase, isDealer, mode))
     : null;
 
+  const manualValue = (): HandValue | null => {
+    if (manualBase === null) return null;
+    return {
+      source: 'manual',
+      payment: paymentFor(manualBase, isDealer, mode),
+      han: limit !== null ? null : han,
+      fu: limit !== null ? null : fu,
+      level: limit !== null ? limit : levelFor(han!, fu!),
+      basePoints: manualBase,
+      open,
+    };
+  };
+
+  const clearValue = () => { setHan(null); setFu(null); setLimit(null); setOpen(false); };
+
   function recordManual() {
-    if (manualBase === null) return;
+    const value = manualValue();
+    if (!value) return;
     onRecord({
       mode,
       dealIn: mode === 'ron' ? dealIn : null,
-      value: {
-        source: 'manual',
-        payment: paymentFor(manualBase, isDealer, mode),
-        han: limit !== null ? null : han,
-        fu: limit !== null ? null : fu,
-        level: limit !== null ? limit : levelFor(han!, fu!),
-        basePoints: manualBase,
-        open,
-      },
+      wins: [...staged, { winner: current, value }],
     });
+  }
+
+  /** Puts the hand being entered aside and starts another winner's. */
+  function addWinner() {
+    const value = manualValue();
+    if (!value) return;
+    const next = SEATS.find((s) => s !== current && s !== dealIn && !taken.has(s));
+    if (next === undefined) return;
+    setStaged([...staged, { winner: current, value }]);
+    setCurrent(next);
+    clearValue();
   }
 
   /** Picking a limit clears the han/fu pair, and vice versa. */
@@ -117,17 +154,40 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const pickHan = (value: number) => { setHan(han === value ? null : value); setLimit(null); };
   const pickFu = (value: number) => { setFu(fu === value ? null : value); setLimit(null); };
 
+  // Each picker is disabled against what the *other* one already says, so the
+  // impossible pairs cannot be reached from either direction.
+  const hanBlocked = (value: number) =>
+    fu !== null && !hanFuPossible(value, fu, mode);
+  const fuBlocked = (value: number) =>
+    han !== null ? !hanFuPossible(han, value, mode)
+      : !HAN_STEPS.some((h) => hanFuPossible(h, value, mode));
+
   return (
     <div className="app">
       <header className="app__bar">
         <button type="button" className="btn btn--quiet" onClick={onCancel}>Cancel</button>
         <h1 className="app__title">
-          {winnerName} wins{isDealer ? ' (dealer)' : ''}
+          {nameOf(current)} wins{isDealer ? ' (dealer)' : ''}
         </h1>
         <span className="app__barspacer" />
       </header>
 
       <div className="winmenu">
+        {staged.length > 0 && (
+          <div className="field">
+            <span className="field__label">Also won this discard</span>
+            <div className="winmenu__staged">
+              {staged.map((w) => (
+                <button key={w.winner} type="button" className="chip chip--staged"
+                        onClick={() => setStaged(staged.filter((x) => x.winner !== w.winner))}
+                        title="Remove this winner">
+                  {nameOf(w.winner)} · {paymentTotal(w.value.payment).toLocaleString()} ✕
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="field">
           <span className="field__label">How</span>
           <div className="segmented" role="group" aria-label="How">
@@ -135,28 +195,32 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               <button key={opt} type="button"
                       className={`segmented__btn${mode === opt ? ' segmented__btn--on' : ''}`}
                       aria-pressed={mode === opt}
-                      onClick={() => { setMode(opt); if (opt === 'tsumo') setDealIn(null); }}>
+                      // A staged winner means a ron in progress; switching to a
+                      // tsumo would leave those hands with nobody paying them.
+                      disabled={staged.length > 0 && opt === 'tsumo'}
+                      onClick={() => setMode(opt)}>
                 {opt === 'ron' ? 'Ron' : 'Tsumo'}
               </button>
             ))}
           </div>
         </div>
 
-        {mode === 'ron' && (
-          <div className="field">
-            <span className="field__label">Dealt in</span>
-            <div className="segmented" role="group" aria-label="Dealt in">
-              {SEATS.filter((s) => s !== winner).map((seat) => (
-                <button key={seat} type="button"
-                        className={`segmented__btn${dealIn === seat ? ' segmented__btn--on' : ''}`}
-                        aria-pressed={dealIn === seat}
-                        onClick={() => setDealIn(dealIn === seat ? null : seat)}>
-                  {state.config.seats[seat]!.name}
-                </button>
-              ))}
-            </div>
+        {/* Kept on screen and disabled for a tsumo rather than removed, so the
+            layout does not jump when the mode is toggled. */}
+        <div className="field">
+          <span className="field__label">Dealt in</span>
+          <div className="segmented" role="group" aria-label="Dealt in">
+            {SEATS.map((seat) => (
+              <button key={seat} type="button"
+                      className={`segmented__btn${dealIn === seat ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={dealIn === seat}
+                      disabled={mode === 'tsumo' || seat === current || taken.has(seat)}
+                      onClick={() => setDealIn(dealIn === seat ? null : seat)}>
+                {nameOf(seat)}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         <button type="button" className="btn btn--primary btn--wide winmenu__tiles"
                 disabled={!outcomeSettled}
@@ -176,6 +240,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               <button key={value} type="button"
                       className={`pill${han === value ? ' pill--on' : ''}`}
                       aria-pressed={han === value}
+                      disabled={hanBlocked(value)}
                       onClick={() => pickHan(value)}>
                 {value}
               </button>
@@ -190,6 +255,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               <button key={value} type="button"
                       className={`pill${fu === value ? ' pill--on' : ''}`}
                       aria-pressed={fu === value}
+                      disabled={fuBlocked(value)}
                       onClick={() => pickFu(value)}>
                 {value}
               </button>
@@ -203,6 +269,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
             {LIMITS.map((value) => (
               <button key={value} type="button"
                       className={`pill pill--limit${limit === value ? ' pill--on' : ''}`}
+                      data-tier={levelTier(value)}
                       aria-pressed={limit === value}
                       onClick={() => pickLimit(value)}>
                 {levelName(value) ?? value}
@@ -223,9 +290,6 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               </button>
             ))}
           </div>
-          <span className="field__hint">
-            Only recorded for the stats; it does not change the points.
-          </span>
         </div>
       </div>
 
@@ -237,9 +301,15 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
           : 'Pick han and fu, or a limit.'}
       </div>
 
+      {canAddWinner && (
+        <button type="button" className="btn btn--wide" onClick={addWinner}>
+          Add another winner on this discard
+        </button>
+      )}
+
       <button type="button" className="btn btn--primary btn--wide"
               disabled={!ready} onClick={recordManual}>
-        Record
+        Review
       </button>
     </div>
   );

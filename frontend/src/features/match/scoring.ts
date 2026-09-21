@@ -14,7 +14,7 @@
  */
 import type { Level, Payment, WinMode } from '../../scorer/types';
 import type { Seat } from './seats';
-import { SEATS } from './seats';
+import { SEATS, turnDistance } from './seats';
 
 /** Payments round up to the nearest 100. */
 export const ceil100 = (points: number): number => Math.ceil(points / 100) * 100;
@@ -104,51 +104,112 @@ export function paymentTotal(payment: Payment): number {
   }
 }
 
+/**
+ * Whether a han/fu pair is reachable at all, for disabling the manual pickers.
+ *
+ * Only the two special fu values constrain anything; 30 fu and up are open at
+ * every han. Both depend on how the hand was won:
+ *
+ * - **20 fu is pinfu**, and its only tsumo form is pinfu plus menzen tsumo, so
+ *   two han is the floor. On a ron it cannot happen at all: a closed ron adds
+ *   the ten-point menzen bonus, and an open all-runs hand is scored as 30 fu.
+ * - **25 fu is chiitoitsu**, which is two han closed. A tsumo adds menzen tsumo
+ *   on top, so three is the floor there.
+ */
+export function hanFuPossible(han: number, fu: number, mode: WinMode): boolean {
+  if (fu === 20) return mode === 'tsumo' && han >= 2;
+  if (fu === 25) return han >= (mode === 'tsumo' ? 3 : 2);
+  return true;
+}
+
 export type Delta = [number, number, number, number];
 
 export const zeroDelta = (): Delta => [0, 0, 0, 0];
 
+/** One winner of a hand, with the payment their hand earns. */
+export interface WinPayment {
+  winner: Seat;
+  payment: Payment;
+}
+
 /**
- * Per-seat point change for a win.
- *
- * `riichiSeats` are the players who declared *this* hand: their 1000 is part of
- * this hand's delta, not of some earlier state change, so that replaying the
- * deltas from the starting score reproduces the table exactly.
- *
- * `potBefore` therefore counts those sticks too -- the winner collects the whole
- * table, including sticks put down moments earlier.
+ * The riichi sticks a hand puts down are part of that hand's delta, not of some
+ * earlier state change, so that replaying the deltas from the starting score
+ * reproduces the table exactly. `potBefore` counts them too -- the winner
+ * collects the whole table, including sticks laid moments earlier.
  */
-export function winDelta(args: {
+function payRiichi(delta: Delta, riichiSeats: readonly Seat[]): void {
+  for (const seat of riichiSeats) delta[seat] -= RIICHI_STICK;
+}
+
+/** Per-seat point change for a tsumo. */
+export function tsumoDelta(args: {
   winner: Seat;
   dealer: Seat;
-  dealIn: Seat | null;
   payment: Payment;
   honba: number;
   potBefore: number;
   riichiSeats: readonly Seat[];
 }): Delta {
-  const { winner, dealer, dealIn, payment, honba, potBefore, riichiSeats } = args;
+  const { winner, dealer, payment, honba, potBefore, riichiSeats } = args;
+  if (payment.kind === 'ron') throw new Error('a tsumo cannot carry a ron payment');
   const delta = zeroDelta();
+  const honbaEach = HONBA_TSUMO_EACH * honba;
 
-  if (payment.kind === 'ron') {
-    if (dealIn === null) throw new Error('a ron needs a deal-in seat');
-    const paid = payment.total + HONBA_RON * honba;
-    delta[dealIn] -= paid;
-    delta[winner] += paid;
-  } else {
-    const honbaEach = HONBA_TSUMO_EACH * honba;
-    for (const seat of SEATS) {
-      if (seat === winner) continue;
-      const owed = payment.kind === 'tsumoDealer'
-        ? payment.each
-        : (seat === dealer ? payment.dealer : payment.nonDealer);
-      delta[seat] -= owed + honbaEach;
-      delta[winner] += owed + honbaEach;
-    }
+  for (const seat of SEATS) {
+    if (seat === winner) continue;
+    const owed = payment.kind === 'tsumoDealer'
+      ? payment.each
+      : (seat === dealer ? payment.dealer : payment.nonDealer);
+    delta[seat] -= owed + honbaEach;
+    delta[winner] += owed + honbaEach;
   }
 
   delta[winner] += potBefore * RIICHI_STICK;
-  for (const seat of riichiSeats) delta[seat] -= RIICHI_STICK;
+  payRiichi(delta, riichiSeats);
+  return delta;
+}
+
+/**
+ * Per-seat point change for a ron -- possibly several at once.
+ *
+ * This ruleset allows multiple ron rather than treating them as an abortive
+ * draw, so the discarder pays every winner. Two things then have to be settled
+ * between winners, and both go by turn order from the discarder:
+ *
+ * - The **honba** is paid once, to the nearest winner.
+ * - The **riichi pot** is split evenly, and a stick that will not divide goes
+ *   to the nearest winner as well.
+ */
+export function ronDelta(args: {
+  dealIn: Seat;
+  wins: readonly WinPayment[];
+  honba: number;
+  potBefore: number;
+  riichiSeats: readonly Seat[];
+}): Delta {
+  const { dealIn, wins, honba, potBefore, riichiSeats } = args;
+  if (wins.length === 0) throw new Error('a ron needs at least one winner');
+  const delta = zeroDelta();
+
+  for (const win of wins) {
+    if (win.payment.kind !== 'ron') throw new Error('a ron needs a ron payment');
+    delta[win.winner] += win.payment.total;
+    delta[dealIn] -= win.payment.total;
+  }
+
+  const [nearest] = [...wins].sort(
+    (a, b) => turnDistance(dealIn, a.winner) - turnDistance(dealIn, b.winner),
+  );
+  const honbaPaid = HONBA_RON * honba;
+  delta[nearest!.winner] += honbaPaid;
+  delta[dealIn] -= honbaPaid;
+
+  const each = Math.floor(potBefore / wins.length);
+  for (const win of wins) delta[win.winner] += each * RIICHI_STICK;
+  delta[nearest!.winner] += (potBefore % wins.length) * RIICHI_STICK;
+
+  payRiichi(delta, riichiSeats);
   return delta;
 }
 
@@ -170,7 +231,7 @@ export function drawDelta(tenpai: readonly Seat[], riichiSeats: readonly Seat[])
       delta[seat] += tenpai.includes(seat) ? gain : -loss;
     }
   }
-  for (const seat of riichiSeats) delta[seat] -= RIICHI_STICK;
+  payRiichi(delta, riichiSeats);
   return delta;
 }
 
@@ -188,10 +249,9 @@ export function nagashiDelta(args: {
   riichiSeats: readonly Seat[];
 }): Delta {
   const { winner, dealer, honba, riichiSeats } = args;
-  return winDelta({
+  return tsumoDelta({
     winner,
     dealer,
-    dealIn: null,
     payment: paymentFor(LIMIT_BASE.mangan!, winner === dealer, 'tsumo'),
     honba,
     potBefore: 0,

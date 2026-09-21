@@ -10,7 +10,7 @@
 import type { MatchState } from './matchState';
 import { dealerSeat, potOnTable } from './matchState';
 import type { Seat } from './seats';
-import { SEATS, roundKanji, roundLabel, seatWindOf } from './seats';
+import { SEATS, roundKanji, roundLabel, roundName, seatWindOf } from './seats';
 
 const SEAT_POSITION: Record<Seat, string> = {
   0: 'bottom', 1: 'right', 2: 'top', 3: 'left',
@@ -36,8 +36,13 @@ function PlayerBox({ state, seat, onOpen, onRiichi }: {
                 disabled={!live}
                 onClick={() => onOpen(seat)}
                 aria-label={`Record a win for ${player.name}`}>
-          <span className="playerbox__wind" aria-label={wind}>{roundKanji(wind)}</span>
-          <span className="playerbox__name">{player.name}</span>
+          <span className="playerbox__wind" aria-hidden="true">{roundKanji(wind)}</span>
+          <span className="playerbox__name">
+            {player.name}
+            {/* The kanji alone is quick to read once you know it; the word is
+                for everyone else at the table. */}
+            <span className="playerbox__windname">{roundName(wind)}</span>
+          </span>
           <span className={`playerbox__score${score < 0 ? ' playerbox__score--negative' : ''}`}>
             {score.toLocaleString()}
           </span>
@@ -77,13 +82,13 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
               aria-label="Record a draw">
         <span className="centre__round">{roundLabel(state.round)}</span>
         <div className="centre__counters">
-          <span className="centre__counter" title="Honba">
-            <span className="centre__mark centre__mark--honba" />
-            {state.honba}
+          <span className="centre__counter">
+            <span className="centre__countername">Riichi</span>
+            <span className="centre__countervalue">{pot}</span>
           </span>
-          <span className="centre__counter" title="Riichi sticks on the table">
-            <span className="centre__mark centre__mark--stick" />
-            {pot}
+          <span className="centre__counter">
+            <span className="centre__countername">Honba</span>
+            <span className="centre__countervalue">{state.honba}</span>
           </span>
         </div>
       </button>

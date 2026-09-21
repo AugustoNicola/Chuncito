@@ -221,6 +221,12 @@ try {
   const names = ['Ana', 'Beto', 'Cami', 'Dani'];
   const inputs = await page.$$('.setup__name');
   for (let i = 0; i < names.length; i++) await inputs[i].type(names[i]);
+  const umaFields = await page.$$eval('.setup__uma input', (els) => els.map((e) => e.value));
+  check(JSON.stringify(umaFields) === JSON.stringify(['20', '10', '-10', '-20']),
+        `uma is four editable fields, preloaded (got ${JSON.stringify(umaFields)})`);
+  const seatMarks = await page.$$eval('.setup__seatno', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(seatMarks) === JSON.stringify(['東', '南', '西', '北']),
+        `seats are marked with winds (got ${JSON.stringify(seatMarks)})`);
   await shot('10-setup.png');
 
   await byText('Start match');
@@ -234,16 +240,23 @@ try {
   check(JSON.stringify(await scores()) === JSON.stringify(['25,000', '25,000', '25,000', '25,000']),
         'everyone starts on 25,000');
 
-  const dealerName = await page.$eval('.playerbox--dealer .playerbox__name', (e) => e.textContent);
-  check(dealerName === 'Ana', `seat 1 deals East 1 (got ${dealerName})`);
+  const dealerBox = await page.$eval('.playerbox--dealer', (el) => ({
+    name: el.querySelector('.playerbox__name').firstChild.textContent.trim(),
+    windName: el.querySelector('.playerbox__windname').textContent,
+    kanji: el.querySelector('.playerbox__wind').textContent,
+  }));
+  check(dealerBox.name === 'Ana', `seat 1 deals East 1 (got ${dealerBox.name})`);
+  check(dealerBox.windName === 'East' && dealerBox.kanji === '東',
+        `each box names its wind as well as showing the kanji (got ${JSON.stringify(dealerBox)})`);
   await shot('11-table.png');
 
   // --- a riichi takes 1000 and puts a stick on the table ---
   await page.click('.seat--right .playerbox__riichi');
   const afterRiichi = await scores();
   check(afterRiichi[1] === '24,000', `riichi takes 1000 (got ${afterRiichi[1]})`);
-  const sticks = await page.$eval('.centre__counter:nth-child(2)', (el) => el.textContent.trim());
-  check(sticks === '1', `the stick shows on the table (got ${sticks})`);
+  const counters = await page.$$eval('.centre__counter', (els) => els.map((e) => e.textContent));
+  check(counters[0] === 'Riichi1' && counters[1] === 'Honba0',
+        `the counters are labelled (got ${JSON.stringify(counters)})`);
 
   // --- a manual win pays out, sticks included ---
   await page.click('.seat--right .playerbox__main');
@@ -262,7 +275,47 @@ try {
   await pick('Han', '3');
   await pick('Fu', '30');
   await shot('12-winmenu.png');
-  await byText('Record');
+
+  // 20 fu is a pinfu tsumo, so it cannot appear on a ron at all.
+  const fuState = await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Fu');
+    return Object.fromEntries([...field.querySelectorAll('.pill')].map(
+      (b) => [b.textContent.trim(), b.disabled]));
+  });
+  check(fuState['20'] === true, 'a ron cannot be 20 fu');
+  check(fuState['25'] === false, '3 han 25 fu is a legal chiitoitsu');
+  check(fuState['40'] === false, '40 fu stays available');
+
+  // The block works from the other side too: 25 fu is chiitoitsu, which is
+  // already two han, so one han becomes unreachable.
+  await pick('Fu', '25');
+  const hanState = await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Han');
+    return Object.fromEntries([...field.querySelectorAll('.pill')].map(
+      (b) => [b.textContent.trim(), b.disabled]));
+  });
+  check(hanState['1'] === true, 'picking 25 fu rules out 1 han');
+  check(hanState['2'] === false, '2 han stays available at 25 fu');
+  await pick('Fu', '30');
+
+  await byText('Review');
+  await page.waitForSelector('.confirm');
+  const confirmRound = await page.$$eval('.confirm__round span',
+                                         (els) => els.map((e) => e.textContent));
+  check(confirmRound[0] === 'East 1 · 0 repeats' && confirmRound[2] === 'East 2 · 0 repeats',
+        `the round change is spelled out (got ${JSON.stringify(confirmRound)})`);
+  const confirmDeltas = await page.$$eval('.confirm__delta', (els) => els.map((e) => e.textContent));
+  // Beto is on riichi, so he also lifts his own stick: 3,900 + 1,000.
+  check(confirmDeltas[1] === '+4,900' && confirmDeltas[2] === '-3,900',
+        `the points change is shown before committing (got ${JSON.stringify(confirmDeltas)})`);
+  const confirmHints = await page.$$eval('.confirm .field__hint',
+                                         (els) => els.map((e) => e.textContent).join(' '));
+  check(confirmHints.includes('riichi stick'),
+        'the confirmation explains why the change exceeds the hand value');
+  await shot('19-confirm.png');
+  await byText('Record this hand');
   await page.waitForSelector('.table');
 
   const afterWin = await scores();
@@ -280,14 +333,16 @@ try {
     [...field.querySelectorAll('.check')].find((b) => b.textContent.includes('Beto')).click();
   });
   await shot('13-drawmenu.png');
-  await byText('Record');
+  await byText('Review');
+  await page.waitForSelector('.confirm');
+  await byText('Record this hand');
   await page.waitForSelector('.table');
   const afterDraw = await scores();
   check(afterDraw[1] === '31,900', `the one tenpai player collects 3000 (got ${afterDraw[1]})`);
   // Beto deals East 2, and a tenpai dealer keeps the deal rather than passing it.
   check(await centreText() === 'East 2', `a tenpai dealer keeps the deal (got ${await centreText()})`);
-  const honba = await page.$eval('.centre__counter:nth-child(1)', (el) => el.textContent.trim());
-  check(honba === '1', `the repeat adds a honba (got ${honba})`);
+  const honbaText = await page.$eval('.centre__counter:nth-child(2)', (el) => el.textContent);
+  check(honbaText === 'Honba1', `the repeat adds a honba (got ${honbaText})`);
 
   // --- the engine scores a hand from inside the match ---
   // The integration that matters: the winds come from the match rather than
@@ -327,6 +382,10 @@ try {
   await shot('18-scored.png');
 
   await byText('Record this hand');
+  await page.waitForSelector('.confirm');
+  const scoredValue = await page.$eval('.confirm__points', (el) => el.textContent);
+  check(scoredValue === '7,700', `the confirmation shows the scored value (got ${scoredValue})`);
+  await byText('Record this hand');
   await page.waitForSelector('.table');
   const afterScored = await scores();
   // Ana was on 24,000 after paying noten, and owes 7700 plus 300 for the honba.
@@ -353,6 +412,8 @@ try {
   await byText('Manual');
   await page.waitForSelector('.manual');
   await byText('Undo hand 3');
+  await page.waitForSelector('.confirm');
+  await byText('Undo it');
   await page.waitForSelector('.table');
   const afterUndo = await scores();
   check(JSON.stringify(afterUndo) === JSON.stringify(afterDraw),
@@ -371,7 +432,8 @@ try {
   await byText('Manual');
   await page.waitForSelector('.manual');
   await byText('End early');
-  await byText('Yes, end it now');
+  await page.waitForSelector('.confirm');
+  await byText('End it now');
   await page.waitForSelector('.standings');
   const standings = await page.$$eval('.standings__row', (els) => els.map((el) => ({
     name: el.querySelector('.standings__name').textContent,

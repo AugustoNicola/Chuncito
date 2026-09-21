@@ -21,8 +21,8 @@ import type { Level, Payment, SituationWind, WinMode, YakuHan } from '../../scor
 import type { Seat, MatchLength, Round } from './seats';
 import { SEATS, dealerOf, finalRound, isSuddenDeath, nextRound, windIndex } from './seats';
 import {
-  LIMIT_BASE, RIICHI_STICK, type Delta, baseFromResult, drawDelta, nagashiDelta,
-  paymentFor, paymentTotal, winDelta, zeroDelta,
+  LIMIT_BASE, RIICHI_STICK, type Delta, type WinPayment, baseFromResult, drawDelta,
+  nagashiDelta, paymentFor, paymentTotal, ronDelta, tsumoDelta, zeroDelta,
 } from './scoring';
 
 export type Outcome =
@@ -53,6 +53,29 @@ export interface MatchConfig {
   seats: readonly [SeatPlayer, SeatPlayer, SeatPlayer, SeatPlayer];
 }
 
+/**
+ * One winner's hand -- a `hand_wins` row.
+ *
+ * A hand has a *list* of these rather than a winner column, because this
+ * ruleset allows multiple ron: two or three players can win the same discard,
+ * each with their own hand, and each is scored separately.
+ */
+export interface WinRow {
+  winnerSeat: Seat;
+  han: number | null;
+  fu: number | null;
+  level: Level | null;
+  /** Before the dealer/ron multiplier; compares hands across matches. */
+  basePoints: number | null;
+  /** What this winner actually collected, honba and sticks aside. */
+  pointsWon: number | null;
+  /** True when han/fu were typed in rather than scored from tiles. */
+  isManual: boolean;
+  winnerOpen: boolean | null;
+  handTiles: string | null;
+  yakus: YakuHan[];
+}
+
 /** One recorded hand: a prospective `hands` row plus its child rows. */
 export interface HandRow {
   clientUuid: string;
@@ -63,23 +86,13 @@ export interface HandRow {
   /** Sticks on the table when the hand resolved, including this hand's own. */
   riichiPotBefore: number;
   outcome: Outcome;
-  winnerSeat: Seat | null;
   dealInSeat: Seat | null;
-  han: number | null;
-  fu: number | null;
-  level: Level | null;
-  basePoints: number | null;
-  /** What the winner actually collected, honba and sticks aside. For display. */
-  pointsWon: number | null;
-  /** True when han/fu were typed in rather than scored from tiles. */
-  isManual: boolean;
-  winnerOpen: boolean | null;
-  handTiles: string | null;
+  /** Empty on a draw; one entry per winner otherwise. */
+  wins: WinRow[];
   scoreDelta: Delta;
   riichiSeats: Seat[];
   /** Exhaustive draws and nagashi only. */
   tenpaiSeats: Seat[];
-  yakus: YakuHan[];
   abortiveReason: AbortiveReason | null;
 }
 
@@ -135,11 +148,24 @@ export type HandValue =
       open: boolean;
     };
 
+export interface WinEntry {
+  winner: Seat;
+  value: HandValue;
+}
+
 export type HandInput =
-  | { kind: 'win'; winner: Seat; mode: WinMode; dealIn: Seat | null; value: HandValue }
+  /** `wins` holds one entry on a tsumo, and one to three on a ron. */
+  | { kind: 'win'; mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }
   | { kind: 'exhaustiveDraw'; tenpai: Seat[] }
   | { kind: 'abortiveDraw'; reason: AbortiveReason }
   | { kind: 'nagashiMangan'; winner: Seat; tenpai: Seat[] };
+
+/** The seats that won a hand, whatever kind of win it was. */
+export function winnersOf(input: HandInput): Seat[] {
+  if (input.kind === 'win') return input.wins.map((w) => w.winner);
+  if (input.kind === 'nagashiMangan') return [input.winner];
+  return [];
+}
 
 const uuid = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2)}-${Date.now()}`);
@@ -205,10 +231,15 @@ const alreadyPaid = (riichiSeats: readonly Seat[]): Delta => {
   return paid;
 };
 
-/** True when the dealer keeps the dealership after this hand. */
+/**
+ * True when the dealer keeps the dealership after this hand.
+ *
+ * On a multiple ron the dealer repeats if they are among the winners at all --
+ * it is their own win that keeps the deal, not whether they were first.
+ */
 function dealerRepeats(input: HandInput, dealer: Seat): boolean {
   switch (input.kind) {
-    case 'win': return input.winner === dealer;
+    case 'win': return input.wins.some((w) => w.winner === dealer);
     case 'abortiveDraw': return true;
     // A draw repeats the dealer only if the dealer was tenpai.
     case 'exhaustiveDraw': return input.tenpai.includes(dealer);
@@ -241,16 +272,27 @@ const nagashiPayment = (winner: Seat, dealer: Seat): Payment =>
 function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: number): Delta {
   const riichiSeats = state.pendingRiichi;
   switch (input.kind) {
-    case 'win':
-      return winDelta({
-        winner: input.winner,
-        dealer,
-        dealIn: input.dealIn,
-        payment: input.value.payment,
-        honba: state.honba,
-        potBefore,
-        riichiSeats,
+    case 'win': {
+      const first = input.wins[0];
+      if (!first) throw new Error('a win needs a winner');
+      if (input.mode === 'tsumo') {
+        return tsumoDelta({
+          winner: first.winner,
+          dealer,
+          payment: first.value.payment,
+          honba: state.honba,
+          potBefore,
+          riichiSeats,
+        });
+      }
+      if (input.dealIn === null) throw new Error('a ron needs a deal-in seat');
+      const wins: WinPayment[] = input.wins.map((w) => ({
+        winner: w.winner, payment: w.value.payment,
+      }));
+      return ronDelta({
+        dealIn: input.dealIn, wins, honba: state.honba, potBefore, riichiSeats,
       });
+    }
     case 'exhaustiveDraw':
       return drawDelta(input.tenpai, riichiSeats);
     case 'abortiveDraw':
@@ -301,8 +343,37 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
   const delta = deltaFor(input, state, dealer, potBefore);
 
   const mode = input.kind === 'win' ? input.mode : undefined;
-  const value = input.kind === 'win' ? input.value : null;
   const collectsPot = input.kind === 'win';
+
+  const wins: WinRow[] = input.kind === 'win'
+    ? input.wins.map(({ winner, value }) => ({
+        winnerSeat: winner,
+        han: value.han,
+        fu: value.fu,
+        level: value.level,
+        basePoints: value.source === 'manual'
+          ? value.basePoints
+          : baseFromResult(value.level, value.han, value.fu),
+        pointsWon: paymentTotal(value.payment),
+        isManual: value.source === 'manual',
+        winnerOpen: value.open,
+        handTiles: value.source === 'scored' ? value.handTiles : null,
+        yakus: value.source === 'scored' ? value.yakus : [],
+      }))
+    : input.kind === 'nagashiMangan'
+      ? [{
+          winnerSeat: input.winner,
+          han: null,
+          fu: null,
+          level: 'mangan',
+          basePoints: LIMIT_BASE.mangan!,
+          pointsWon: paymentTotal(nagashiPayment(input.winner, dealer)),
+          isManual: true,
+          winnerOpen: null,
+          handTiles: null,
+          yakus: [],
+        }]
+      : [];
 
   const row: HandRow = {
     clientUuid: uuid(),
@@ -312,27 +383,12 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
     honba: state.honba,
     riichiPotBefore: potBefore,
     outcome: outcomeOf(input, mode),
-    winnerSeat: input.kind === 'win' || input.kind === 'nagashiMangan' ? input.winner : null,
     dealInSeat: input.kind === 'win' ? input.dealIn : null,
-    han: value ? value.han : null,
-    fu: value ? value.fu : null,
-    level: value ? value.level : (input.kind === 'nagashiMangan' ? 'mangan' : null),
-    basePoints: value
-      ? (value.source === 'manual'
-          ? value.basePoints
-          : baseFromResult(value.level, value.han, value.fu))
-      : (input.kind === 'nagashiMangan' ? LIMIT_BASE.mangan! : null),
-    pointsWon: value
-      ? paymentTotal(value.payment)
-      : (input.kind === 'nagashiMangan' ? paymentTotal(nagashiPayment(input.winner, dealer)) : null),
-    isManual: value ? value.source === 'manual' : false,
-    winnerOpen: value ? value.open : null,
-    handTiles: value && value.source === 'scored' ? value.handTiles : null,
+    wins,
     scoreDelta: delta,
     riichiSeats,
     tenpaiSeats:
       input.kind === 'exhaustiveDraw' || input.kind === 'nagashiMangan' ? [...input.tenpai] : [],
-    yakus: value && value.source === 'scored' ? value.yakus : [],
     abortiveReason: input.kind === 'abortiveDraw' ? input.reason : null,
   };
 
@@ -405,6 +461,25 @@ export function adjustScore(
   };
 }
 
+/**
+ * Corrects the whole table at once, from the target each seat should hold.
+ *
+ * One `adjustments` row per seat that actually moved, so the timeline still
+ * accounts for the points. The caller is expected to have checked that the
+ * totals balance; this does not enforce it, because a genuinely lost stick is a
+ * thing that happens and refusing to record it would be worse.
+ */
+export function adjustScores(
+  state: MatchState, targets: readonly number[], note = '',
+): MatchState {
+  let next = state;
+  for (const seat of SEATS) {
+    const delta = (targets[seat] ?? state.scores[seat]) - state.scores[seat];
+    if (delta !== 0) next = adjustScore(next, seat, delta, note);
+  }
+  return next;
+}
+
 /** Passes the dealership without recording a hand, for fixing a mis-entry. */
 export function advanceRoundManually(state: MatchState): MatchState {
   if (state.status !== 'in_progress') return state;
@@ -443,11 +518,13 @@ export function maxLevel(state: MatchState): Level | null {
   let best: Level | null = null;
   let bestRank = -1;
   for (const row of state.hands) {
-    if (!row.level) continue;
-    const rank = ranked.indexOf(row.level);
-    // Anything the ranked list does not know is a yakuman variant, so it wins.
-    const effective = rank < 0 ? ranked.length : rank;
-    if (effective > bestRank) { bestRank = effective; best = row.level; }
+    for (const win of row.wins) {
+      if (!win.level) continue;
+      const rank = ranked.indexOf(win.level);
+      // Anything the ranked list does not know is a yakuman variant, so it wins.
+      const effective = rank < 0 ? ranked.length : rank;
+      if (effective > bestRank) { bestRank = effective; best = win.level; }
+    }
   }
   return best;
 }

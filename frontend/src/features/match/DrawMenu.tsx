@@ -15,11 +15,15 @@ import { SEATS } from './seats';
 
 type Kind = 'exhaustive' | 'abortive' | 'nagashi';
 
+/**
+ * Triple ron is deliberately absent: this ruleset pays every player who wins on
+ * the discard rather than aborting the hand, so three ron is recorded as a win
+ * with three winners. See `WinMenu`.
+ */
 const ABORTIVE_REASONS: { value: AbortiveReason; label: string }[] = [
   { value: 'nine_terminals', label: 'Nine terminals' },
   { value: 'four_riichi', label: 'Four riichi' },
   { value: 'four_kans', label: 'Four kans' },
-  { value: 'triple_ron', label: 'Triple ron' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -97,10 +101,10 @@ export function DrawMenu({ state, onRecord, onCancel }: {
         {kind === 'abortive' ? (
           <div className="field">
             <span className="field__label">Reason</span>
-            <div className="pills" role="group" aria-label="Reason">
+            <div className="stack" role="group" aria-label="Reason">
               {ABORTIVE_REASONS.map((opt) => (
                 <button key={opt.value} type="button"
-                        className={`pill${reason === opt.value ? ' pill--on' : ''}`}
+                        className={`stack__btn${reason === opt.value ? ' stack__btn--on' : ''}`}
                         aria-pressed={reason === opt.value}
                         onClick={() => setReason(opt.value)}>
                   {opt.label}
@@ -153,7 +157,7 @@ export function DrawMenu({ state, onRecord, onCancel }: {
       <button type="button" className="btn btn--primary btn--wide"
               disabled={input === null}
               onClick={() => input && onRecord(input)}>
-        Record
+        Review
       </button>
     </div>
   );

@@ -18,12 +18,18 @@
   --danger:        #ff6b6b;
   --ok:            #5ad19a;
 
-  /* Limit-hand colours, used for the title on the score screen. */
-  --limit-none:      #9a9db0;
-  --limit-mangan:    #d9a441;
-  --limit-haneman:   #59b0e0;
-  --limit-baiman:    #a878e8;
-  --limit-sanbaiman: #e8703a;
+  /*
+   * Limit-hand colours: green mangan, purple haneman, bronze baiman, silver
+   * sanbaiman, gold yakuman. These are the flat `--limit` of each tier's
+   * gradient below, so the tracker's pills, timeline and standings agree with
+   * the score screen instead of each keeping its own idea of what a haneman
+   * looks like.
+   */
+  --limit-none:      #4a9eff;
+  --limit-mangan:    #4ecd8a;
+  --limit-haneman:   #b47ae8;
+  --limit-baiman:    #cd8c4f;
+  --limit-sanbaiman: #d3dae5;
   --limit-kazoe:     #c9a227;   /* counted yakuman: muted, not the real thing */
   --limit-yakuman:   #ffd24a;
 
@@ -287,6 +293,10 @@ button {
   font-size: 1rem;
 }
 .segmented__btn--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+/* Without this a blocked option -- riichi on an open hand, say -- refused the
+   tap while still looking available. */
+.segmented__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.segmented__btn:disabled.segmented__btn--on { opacity: 0.55; }
 
 .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .check {
@@ -312,14 +322,14 @@ button {
  * the title and the total. --limit stays a flat colour for glows and borders,
  * since colour-mix needs one.
  */
-.score[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: #4a9eff; }
-.score[data-tier="mangan"]    { --limit-a: #9df5b8; --limit-b: #17945a; --limit: #4ecd8a; }
-.score[data-tier="haneman"]   { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: #b47ae8; }
-.score[data-tier="baiman"]    { --limit-a: #f0c396; --limit-b: #9c5320; --limit: #cd8c4f; }
-.score[data-tier="sanbaiman"] { --limit-a: #ffffff; --limit-b: #8793a8; --limit: #d3dae5; }
+.score[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: var(--limit-none); }
+.score[data-tier="mangan"]    { --limit-a: #9df5b8; --limit-b: #17945a; --limit: var(--limit-mangan); }
+.score[data-tier="haneman"]   { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: var(--limit-haneman); }
+.score[data-tier="baiman"]    { --limit-a: #f0c396; --limit-b: #9c5320; --limit: var(--limit-baiman); }
+.score[data-tier="sanbaiman"] { --limit-a: #ffffff; --limit-b: #8793a8; --limit: var(--limit-sanbaiman); }
 /* A counted yakuman: gold, but deliberately duller than the real thing. */
-.score[data-tier="kazoe"]     { --limit-a: #e6d08a; --limit-b: #9c7615; --limit: #c9a227; }
-.score[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ffa61f; --limit: #ffd24a; }
+.score[data-tier="kazoe"]     { --limit-a: #e6d08a; --limit-b: #9c7615; --limit: var(--limit-kazoe); }
+.score[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ffa61f; --limit: var(--limit-yakuman); }
 
 .score__yakus {
   background: var(--bg-sunken);
@@ -506,11 +516,15 @@ button {
      side boxes are taken out of flow and centred on their cell instead, and the
      side tracks are sized to a box's *height*, which is what a quarter turn
      makes visible. --seat-w is the box's long edge, --seat-h its short one. */
-  --seat-w: 11.5rem;
-  --seat-h: 4.5rem;
+  --seat-w: 13.5rem;
+  --seat-h: 4.9rem;
   position: relative;
   flex: 1 1 auto;
   min-height: 440px;
+  /* Capped and centred: stretched to a tall screen the seats drift so far
+     apart that the thing stops reading as a table. */
+  max-height: 36rem;
+  margin: auto 0;
   display: grid;
   grid-template-columns: var(--seat-h) 1fr var(--seat-h);
   grid-template-rows: auto 1fr auto;
@@ -549,9 +563,21 @@ button {
   width: var(--seat-w);
   height: var(--seat-h);
   max-width: none;
-  justify-content: center;
+  /* Along their long edge rather than stacked: the side seats are only as tall
+     as --seat-h, which is also how wide they are once turned, and that has to
+     stay narrow enough to leave the centre room. */
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   transform-origin: center;
 }
+.seat--left .playerbox__main,
+.seat--right .playerbox__main { flex: 1; min-width: 0; }
+/* Turned on its side the stick reads as a stick again, so the word is spare. */
+.seat--left .playerbox__riichilabel,
+.seat--right .playerbox__riichilabel { display: none; }
+.seat--left .playerbox__riichi,
+.seat--right .playerbox__riichi { padding: 10px 8px; }
 .seat--left .playerbox  { transform: translate(-50%, -50%) rotate(90deg); }
 .seat--right .playerbox { transform: translate(-50%, -50%) rotate(-90deg); }
 
@@ -569,20 +595,26 @@ button {
 }
 .playerbox__wind {
   grid-area: wind;
-  font-size: 1.5rem;
+  font-size: 2rem;
   line-height: 1;
   color: var(--text-dim);
 }
 .playerbox--dealer .playerbox__wind { color: var(--seat-dealer); }
 .playerbox__name {
   grid-area: name;
-  font-size: 0.82rem;
-  color: var(--text-dim);
+  font-size: 1rem;
+  color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.playerbox__windname {
+  display: block;
+  font-size: 0.72rem; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
 .playerbox__score {
   grid-area: score;
-  font-size: 1.25rem; font-weight: 600;
+  font-size: 1.6rem; font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .playerbox__score--negative { color: var(--loss); }
@@ -595,7 +627,7 @@ button {
   border: 1px solid var(--border);
   background: var(--bg-sunken);
   color: var(--text-faint);
-  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em;
 }
 .playerbox__riichi--on {
   border-color: var(--riichi); color: var(--riichi); background: #2a1519;
@@ -626,23 +658,24 @@ button {
   min-height: 120px;
   /* Tall enough to be an easy target with the phone flat on the table, short
      enough not to read as an empty hole in the middle of it. */
-  height: min(100%, 15rem);
+  height: min(100%, 10.5rem);
   border-radius: var(--radius);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45);
 }
 .centre:disabled { opacity: 0.6; }
-.centre__round { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.02em; }
-.centre__counters { display: flex; gap: 16px; }
-.centre__counter {
-  display: flex; align-items: center; gap: 6px;
+.centre__round { font-size: 1.75rem; font-weight: 600; letter-spacing: 0.02em; }
+.centre__counters { display: flex; gap: 22px; }
+.centre__counter { display: flex; align-items: baseline; gap: 7px; }
+.centre__countername {
   color: var(--text-dim); font-size: 0.95rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.centre__countervalue {
+  font-size: 1.3rem; font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.centre__mark { width: 18px; height: 5px; border-radius: 3px; flex: none; }
-.centre__mark--honba { background: #d03b4b; }
-.centre__mark--stick { background: #e8e9ef; }
 
 /* ---------- win and draw menus ---------- */
 
@@ -694,17 +727,8 @@ button {
 
 /* ---------- manual control ---------- */
 
-.manual__steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.manual__steps .pill { min-width: 0; text-align: center; }
 .manual__row { display: flex; gap: 6px; }
 .manual__row .btn { flex: 1; }
-.manual__amount {
-  text-align: center;
-  font-size: 1.5rem; font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 4px;
-}
-.btn--danger { background: #7a2230; border-color: var(--danger); }
 
 /* ---------- timeline ---------- */
 
@@ -729,7 +753,7 @@ button {
   display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
   font-size: 0.85rem; color: var(--text-dim);
 }
-.timeline__level { color: var(--limit-mangan); }
+.timeline__level { color: var(--limit-none); }
 .timeline__points { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .timeline__manual {
   font-size: 0.68rem; color: var(--text-faint);
@@ -813,3 +837,171 @@ button {
 @media (min-height: 700px) {
   .table { min-height: 520px; }
 }
+
+/* ---------- uma fields ---------- */
+
+.setup__uma { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.setup__umafield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.setup__umaplace {
+  font-size: 0.7rem; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em; text-align: center;
+}
+.setup__uma .setup__number { text-align: center; padding: 10px 4px; }
+
+/* The seat marker is a wind now, so it needs room for a kanji. */
+.setup__seatno { font-size: 1rem; width: 28px; height: 28px; }
+
+/* ---------- a vertical list of full-width choices ---------- */
+
+.stack { display: flex; flex-direction: column; gap: 5px; }
+.stack__btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  text-align: left;
+}
+.stack__btn--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+
+/* ---------- limit pills, themed like the score screen ---------- */
+
+.pill:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.pill--limit[data-tier="mangan"]    { --tier: var(--limit-mangan); }
+.pill--limit[data-tier="haneman"]   { --tier: var(--limit-haneman); }
+.pill--limit[data-tier="baiman"]    { --tier: var(--limit-baiman); }
+.pill--limit[data-tier="sanbaiman"] { --tier: var(--limit-sanbaiman); }
+.pill--limit[data-tier="kazoe"]     { --tier: var(--limit-kazoe); }
+.pill--limit[data-tier="yakuman"]   { --tier: var(--limit-yakuman); }
+/* Idle they only tint the text, so the row stays calm; armed they fill, the
+   same bargain the mode buttons on the hand screen strike. */
+.pill--limit { color: var(--tier, var(--text-dim)); border-color: var(--border); }
+.pill--limit.pill--on {
+  background: color-mix(in srgb, var(--tier) 22%, var(--bg-raised));
+  border-color: var(--tier);
+  color: var(--text);
+}
+
+/* ---------- staged winners on a multiple ron ---------- */
+
+.winmenu__staged { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip--staged { border-color: var(--accent); color: var(--text); }
+
+/* ---------- confirmation ---------- */
+
+.confirm { display: flex; flex-direction: column; gap: 16px; padding: 6px 0 10px; overflow-y: auto; }
+.confirm__what { margin: 0; color: var(--text-dim); font-size: 0.9rem; line-height: 1.45; }
+
+.confirm__value {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+}
+.confirm__valuehead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.confirm__winner { font-weight: 600; }
+.confirm__hanfu { color: var(--text-dim); font-size: 0.9rem; }
+.confirm__level { font-weight: 600; }
+.confirm__level[data-tier="mangan"]    { color: var(--limit-mangan); }
+.confirm__level[data-tier="haneman"]   { color: var(--limit-haneman); }
+.confirm__level[data-tier="baiman"]    { color: var(--limit-baiman); }
+.confirm__level[data-tier="sanbaiman"] { color: var(--limit-sanbaiman); }
+.confirm__level[data-tier="kazoe"]     { color: var(--limit-kazoe); }
+.confirm__level[data-tier="yakuman"]   { color: var(--limit-yakuman); }
+.confirm__points {
+  margin-left: auto;
+  font-size: 1.2rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.confirm__yakus { display: flex; flex-wrap: wrap; gap: 4px; }
+.confirm__yaku {
+  font-size: 0.72rem; color: var(--text-dim);
+  background: var(--bg-raised); border-radius: 4px; padding: 2px 6px;
+}
+
+.confirm__table {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+}
+.confirm__row {
+  display: grid;
+  grid-template-columns: 1fr 4.5rem 4.5rem 5rem;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 0;
+  font-variant-numeric: tabular-nums;
+}
+.confirm__row + .confirm__row { border-top: 1px solid var(--border); }
+.confirm__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.confirm__was { color: var(--text-faint); text-align: right; font-size: 0.85rem; }
+.confirm__delta { text-align: right; color: var(--text-faint); font-size: 0.9rem; }
+.confirm__delta--gain { color: var(--gain); }
+.confirm__delta--loss { color: var(--loss); }
+.confirm__now { text-align: right; font-weight: 600; }
+.confirm__now--negative { color: var(--loss); }
+
+.confirm__round {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 10px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+}
+.confirm__from { color: var(--text-faint); }
+.confirm__to { color: var(--text); font-weight: 600; }
+.confirm__arrow { color: var(--text-dim); }
+
+.confirm__sticks { display: flex; gap: 20px; color: var(--text-dim); }
+.confirm__sticks strong {
+  color: var(--text); font-size: 1.1rem;
+  font-variant-numeric: tabular-nums; margin-left: 3px;
+}
+
+.confirm__ends {
+  margin: 0; padding: 10px 12px;
+  border-radius: 8px;
+  background: #2a1519; border: 1px solid #5a2a33;
+  color: var(--loss); font-size: 0.9rem;
+}
+
+.confirm__actions { display: flex; gap: 8px; }
+.confirm__actions .btn { flex: 1; }
+
+/* ---------- manual score fields ---------- */
+
+.manual__seat { display: grid; grid-template-columns: 1fr 7rem 4.5rem; align-items: center; gap: 8px; }
+.manual__seatname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manual__score { text-align: right; font-variant-numeric: tabular-nums; }
+.manual__diff { text-align: right; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.manual__diff--gain { color: var(--gain); }
+.manual__diff--loss { color: var(--loss); }
+
+.manual__total {
+  display: flex; justify-content: space-between;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.manual__total--off { border-color: var(--danger); color: var(--loss); }
+
+/* ---------- timeline: one line per winner ---------- */
+
+.timeline__win { display: flex; flex-direction: column; gap: 4px; }
+.timeline__winner { font-weight: 600; }
+.timeline__level[data-tier="mangan"]    { color: var(--limit-mangan); }
+.timeline__level[data-tier="haneman"]   { color: var(--limit-haneman); }
+.timeline__level[data-tier="baiman"]    { color: var(--limit-baiman); }
+.timeline__level[data-tier="sanbaiman"] { color: var(--limit-sanbaiman); }
+.timeline__level[data-tier="kazoe"]     { color: var(--limit-kazoe); }
+.timeline__level[data-tier="yakuman"]   { color: var(--limit-yakuman); }
