@@ -148,6 +148,14 @@ Third feedback round:
       and draws share a red palette. Same treatment on the best-hand panel and
       the review screen.
 
+Fourth feedback round:
+- [x] Winner and Dealt-in rows are colour-coded green and red — selected fills,
+      idle carries a light tint so the two rows are told apart before anything
+      is picked, which is where the multiple-ron screen went wrong
+- [x] Manual and Timeline swapped in the match bar
+- [x] `.btn--quiet` has a box again. Without one the Back/Cancel/Manual buttons
+      read as labels rather than controls.
+
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
 - [ ] Landscape / tablet layout for the table

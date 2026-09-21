@@ -171,7 +171,15 @@ button {
 }
 .btn:active { background: var(--border); }
 .btn--wide { width: 100%; }
-.btn--quiet { background: none; border-color: transparent; color: var(--text-dim); padding: 6px 10px; }
+/* Quieter than a normal button, but still visibly one: without the box these
+   read as labels, and the bar buttons in particular were being missed. */
+.btn--quiet {
+  background: var(--bg-raised);
+  border-color: var(--border);
+  color: var(--text-dim);
+  padding: 7px 12px;
+  font-size: 0.88rem;
+}
 .btn--primary { background: var(--accent-dim); border-color: var(--accent); }
 .btn--primary:disabled { background: var(--bg-raised); border-color: var(--border); color: var(--text-faint); cursor: not-allowed; }
 
@@ -293,6 +301,20 @@ button {
   font-size: 1rem;
 }
 .segmented__btn--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+
+.segmented--gain { --seg: var(--gain); }
+.segmented--loss { --seg: var(--loss); }
+.segmented--gain .segmented__btn,
+.segmented--loss .segmented__btn {
+  border-color: color-mix(in srgb, var(--seg) 28%, var(--border));
+  color: color-mix(in srgb, var(--seg) 55%, var(--text-dim));
+}
+.segmented--gain .segmented__btn--on,
+.segmented--loss .segmented__btn--on {
+  background: color-mix(in srgb, var(--seg) 24%, var(--bg-raised));
+  border-color: var(--seg);
+  color: var(--text);
+}
 /* Without this a blocked option -- riichi on an open hand, say -- refused the
    tap while still looking available. */
 .segmented__btn:disabled { opacity: 0.4; cursor: not-allowed; }

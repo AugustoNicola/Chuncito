@@ -257,6 +257,16 @@ try {
   const counters = await page.$$eval('.centre__counter', (els) => els.map((e) => e.textContent));
   check(counters[0] === 'Riichi1' && counters[1] === 'Honba0',
         `the counters are labelled (got ${JSON.stringify(counters)})`);
+  const barOrder = await page.$$eval('.app--table .app__bar .btn',
+                                     (els) => els.map((e) => e.textContent.trim()));
+  check(JSON.stringify(barOrder) === JSON.stringify(['Manual', 'Timeline']),
+        `manual sits left of timeline (got ${JSON.stringify(barOrder)})`);
+  const quietBoxed = await page.$eval('.app--table .app__bar .btn--quiet', (el) => {
+    const cs = getComputedStyle(el);
+    return { bg: cs.backgroundColor, border: cs.borderTopColor };
+  });
+  check(!/rgba\(0, 0, 0, 0\)|transparent/.test(quietBoxed.bg),
+        `bar buttons read as buttons (got ${JSON.stringify(quietBoxed)})`);
   const brand = await page.$eval('.centre__brand', (el) => el.textContent.trim());
   check(brand === 'Chuncito', `the centre box carries the app name (got "${brand}")`);
   const stacked = await page.evaluate(() => {

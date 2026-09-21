@@ -206,7 +206,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
 
         <div className="field">
           <span className="field__label">Winner</span>
-          <div className="segmented" role="group" aria-label="Winner">
+          <div className="segmented segmented--gain" role="group" aria-label="Winner">
             {SEATS.map((seat) => (
               <button key={seat} type="button"
                       className={`segmented__btn${current === seat ? ' segmented__btn--on' : ''}`}
@@ -242,7 +242,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
             layout does not jump when the mode is toggled. */}
         <div className="field">
           <span className="field__label">Dealt in</span>
-          <div className="segmented" role="group" aria-label="Dealt in">
+          <div className="segmented segmented--loss" role="group" aria-label="Dealt in">
             {SEATS.map((seat) => (
               <button key={seat} type="button"
                       className={`segmented__btn${dealIn === seat ? ' segmented__btn--on' : ''}`}

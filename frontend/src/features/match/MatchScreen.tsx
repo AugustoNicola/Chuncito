@@ -188,15 +188,15 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
         <div className="app app--table">
           <header className="app__bar">
             <button type="button" className="btn btn--quiet"
-                    onClick={() => setMenu({ at: 'timeline' })}>
-              Timeline
+                    onClick={() => setMenu({ at: 'manual' })}>
+              Manual
             </button>
             <h1 className="app__title app__title--match">
               {match.config.length === 'east' ? 'East match' : 'South match'}
             </h1>
             <button type="button" className="btn btn--quiet"
-                    onClick={() => setMenu({ at: 'manual' })}>
-              Manual
+                    onClick={() => setMenu({ at: 'timeline' })}>
+              Timeline
             </button>
           </header>
 
