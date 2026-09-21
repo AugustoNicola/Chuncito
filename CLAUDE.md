@@ -35,7 +35,8 @@ frontend/src/scorer/         contract layer: types, order, serialize, decode, va
                              dora, engine (+ .node / .browser factories)
 frontend/src/features/hand/  hand input: handState (pure) + handTiles + components
 frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
-                             persistence, and the table/menu/timeline components
+                             rows (DB mapping), persistence, and the
+                             table/menu/timeline components
 frontend/src/ui/             Tile, theme.css
 frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
 docs/                        contract, gaps, architecture, data model, roadmap
@@ -86,6 +87,12 @@ then commit. Any new match-affecting action goes through it too.
 is a collection and there is no `winnerSeat` column. A draw has none, a tsumo
 one, a ron one to three.
 
+**`rows.ts` is the only mapping to the database.** `toRows`/`fromRows` convert a
+match to the tables in `DATA_MODEL.md` and back, and `rows.test.ts` proves the
+round trip. Phase 3 POSTs `toRows(state)`; it does not build a second
+serialisation. If a field is added to `MatchState`, the round-trip test is what
+fails, and that is the point.
+
 **A hand row carries the round state it was played under.** That is what makes
 undo exact without an event log; see `docs/ARCHITECTURE.md`. Riichi sticks move
 live *and* appear in the row's `scoreDelta`, so anything applying a delta must
@@ -106,4 +113,13 @@ subtract the part already applied.
 ## Working across sessions
 
 Roughly one phase per session; `/clear` between phases, `/compact` within one.
-Update `docs/ROADMAP.md` before ending a session.
+Update `docs/ROADMAP.md` before ending a session — its "Picking this up cold"
+section is written for whoever starts the next one.
+
+`npm run test:browser` is the check that catches what unit tests cannot: it
+drives the real UI in the system Firefox. Run it before calling a change done,
+and use `SHOT_DIR=/some/dir` to look at the result rather than assuming.
+
+Ad-hoc Puppeteer probes are useful for looking at a screen the smoke test does
+not reach, but they create Firefox profiles under `~/snap/firefox/common/`.
+Delete them when finished; the committed smoke test already does.

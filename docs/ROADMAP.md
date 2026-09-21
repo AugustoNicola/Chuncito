@@ -180,15 +180,35 @@ Deferred out of Phase 2:
 
 ## Phase 3 — Backend and sync — NEXT
 
-Start here. The reducer already emits rows of the `hands` shape with a
-`clientUuid` on each, so this is wiring rather than redesign: a write queue that
-POSTs `state.hands` and `state.adjustments` as they are produced.
+**Start here.** Phases 1 and 2 are closed and need no revisiting. The client is
+complete and local-only: a match can be set up, tracked hand by hand, scored
+against the Prolog engine, reviewed and finished, with an IndexedDB mirror that
+survives a reload.
 
+What is already done for you:
 
-- [ ] **Decide the database** (deferred here deliberately — see plan)
+- `frontend/src/features/match/rows.ts` maps a `MatchState` onto the tables in
+  `DATA_MODEL.md` and back. `rows.test.ts` proves the round trip on a match
+  holding one of every outcome. **This is the serialisation layer — do not write
+  a second one.** The POST body is `toRows(state)`.
+- Every hand row carries a `clientUuid`, so the endpoint is idempotent on it
+  without any further client work.
+- `DATA_MODEL.md` is current and measured; `npm run measure:storage` reruns the
+  sizing if the schema changes.
+
+Order that works: schema and migration first (it is already specified), then the
+endpoint, then the queue. The queue is the only genuinely new client code —
+everything it sends already exists.
+
+- [ ] **Decide the database.** Deferred deliberately and still open. Capacity is
+      settled (see `DATA_MODEL.md` — 5 MB is years of play), so the question is
+      backup retention and durability. Neon is the standing recommendation.
 - [ ] FastAPI + SQLAlchemy 2.0 + Alembic, schema per `DATA_MODEL.md`
 - [ ] `POST /matches/{id}/hands`, idempotent on `client_uuid`
-- [ ] Client write queue + retry
+- [ ] Client write queue + retry, feeding from `toRows()`
+- [ ] Replace the guest-only seats with real `players` rows — `SetupScreen` sets
+      `playerId: null` for everyone today, and `fromRows` already takes a
+      `nameOf(playerId)` lookup for when that changes
 - [ ] PIN gate, `robots.txt`, `X-Robots-Tag: noindex`
 - [ ] `make db-backup` before migrations
 
@@ -203,3 +223,37 @@ POSTs `state.hands` and `state.adjustments` as they are produced.
 
 - [ ] Heroku deploy, PWA install, service-worker caching of the wasm assets
 - [ ] Limit-hand theming pass, empty/error states
+
+
+## Picking this up cold
+
+Read this file, then `CLAUDE.md` for the invariants. The short version of what
+was learned building Phases 1 and 2:
+
+- **The Prolog engine fails silently.** Validate before querying; sort melds.
+- **Never ask twice for a fact the match already holds.** The tracker supplies
+  both winds, the win mode and the riichi state to `HandBuilder`. A duplicate
+  picker does not just look untidy — a wrong seat wind mis-scores the hand and
+  the engine returns a plausible-looking answer.
+- **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
+  `seats.ts`, `scoring.ts` are React-free and carry 142 tests between them. Fix
+  rules there, not in a component.
+- **`npm run test:browser` is the safety net that matters.** It drives the real
+  UI in Firefox — 89 checks, including a match played end to end. Several real
+  bugs this session were caught only there: a ron reaching the reducer with no
+  discarder, and a CSS specificity bug that made a change apply to nothing.
+- Screenshots: `SHOT_DIR=/some/dir npm run test:browser`. The one-off probe
+  scripts used during development created Firefox profiles under
+  `~/snap/firefox/common/` and did **not** clean up; the committed smoke test
+  does. If you write another probe, delete its profile.
+
+Still open, none of it blocking:
+
+- Agari-yame; landscape/tablet layout for the table; a "who am I" seat so the
+  phone's owner sits at the bottom rather than seat 1.
+- The centre-box logo is the chun glyph used as a CSS mask, standing in for a
+  real red dragon mark.
+- `frontend/tsconfig.tsbuildinfo` is tracked and churns on every commit; it
+  wants a `.gitignore` line and a `git rm --cached`.
+- Upstream: `riichi` is still granted on an open hand. Guarded client-side and
+  reported; see `SCORER_GAPS.md`.
