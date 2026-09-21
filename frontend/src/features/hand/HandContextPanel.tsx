@@ -59,27 +59,49 @@ function Check({ label, checked, disabled, hint, onChange }: {
   );
 }
 
-export function HandContextPanel({ state, update }: {
+export function HandContextPanel({
+  state, update, showWinds = true, showWinMode = true,
+}: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
+  /**
+   * False inside the match tracker, where both winds are already known: the
+   * round from the match and the seat from who is winning. Letting them be
+   * picked again there would be asking for a fact the app holds -- and the seat
+   * wind is what tells the engine the winner is dealer, so a wrong answer
+   * silently mis-scores the hand.
+   */
+  showWinds?: boolean;
+  /**
+   * False inside the match tracker, which asked for ron/tsumo -- and for the
+   * discarder -- before the hand was ever opened. Letting it be changed here
+   * would leave the recorded deal-in pointing at nobody.
+   */
+  showWinMode?: boolean;
 }) {
   const riichiIssue = contextIssue(state, 'riichi');
   const issue = (k: Parameters<typeof contextIssue>[1]) => contextIssue(state, k);
 
   return (
     <div className="context">
-      <Segmented label="Win" value={state.winMode}
-                 options={['ron', 'tsumo'] as WinMode[]}
-                 onChange={(v) => update({ winMode: v })}
-                 render={(v) => (v === 'ron' ? 'Ron' : 'Tsumo')} />
+      {showWinMode && (
+        <Segmented label="Win" value={state.winMode}
+                   options={['ron', 'tsumo'] as WinMode[]}
+                   onChange={(v) => update({ winMode: v })}
+                   render={(v) => (v === 'ron' ? 'Ron' : 'Tsumo')} />
+      )}
 
-      <Segmented label="Round wind" value={state.roundWind} options={SITUATION_WINDS}
-                 onChange={(v) => update({ roundWind: v })}
-                 render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
+      {showWinds && (
+        <>
+          <Segmented label="Round wind" value={state.roundWind} options={SITUATION_WINDS}
+                     onChange={(v) => update({ roundWind: v })}
+                     render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
 
-      <Segmented label="Seat wind" value={state.seatWind} options={SITUATION_WINDS}
-                 onChange={(v) => update({ seatWind: v })}
-                 render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
+          <Segmented label="Seat wind" value={state.seatWind} options={SITUATION_WINDS}
+                     onChange={(v) => update({ seatWind: v })}
+                     render={(w) => <span title={WIND_NAME[w]}>{WIND_KANJI[w]}</span>} />
+        </>
+      )}
 
       <div className="field">
         <span className="field__label">Riichi</span>

@@ -24,11 +24,14 @@ function paymentSplit(payment: Payment): string | null {
   }
 }
 
-export function ScoreResultView({ result, hand, onBack }: {
+export function ScoreResultView({ result, hand, onBack, onConfirm, confirmLabel }: {
   result: ScoreResult;
   /** Omitted by the limit-theming preview; the score stands on its own. */
   hand?: HandState;
   onBack: () => void;
+  /** Set when the score is about to be recorded against a match. */
+  onConfirm?: () => void;
+  confirmLabel?: string;
 }) {
   const real = result.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const extras = result.yakus.filter((y) => PSEUDO_YAKU.has(y.yaku));
@@ -75,7 +78,16 @@ export function ScoreResultView({ result, hand, onBack }: {
         {split && <span className="score__breakdown">{split}</span>}
       </div>
 
-      <button type="button" className="btn btn--wide" onClick={onBack}>Back to the hand</button>
+      <div className="score__actions">
+        <button type="button" className="btn btn--wide" onClick={onBack}>
+          {onConfirm ? 'Edit the hand' : 'Back to the hand'}
+        </button>
+        {onConfirm && (
+          <button type="button" className="btn btn--primary btn--wide" onClick={onConfirm}>
+            {confirmLabel ?? 'Record this hand'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

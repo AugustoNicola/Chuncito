@@ -39,6 +39,17 @@ try {
   page.on('console', (m) => { if (m.type() === 'error') console.error('  [console]', m.text()); });
 
   await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+
+  const byText = async (text) => page.evaluate((t) => {
+    const button = [...document.querySelectorAll('button')].find(
+      (b) => b.textContent.trim().startsWith(t));
+    if (!button) throw new Error(`no button labelled ${t}`);
+    button.click();
+  }, text);
+
+  // The tracker owns the root now; the calculator is one tap in.
+  await page.waitForSelector('.home');
+  await byText('Hand calculator');
   await page.waitForSelector('.keyboard');
 
   // Wait for the scorer to finish booting before asserting on the button state.
@@ -199,6 +210,177 @@ try {
   const plainSpent = await page.$eval('.keyboard [data-key="p5"]', (el) => el.disabled);
   check(plainSpent, 'the plain five disables once a kan has taken every copy');
   await shot('06-dora.png');
+
+  // ==================== match tracker ====================
+
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home');
+  await byText('New match');
+  await page.waitForSelector('.setup');
+
+  const names = ['Ana', 'Beto', 'Cami', 'Dani'];
+  const inputs = await page.$$('.setup__name');
+  for (let i = 0; i < names.length; i++) await inputs[i].type(names[i]);
+  await shot('10-setup.png');
+
+  await byText('Start match');
+  await page.waitForSelector('.table');
+
+  const centreText = async () => page.$eval('.centre__round', (el) => el.textContent);
+  check(await centreText() === 'East 1', `the match opens on East 1 (got ${await centreText()})`);
+
+  const scores = async () =>
+    page.$$eval('.seat .playerbox__score', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(await scores()) === JSON.stringify(['25,000', '25,000', '25,000', '25,000']),
+        'everyone starts on 25,000');
+
+  const dealerName = await page.$eval('.playerbox--dealer .playerbox__name', (e) => e.textContent);
+  check(dealerName === 'Ana', `seat 1 deals East 1 (got ${dealerName})`);
+  await shot('11-table.png');
+
+  // --- a riichi takes 1000 and puts a stick on the table ---
+  await page.click('.seat--right .playerbox__riichi');
+  const afterRiichi = await scores();
+  check(afterRiichi[1] === '24,000', `riichi takes 1000 (got ${afterRiichi[1]})`);
+  const sticks = await page.$eval('.centre__counter:nth-child(2)', (el) => el.textContent.trim());
+  check(sticks === '1', `the stick shows on the table (got ${sticks})`);
+
+  // --- a manual win pays out, sticks included ---
+  await page.click('.seat--right .playerbox__main');
+  await page.waitForSelector('.winmenu');
+  await byText('Ron');
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Dealt in');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Cami').click();
+  });
+  const pick = async (label, value) => page.evaluate((l, v) => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === l);
+    [...field.querySelectorAll('.pill')].find((b) => b.textContent.trim() === v).click();
+  }, label, value);
+  await pick('Han', '3');
+  await pick('Fu', '30');
+  await shot('12-winmenu.png');
+  await byText('Record');
+  await page.waitForSelector('.table');
+
+  const afterWin = await scores();
+  // 25000 - 1000 riichi + 3900 for the hand + the 1000 stick back off the table.
+  check(afterWin[1] === '28,900', `the winner takes 3900 and the stick (got ${afterWin[1]})`);
+  check(afterWin[2] === '21,100', `the discarder pays 3900 (got ${afterWin[2]})`);
+  check(await centreText() === 'East 2', `the deal passes on (got ${await centreText()})`);
+
+  // --- a draw pays noten and keeps the dealer if the dealer was tenpai ---
+  await page.click('.centre');
+  await page.waitForSelector('.drawmenu');
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Tenpai');
+    [...field.querySelectorAll('.check')].find((b) => b.textContent.includes('Beto')).click();
+  });
+  await shot('13-drawmenu.png');
+  await byText('Record');
+  await page.waitForSelector('.table');
+  const afterDraw = await scores();
+  check(afterDraw[1] === '31,900', `the one tenpai player collects 3000 (got ${afterDraw[1]})`);
+  // Beto deals East 2, and a tenpai dealer keeps the deal rather than passing it.
+  check(await centreText() === 'East 2', `a tenpai dealer keeps the deal (got ${await centreText()})`);
+  const honba = await page.$eval('.centre__counter:nth-child(1)', (el) => el.textContent.trim());
+  check(honba === '1', `the repeat adds a honba (got ${honba})`);
+
+  // --- the engine scores a hand from inside the match ---
+  // The integration that matters: the winds come from the match rather than
+  // being asked for again, and the seat wind is what tells the engine the
+  // winner is dealer.
+  await page.click('.seat--left .playerbox__main');    // Dani wins
+  await page.waitForSelector('.winmenu');
+  const tilesLocked = await page.$eval('.winmenu__tiles', (el) => el.disabled);
+  check(tilesLocked, 'the tile builder is locked until a ron has a discarder');
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Dealt in');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Ana').click();
+  });
+  await byText('Enter the hand and score it');
+  await page.waitForSelector('.keyboard');
+
+  const windFields = await page.evaluate(() => {
+    document.querySelector('.flaps__tab:nth-child(2)').click();
+    return new Promise((resolve) => setTimeout(() => resolve(
+      [...document.querySelectorAll('.field__label')].map((el) => el.textContent)), 50));
+  });
+  const asked = ['Round wind', 'Seat wind', 'Win'].filter((f) => windFields.includes(f));
+  check(asked.length === 0,
+        `the match supplies the winds and the win mode, so none are asked for (got ${JSON.stringify(windFields)})`);
+  await shot('17-nowinds.png');
+  await page.click('.flaps__tab:nth-child(1)');
+
+  for (const t of HAND) await page.click(`.keyboard [data-key="${t}"]`);
+  await page.waitForFunction(
+    () => !document.querySelector('.btn--primary')?.disabled, { timeout: 30_000 });
+  await byText('Score hand');
+  await page.waitForSelector('.score');
+  const embeddedSeat = await page.$eval('.score__seat', (el) => el.textContent);
+  check(embeddedSeat === 'Non-dealer ron',
+        `the seat wind came from the seat, not a picker (got ${embeddedSeat})`);
+  await shot('18-scored.png');
+
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+  const afterScored = await scores();
+  // Ana was on 24,000 after paying noten, and owes 7700 plus 300 for the honba.
+  check(afterScored[0] === '16,000', `the discarder pays the scored hand (got ${afterScored[0]})`);
+  check(afterScored[3] === '32,000', `the winner takes it (got ${afterScored[3]})`);
+
+  // --- the timeline is the list of hands ---
+  await byText('Timeline');
+  await page.waitForSelector('.timeline');
+  const entries = await page.$$eval('.timeline__hand', (els) => els.length);
+  check(entries === 3, `the timeline holds every hand (got ${entries})`);
+  const firstEntry = await page.$eval('.timeline__what', (el) => el.textContent);
+  check(firstEntry === 'Dani ron off Ana', `newest hand first (got ${firstEntry})`);
+  // A scored hand carries its yaku, which is what makes the Phase 4 filters work.
+  const loggedYakus = await page.$$eval('.timeline__hand:first-child .timeline__yaku',
+                                        (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(loggedYakus) === JSON.stringify(['Pinfu', 'Tanyao', 'Sanshoku Doujun']),
+        `the yaku are recorded against the hand (got ${JSON.stringify(loggedYakus)})`);
+  await shot('14-timeline.png');
+  await byText('Back');
+
+  // --- undo puts the table back, riichi stick included ---
+  await page.waitForSelector('.table');
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Undo hand 3');
+  await page.waitForSelector('.table');
+  const afterUndo = await scores();
+  check(JSON.stringify(afterUndo) === JSON.stringify(afterDraw),
+        `undo restores the scores exactly (got ${JSON.stringify(afterUndo)})`);
+  check(await centreText() === 'East 2', `undo restores the round (got ${await centreText()})`);
+  await shot('15-undone.png');
+
+  // --- the match survives a reload, which is what the mirror is for ---
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.table', { timeout: 20_000 });
+  const afterReload = await scores();
+  check(JSON.stringify(afterReload) === JSON.stringify(afterDraw),
+        `the match is restored from IndexedDB (got ${JSON.stringify(afterReload)})`);
+
+  // --- ending the match shows placements ---
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('End early');
+  await byText('Yes, end it now');
+  await page.waitForSelector('.standings');
+  const standings = await page.$$eval('.standings__row', (els) => els.map((el) => ({
+    name: el.querySelector('.standings__name').textContent,
+    uma: el.querySelector('.standings__uma').textContent,
+  })));
+  check(standings[0]?.name === 'Beto', `the leader places first (got ${standings[0]?.name})`);
+  check(standings[0]?.uma === '+20', `uma is applied by placement (got ${standings[0]?.uma})`);
+  check(standings[3]?.uma === '-20', `last place takes the bottom uma (got ${standings[3]?.uma})`);
+  await shot('16-endscreen.png');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {

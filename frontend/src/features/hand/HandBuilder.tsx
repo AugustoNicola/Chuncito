@@ -2,8 +2,10 @@
  * The hand-input screen: tile keyboard, hand display, context flap, and the
  * score result.
  *
- * Standalone by design -- it needs no backend, so it works as a calculator on
- * its own and is later embedded in the match tracker's win menu.
+ * Works standalone as a calculator, and embeds whole into the match tracker's
+ * win menu. Embedded, it is handed the two winds -- which the match already
+ * knows -- and reports the score back instead of ending at its own result
+ * screen.
  */
 import { useMemo, useState } from 'react';
 import { TileKeyboard } from './TileKeyboard';
@@ -18,9 +20,32 @@ import {
 } from './handState';
 import { useScorer } from '../../scorer/useScorer';
 import { validateQuery } from '../../scorer/validate';
-import type { ScoreQuery, ScoreResult, Tile as TileAtom } from '../../scorer/types';
+import type {
+  ScoreQuery, ScoreResult, SituationWind, Tile as TileAtom, WinMode,
+} from '../../scorer/types';
 
 type Flap = 'tiles' | 'details';
+
+export interface HandBuilderProps {
+  /**
+   * Supplied by the match tracker. Fixes both winds and hides their selectors:
+   * the round wind is the match's, and the seat wind follows from which player
+   * is winning. The seat wind is also what tells the engine whether the winner
+   * is dealer, so deriving it removes a way to score a hand wrongly in silence.
+   */
+  winds?: { roundWind: SituationWind; seatWind: SituationWind };
+  /**
+   * Also supplied by the tracker, for the same reason: the win menu asks how
+   * the hand was won, and on a ron who dealt in, before the tiles are entered.
+   * Asking again here could contradict the deal-in seat already chosen.
+   */
+  winMode?: WinMode;
+  /** Called with a confirmed score. Absent when used as a plain calculator. */
+  onConfirm?: (result: ScoreResult, state: HandState) => void;
+  onCancel?: () => void;
+  /** Replaces the "Hand" header, e.g. with the winner's name. */
+  title?: string;
+}
 
 function buildQuery(state: HandState): ScoreQuery | null {
   const tile = winningTile(state);
@@ -33,8 +58,12 @@ function buildQuery(state: HandState): ScoreQuery | null {
   };
 }
 
-export function HandBuilder() {
-  const [state, setState] = useState<HandState>(initialHandState);
+export function HandBuilder({
+  winds, winMode, onConfirm, onCancel, title,
+}: HandBuilderProps = {}) {
+  const [state, setState] = useState<HandState>(() => ({
+    ...initialHandState, ...winds, ...(winMode ? { winMode } : {}),
+  }));
   const [flap, setFlap] = useState<Flap>('tiles');
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -66,7 +95,8 @@ export function HandBuilder() {
   if (result) {
     return (
       <div className="app">
-        <ScoreResultView result={result} hand={state} onBack={() => setResult(null)} />
+        <ScoreResultView result={result} hand={state} onBack={() => setResult(null)}
+                         onConfirm={onConfirm ? () => onConfirm(result, state) : undefined} />
       </div>
     );
   }
@@ -85,7 +115,10 @@ export function HandBuilder() {
   return (
     <div className="app">
       <header className="app__bar">
-        <h1 className="app__title">Hand</h1>
+        {onCancel && (
+          <button type="button" className="btn btn--quiet" onClick={onCancel}>Back</button>
+        )}
+        <h1 className="app__title">{title ?? 'Hand'}</h1>
         <button type="button" className="btn btn--quiet"
                 onClick={() => apply(clearHand)}>
           Clear
@@ -128,7 +161,8 @@ export function HandBuilder() {
           <TileKeyboard state={state} onPress={(t: TileAtom) => apply((s) => pressTile(s, t))} />
         </>
       ) : (
-        <HandContextPanel state={state} update={update} />
+        <HandContextPanel state={state} update={update}
+                          showWinds={!winds} showWinMode={!winMode} />
       )}
     </div>
   );

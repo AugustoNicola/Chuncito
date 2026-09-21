@@ -27,19 +27,25 @@ From the repo root:
 ## Layout
 
 ```
-scorer/mahjonglog/          vendored Prolog (do NOT edit; changes belong upstream)
-scorer/sync-prolog.sh       re-vendor with a test gate
-frontend/src/scorer/        contract layer: types, order, serialize, decode, validate,
-                            dora, engine (+ .node / .browser factories)
-frontend/src/features/hand/ hand input: handState (pure, React-free) + components
-frontend/src/ui/            Tile, theme.css
-frontend/scripts/           browser-smoke.mjs, the real-browser end-to-end test
-docs/                       contract, gaps, architecture, data model, roadmap
+scorer/mahjonglog/           vendored Prolog (do NOT edit; changes belong upstream)
+scorer/sync-prolog.sh        re-vendor with a test gate
+frontend/src/App.tsx         which screen is showing; no router yet
+frontend/src/scorer/         contract layer: types, order, serialize, decode, validate,
+                             dora, engine (+ .node / .browser factories)
+frontend/src/features/hand/  hand input: handState (pure) + handTiles + components
+frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
+                             persistence, and the table/menu/timeline components
+frontend/src/ui/             Tile, theme.css
+frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
+docs/                        contract, gaps, architecture, data model, roadmap
 ```
 
-`handState.ts` holds the tile-entry rules and is deliberately free of React, so
-the awkward parts (which keys are legal in which mode, when a call would
-illegally complete the hand, red-five supply) are directly testable.
+The two pure cores — `handState.ts` and `matchState.ts` (+ `seats.ts`,
+`scoring.ts`) — are deliberately free of React. In both the awkward parts are
+rules, not rendering: which keys are legal in which mode and when a call would
+illegally complete the hand; dealer repeats, honba, sticks carrying across a
+draw, sudden death, busting. All of it is directly testable and all of it is
+tested.
 
 ## Invariants
 
@@ -62,6 +68,18 @@ keep building against the documented contract as if it worked.
 
 **Node 18** — Vite is pinned to 5.x for this reason. Don't upgrade past it
 without checking the runtime.
+
+**Never ask twice for a fact the match already holds.** The tracker passes the
+round wind, the seat wind and the win mode into `HandBuilder` and hides their
+selectors. The seat wind is what tells the engine the winner is dealer, so a
+stray tap on a duplicate picker would mis-score the hand *silently* — the engine
+would happily return a valid-looking non-dealer payment. Same reasoning as
+validating before querying.
+
+**A hand row carries the round state it was played under.** That is what makes
+undo exact without an event log; see `docs/ARCHITECTURE.md`. Riichi sticks move
+live *and* appear in the row's `scoreDelta`, so anything applying a delta must
+subtract the part already applied.
 
 ## Conventions
 

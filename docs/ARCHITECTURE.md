@@ -56,6 +56,31 @@ own `score_delta`, so running scores are a prefix sum.
 
 This also shrank storage by roughly 4x — the event payloads were the bulk.
 
+## How undo works without an event log
+
+`recordHand()` returns the new state *and* the row. Each row carries the round
+state it was **played under** — `roundWind`, `roundNumber`, `honba`,
+`riichiPotBefore`, `riichiSeats` — not just its outcome.
+
+That is what makes undo exact and cheap: dropping the last row restores the
+table from the row itself. No compensating event, no replay of the whole match,
+and no separate "state before" snapshot to keep in step.
+
+The riichi sticks are the part that makes this non-obvious. A declaration moves
+1000 points the moment it happens, because that is what happens at the table —
+long before anyone knows how the hand ends. So the deduction is applied twice
+over in two different senses:
+
+- **Live**, by `toggleRiichi`, so the score on screen is right during the hand.
+- **In the row's `scoreDelta`**, so that replaying the deltas from the starting
+  score reproduces the table exactly — which is what Phase 3's server will do.
+
+`recordHand` therefore subtracts the already-applied part before updating the
+live scores, and `undoLastHand` adds it back while returning the seats to
+`pendingRiichi`. A match's deltas do **not** sum to zero per hand: collecting a
+stick carried from an earlier hand is found money. They sum to zero over the
+match.
+
 ## Offline posture
 
 Crash-safe and blip-tolerant, **not** full offline-first. A hand is POSTed as it

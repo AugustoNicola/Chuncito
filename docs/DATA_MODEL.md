@@ -4,6 +4,10 @@ Not yet implemented — Phases 1 and 2 touch no database. Recorded here because
 Phase 2's reducer must emit rows of exactly this shape, so Phase 3 is wiring
 rather than redesign.
 
+As of Phase 2 it does: `HandRow` in `frontend/src/features/match/matchState.ts`
+is this `hands` row, with `riichiSeats` / `tenpaiSeats` / `yakus` as the child
+tables. The vendor is still undecided; nothing here is engine-specific.
+
 See `ARCHITECTURE.md` for why there is no event log.
 
 ```
@@ -20,9 +24,12 @@ match_players(match_id, seat 0..3, player_id NULL, guest_name NULL,
 
 hands(id, match_id, seq, round_wind, round_number, honba, riichi_pot_before,
       outcome ENUM(tsumo,ron,exhaustive_draw,abortive_draw,nagashi_mangan,chombo),
+      abortive_reason NULL,             -- nine_terminals, four_riichi, ...
       winner_seat NULL, deal_in_seat NULL,
-      han NULL, fu NULL, level NULL, base_points NULL,
-      is_manual, winner_open, hand_tiles NULL,
+      han NULL, fu NULL, level NULL,
+      base_points NULL,                 -- before the dealer/ron multiplier
+      points_won NULL,                  -- what the winner actually collected
+      is_manual, winner_open NULL, hand_tiles NULL,
       score_delta,                      -- "+8000,-8000,0,0" across seats
       client_uuid UNIQUE)               -- sync idempotency key
       UNIQUE(match_id, seq)
@@ -47,6 +54,16 @@ Notes:
   a call from loose tiles. Something like
   `"m2m2m3m4m5p3p4p5|chii:s3s4s5R"` rather than a bare tile run.
 - `hand_yakus` is what makes "filter by yaku achieved" a join instead of a scan.
+- `base_points` and `points_won` are both kept because they answer different
+  questions. `base_points` compares hands ("whose best hand was bigger"), and is
+  independent of who was dealing and of honba. `points_won` is what changed
+  hands, which is what the timeline shows. For an engine-scored hand the base is
+  recovered from the level first (`baseFromResult`), because `dobleYakuman` is
+  26 han and the han formula would flatten it back to one yakuman.
+- `winner_open` is NULL, not false, on a hand nobody won — it feeds the
+  win-method pie, where "no winner" is not "closed".
+- `chombo` stays in the enum but Phase 2 does **not** produce it: the group
+  handles a chombo as an `adjustments` row with a note. See `ROADMAP.md`.
 
 ## Required queries
 
