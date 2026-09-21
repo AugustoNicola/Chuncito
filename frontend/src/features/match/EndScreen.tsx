@@ -8,7 +8,9 @@
  */
 import { useState } from 'react';
 import type { MatchState } from './matchState';
-import { maxLevel } from './matchState';
+import { bestHand } from './matchState';
+import { HandSummary } from '../hand/HandDisplay';
+import { decodeHandTiles } from '../hand/handTiles';
 import { placements } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel } from './seats';
@@ -28,7 +30,7 @@ export function EndScreen({ state, onSave, onTimeline }: {
 }) {
   const [name, setName] = useState(state.name);
   const standings = placements(state.scores, state.config.uma);
-  const best = maxLevel(state);
+  const best = bestHand(state);
   const hands = state.hands.length;
 
   return (
@@ -62,10 +64,19 @@ export function EndScreen({ state, onSave, onTimeline }: {
           ))}
         </ol>
 
-        {best && best !== 'sinNombre' && (
-          <div className="endscreen__best" data-tier={levelTier(best)}>
+        {best && (
+          <div className="endscreen__best" data-tier={levelTier(best.win.level!)}>
             <span className="endscreen__bestlabel">Best hand</span>
-            <span className="endscreen__bestvalue">{levelName(best)}</span>
+            <span className="endscreen__bestvalue">
+              {best.win.level === 'sinNombre'
+                ? `${best.win.han} han${best.win.fu ? ` · ${best.win.fu} fu` : ''}`
+                : levelName(best.win.level!)}
+            </span>
+            <span className="endscreen__bestwho">
+              {state.config.seats[best.seat]!.name}
+              {best.win.pointsWon !== null && ` · ${best.win.pointsWon.toLocaleString()}`}
+            </span>
+            {best.win.handTiles && <HandSummary state={decodeHandTiles(best.win.handTiles)} />}
           </div>
         )}
 

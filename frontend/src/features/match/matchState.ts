@@ -512,19 +512,45 @@ export const dealerSeat = (state: MatchState): Seat => dealerOf(state.round);
 export const potOnTable = (state: MatchState): number =>
   state.potCarried + state.pendingRiichi.length;
 
-/** The best limit reached in the match, for `matches.max_level`. */
-export function maxLevel(state: MatchState): Level | null {
-  const ranked = ['sinNombre', 'mangan', 'haneman', 'baiman', 'sanbaiman', 'kazoeYakuman'];
-  let best: Level | null = null;
-  let bestRank = -1;
+const LEVEL_RANK: readonly string[] =
+  ['sinNombre', 'mangan', 'haneman', 'baiman', 'sanbaiman', 'kazoeYakuman'];
+
+/** Anything the list does not know is a yakuman variant, so it outranks them all. */
+const rankOf = (level: Level): number => {
+  const at = LEVEL_RANK.indexOf(level);
+  return at < 0 ? LEVEL_RANK.length : at;
+};
+
+export interface BestHand {
+  seat: Seat;
+  win: WinRow;
+  /** Which hand of the match it was. */
+  seq: number;
+}
+
+/**
+ * The biggest hand anyone made, by limit first and base points second.
+ *
+ * Base points rather than points won, because that is the hand's own size: a
+ * dealer collects half again as much for the same hand, and honba would let a
+ * long repeat flatter a small one.
+ */
+export function bestHand(state: MatchState): BestHand | null {
+  let best: BestHand | null = null;
+  let bestKey: [number, number] = [-1, -1];
   for (const row of state.hands) {
     for (const win of row.wins) {
       if (!win.level) continue;
-      const rank = ranked.indexOf(win.level);
-      // Anything the ranked list does not know is a yakuman variant, so it wins.
-      const effective = rank < 0 ? ranked.length : rank;
-      if (effective > bestRank) { bestRank = effective; best = win.level; }
+      const key: [number, number] = [rankOf(win.level), win.basePoints ?? 0];
+      if (key[0] > bestKey[0] || (key[0] === bestKey[0] && key[1] > bestKey[1])) {
+        bestKey = key;
+        best = { seat: win.winnerSeat, win, seq: row.seq };
+      }
     }
   }
   return best;
 }
+
+/** The best limit reached in the match, for `matches.max_level`. */
+export const maxLevel = (state: MatchState): Level | null =>
+  bestHand(state)?.win.level ?? null;

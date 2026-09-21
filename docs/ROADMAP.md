@@ -114,6 +114,23 @@ After a round of on-device feedback:
       control now has "Back to the home screen" (keeps it) and "Discard this
       match" (clears the mirror, two-tap).
 
+Second feedback round:
+- [x] **Multiple ron reworked.** "Add another winner" used to pick the next seat
+      itself, leaving the only seat selector on screen labelled "Dealt in" while
+      it was really asking something else. Winner and discarder are now separate
+      rows, and a seat is blocked only if it already holds a hand on this discard
+      or is the discarder.
+- [x] Four riichi is refused as an abortive draw until four riichi are actually
+      declared — the tracker knows, so it checks rather than trusting.
+- [x] Stored tiles are shown back: on the review screen, in the timeline, and
+      under the match's best hand. This is what `hand_tiles` is kept for.
+- [x] Fu 20–50 share a row evenly; 60–110 sit below at their own width
+- [x] Limit buttons on a fixed grid — five of them wrapped 3+2 and the bottom two
+      stretched to 177px against 116px above, which is what read as "Sanbaiman
+      is off-centre". The text was centred; the row was not.
+- [x] Dropped the point preview from the tenpai picker, now the review screen
+      shows it against the real next state one tap later
+
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
 - [ ] Landscape / tablet layout for the table

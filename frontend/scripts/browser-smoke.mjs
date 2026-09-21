@@ -332,6 +332,8 @@ try {
       (f) => f.querySelector('.field__label')?.textContent === 'Tenpai');
     [...field.querySelectorAll('.check')].find((b) => b.textContent.includes('Beto')).click();
   });
+  const drawHasPreview = await page.$$eval('.drawmenu__preview', (els) => els.length);
+  check(drawHasPreview === 0, 'the draw menu leaves the points to the review screen');
   await shot('13-drawmenu.png');
   await byText('Review');
   await page.waitForSelector('.confirm');
@@ -404,6 +406,11 @@ try {
                                         (els) => els.map((e) => e.textContent));
   check(JSON.stringify(loggedYakus) === JSON.stringify(['Pinfu', 'Tanyao', 'Sanshoku Doujun']),
         `the yaku are recorded against the hand (got ${JSON.stringify(loggedYakus)})`);
+  // The point of storing hand_tiles: the hand can be looked at again.
+  const reviewTiles = await page.$$eval('.timeline__hand:first-child .handsummary .tile',
+                                        (els) => els.length);
+  check(reviewTiles >= 14, `the scored hand is shown back on review (got ${reviewTiles} tiles)`);
+  await shot('24-review-hand.png');
   await shot('14-timeline.png');
   await byText('Back');
 
@@ -427,6 +434,92 @@ try {
   const afterReload = await scores();
   check(JSON.stringify(afterReload) === JSON.stringify(afterDraw),
         `the match is restored from IndexedDB (got ${JSON.stringify(afterReload)})`);
+
+  // --- multiple ron: the winner is chosen, never assumed ---
+  await page.click('.seat--bottom .playerbox__main');   // Ana
+  await page.waitForSelector('.winmenu');
+  const seatField = async (label) => page.evaluate((l) => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === l);
+    return [...field.querySelectorAll('.segmented__btn')].map(
+      (b) => [b.textContent.trim(), b.disabled, b.getAttribute('aria-pressed')]);
+  }, label);
+
+  const winnerRow = await seatField('Winner');
+  check(winnerRow.length === 4 && winnerRow[0][2] === 'true',
+        `the tapped seat starts as the winner (got ${JSON.stringify(winnerRow)})`);
+  check(winnerRow.every(([, disabled]) => !disabled),
+        `nobody is ruled out as winner before a discarder is picked (got ${JSON.stringify(winnerRow)})`);
+
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Dealt in');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Cami').click();
+  });
+  const afterDealIn = await seatField('Winner');
+  check(afterDealIn[2][1] === true && afterDealIn[1][1] === false,
+        `only the discarder is ruled out as winner (got ${JSON.stringify(afterDealIn)})`);
+
+  await pick('Han', '2');
+  await pick('Fu', '30');
+  await byText('Add another winner on this discard');
+  const staged = await page.$$eval('.chip--staged', (els) => els.map((e) => e.textContent));
+  check(staged.length === 1 && staged[0].includes('Ana'),
+        `the first winner is staged (got ${JSON.stringify(staged)})`);
+  const waiting = await page.$eval('.app__title', (el) => el.textContent);
+  check(waiting === 'Who else won?',
+        `the next winner is asked for, not assumed (got "${waiting}")`);
+
+  const secondRow = await seatField('Winner');
+  check(secondRow.every(([name, disabled]) =>
+    disabled === (name === 'Ana' || name === 'Cami')),
+    `only the staged winner and the discarder are blocked (got ${JSON.stringify(secondRow)})`);
+
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')].find(
+      (f) => f.querySelector('.field__label')?.textContent === 'Winner');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Dani').click();
+  });
+  await pick('Han', '3');
+  await pick('Fu', '30');
+  await shot('25-multiron.png');
+  await byText('Review');
+  await page.waitForSelector('.confirm');
+  const bothHands = await page.$$eval('.confirm__value', (els) => els.length);
+  check(bothHands === 2, `both hands are shown before committing (got ${bothHands})`);
+  await shot('26-multiron-confirm.png');
+  const beforeMulti = await page.$$eval('.confirm__was', (els) => els.map((e) => e.textContent));
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+  const afterMulti = await scores();
+  // Ana 2 han 30 fu (2000) and Dani 3 han 30 fu (3900), both off Cami, on the
+  // honba the exhaustive draw left behind -- paid once, to the nearest winner.
+  const camiBefore = Number(beforeMulti[2].replace(/,/g, ''));
+  check(Number(afterMulti[2].replace(/,/g, '')) === camiBefore - 5900 - 300,
+        `the discarder pays both hands and one honba (got ${afterMulti[2]} from ${beforeMulti[2]})`);
+  // Cami discards, so Dani is next in turn order and takes the honba; Ana,
+  // further round, is paid her hand and nothing else.
+  check(afterMulti[3] === '28,200',
+        `the honba goes to the winner nearest the discarder (got ${afterMulti[3]})`);
+  check(afterMulti[0] === '26,000',
+        `the further winner is paid her hand alone (got ${afterMulti[0]})`);
+
+  // --- four riichi needs four riichi ---
+  await page.click('.centre');
+  await page.waitForSelector('.drawmenu');
+  await page.evaluate(() => {
+    [...document.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Abortive').click();
+  });
+  const fourRiichiOff = await page.$$eval('.stack__btn', (els) => {
+    const b = els.find((x) => x.textContent.startsWith('Four riichi'));
+    return { disabled: b.disabled, why: b.textContent };
+  });
+  check(fourRiichiOff.disabled, 'four riichi is refused until four riichi are declared');
+  check(fourRiichiOff.why.includes('0 of 4'),
+        `it says how many are declared (got "${fourRiichiOff.why}")`);
+  await shot('27-fourriichi.png');
+  await byText('Cancel');
+  await page.waitForSelector('.table');
 
   // --- a match can be left and thrown away, which is the only way out of one ---
   await byText('Manual');

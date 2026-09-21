@@ -695,6 +695,11 @@ button {
 }
 
 .pills { display: flex; flex-wrap: wrap; gap: 5px; }
+/* One row, shared evenly -- for the values you actually reach for. */
+.pills--fill .pill { flex: 1; min-width: 0; text-align: center; }
+/* A fixed grid, so a wrapped row keeps the same button width as the one above
+   it instead of stretching two buttons across the whole panel. */
+.pills--grid { display: grid; grid-template-columns: repeat(3, 1fr); }
 .pill {
   min-width: 44px;
   padding: 9px 11px;
@@ -706,7 +711,7 @@ button {
   font-variant-numeric: tabular-nums;
 }
 .pill--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
-.pill--limit { flex: 1 1 5.5rem; text-align: center; }
+.pill--limit { text-align: center; min-width: 0; }
 
 .check__tag {
   display: block;
@@ -829,6 +834,12 @@ button {
   text-transform: uppercase; letter-spacing: 0.08em;
 }
 .endscreen__bestvalue { font-size: 1.3rem; font-weight: 600; }
+.endscreen__bestwho { font-size: 0.85rem; color: var(--text-dim); }
+/* The stored hand, wherever one is shown back: review, timeline, best hand. */
+.endscreen__best .handsummary,
+.confirm__value .handsummary,
+.timeline__win .handsummary { margin-top: 8px; width: 100%; }
+.timeline__win .handsummary { --tile-w: 26px; }
 
 /* The score screen's two buttons, when it is confirming into a match. */
 .score__actions { display: flex; flex-direction: column; gap: 8px; }
@@ -865,6 +876,11 @@ button {
   text-align: left;
 }
 .stack__btn--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+.stack__btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.stack__why {
+  display: block; margin-top: 3px;
+  font-size: 0.75rem; color: var(--text-faint);
+}
 
 /* ---------- limit pills, themed like the score screen ---------- */
 

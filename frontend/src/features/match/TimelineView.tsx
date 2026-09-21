@@ -7,6 +7,8 @@
  */
 import type { HandRow, MatchState, WinRow } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
+import { HandSummary } from '../hand/HandDisplay';
+import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import type { Seat } from './seats';
 import { SEATS, roundLabel } from './seats';
@@ -60,6 +62,9 @@ function WinLine({ win, names, showName }: {
           ))}
         </div>
       )}
+      {/* This is what `hand_tiles` is stored for -- reviewing the hand, and one
+          day re-scoring it. */}
+      {win.handTiles && <HandSummary state={decodeHandTiles(win.handTiles)} />}
     </div>
   );
 }
