@@ -25,7 +25,7 @@ import { useState } from 'react';
 import type { ScoreResult, WinMode } from '../../scorer/types';
 import { HandBuilder } from '../hand/HandBuilder';
 import { encodeHandTiles } from '../hand/handTiles';
-import { isHandOpen, type HandState } from '../hand/handState';
+import { isHandOpen, toFlags, type HandState } from '../hand/handState';
 import { levelName, levelTier } from '../hand/yakuNames';
 import type { HandValue, MatchState, WinEntry } from './matchState';
 import { dealerSeat } from './matchState';
@@ -116,6 +116,9 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         level: result.level,
         yakus: result.yakus,
         handTiles: encodeHandTiles(hand),
+        // The tiles alone cannot be re-scored: nothing in them says the win was
+        // on the last discard, or off a kan replacement.
+        flags: toFlags(hand),
         open: isHandOpen(hand),
       },
     });

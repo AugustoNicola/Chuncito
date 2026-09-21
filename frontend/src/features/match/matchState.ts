@@ -17,7 +17,7 @@
  * undo exact: dropping the last row restores the table from the row itself,
  * with no compensating event and no replay.
  */
-import type { Level, Payment, SituationWind, WinMode, YakuHan } from '../../scorer/types';
+import type { Flag, Level, Payment, SituationWind, WinMode, YakuHan } from '../../scorer/types';
 import type { Seat, MatchLength, Round } from './seats';
 import { SEATS, dealerOf, finalRound, isSuddenDeath, nextRound, windIndex } from './seats';
 import {
@@ -73,6 +73,15 @@ export interface WinRow {
   isManual: boolean;
   winnerOpen: boolean | null;
   handTiles: string | null;
+  /**
+   * The situation flags the hand was scored under -- ippatsu, haitei, rinshan
+   * and the rest. Null for a typed-in value, which has no situation to record.
+   *
+   * Stored because `hand_tiles` on its own is not enough to re-score a hand:
+   * the tiles do not say whether the win was on the last discard or off a kan
+   * replacement, and the yaku list would come back short without them.
+   */
+  situationFlags: Flag[] | null;
   yakus: YakuHan[];
 }
 
@@ -135,6 +144,8 @@ export type HandValue =
       level: Level;
       yakus: YakuHan[];
       handTiles: string;
+      /** From `toFlags()`; the other half of what re-scoring needs. */
+      flags: Flag[];
       open: boolean;
     }
   | {
@@ -358,6 +369,7 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
         isManual: value.source === 'manual',
         winnerOpen: value.open,
         handTiles: value.source === 'scored' ? value.handTiles : null,
+        situationFlags: value.source === 'scored' ? value.flags : null,
         yakus: value.source === 'scored' ? value.yakus : [],
       }))
     : input.kind === 'nagashiMangan'
@@ -371,6 +383,7 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
           isManual: true,
           winnerOpen: null,
           handTiles: null,
+          situationFlags: null,
           yakus: [],
         }]
       : [];

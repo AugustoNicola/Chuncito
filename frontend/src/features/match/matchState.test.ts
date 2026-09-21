@@ -361,7 +361,9 @@ describe('rows for the history', () => {
     });
     expect(row.wins).toEqual([{
       winnerSeat: 1, han: 3, fu: 30, level: 'sinNombre', basePoints: 960,
-      pointsWon: 3900, isManual: true, winnerOpen: false, handTiles: null, yakus: [],
+      pointsWon: 3900, isManual: true, winnerOpen: false, handTiles: null,
+      // A typed-in value carries no situation, which is not an empty one.
+      situationFlags: null, yakus: [],
     }]);
     expect(row.scoreDelta).toEqual([0, 3900, -3900, 0]);
     expect(row.clientUuid).toBeTruthy();

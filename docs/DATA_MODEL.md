@@ -14,7 +14,10 @@ See `ARCHITECTURE.md` for why there is no event log.
 players(id, display_name, slug UNIQUE, avatar, created_at)
 
 matches(id, name, length ENUM(east,south), starting_points, uma_json,
-        status ENUM(in_progress,finished,abandoned), started_at, ended_at,
+        return_score,     -- the sudden-death threshold this match was played to
+        status ENUM(in_progress,finished,abandoned),
+        end_reason ENUM(final_round,bust,manual) NULL,
+        started_at, ended_at,
         max_level,        -- denormalised: best limit hand in the match
         is_test)          -- dev rows, hidden from the UI by default
 
@@ -34,7 +37,8 @@ hand_wins(hand_id, winner_seat,         -- one row per winner; see below
           han NULL, fu NULL, level NULL,
           base_points NULL,             -- before the dealer/ron multiplier
           points_won NULL,              -- what this winner collected
-          is_manual, winner_open NULL, hand_tiles NULL)
+          is_manual, winner_open NULL, hand_tiles NULL,
+          situation_flags NULL)         -- "riichi,ippatsu"; see below
           PK(hand_id, winner_seat)
 
 hand_riichi(hand_id, seat)      PK(hand_id, seat)
@@ -49,6 +53,12 @@ Notes:
 - `score_delta` per hand makes running scores a prefix sum — nothing recomputes
   from scratch, and undo is deleting the last row.
 - `level` is an ordinal so "mangan or better" is an index range scan.
+- `hand_tiles` **and `situation_flags` together** are what make a hand
+  re-scorable. The tiles alone are not enough: nothing in them says the win was
+  on the last discard, off a kan replacement, or one turn after a riichi, and a
+  re-score without the flags would come back missing yaku. Both are NULL for a
+  typed-in value, which never had a situation to record — distinct from a scored
+  hand that happened to have no flags, which stores an empty string.
 - `hand_tiles` is compact text, kept so history can be re-scored after an engine
   fix. NULL when han/fu were typed in. It is a concatenation of tile atoms and
   needs a **longest-match** parse, since atoms vary in length and share prefixes:
@@ -108,26 +118,42 @@ Two scenarios, 1000 matches each:
 
 | | hands/match | SQLite (measured) | Postgres (modelled) | 5 MB holds |
 |---|---|---|---|---|
-| **typical** — 55% of wins entered as tiles, 20% riichi rate | 9.5 avg, 17 max | 3.3 KB | **5.5 KB** | ~925 matches |
-| **heavy** — every win as tiles, 4 melds, 5 indicators, 6–11 yaku, 45% riichi | 9.7 avg, 15 max | 8.8 KB | **15.0 KB** | ~340 matches |
+| **typical** — 55% of wins entered as tiles, 20% riichi rate | 10.9 avg, 17 max | 3.9 KB | **6.5 KB** | ~785 matches |
+| **heavy** — every win as tiles, 4 melds, 5 indicators, 6–11 yaku, 45% riichi | 10.6 avg, 15 max | 9.3 KB | **15.9 KB** | ~320 matches |
 
-About 600 B per hand typical, 1.6 KB per hand heavy.
+About 615 B per hand typical, 1.5 KB per hand heavy.
 
 Where it goes, per match, modelled for Postgres:
 
 | table | typical | heavy |
 |---|---|---|
-| `hand_yakus` | 1.7 KB (29%) | **9.7 KB (64%)** |
-| `hands` | 1.8 KB (33%) | 1.9 KB (13%) |
-| `hand_wins` | 1.1 KB (19%) | 1.7 KB (11%) |
+| `hand_yakus` | 2.1 KB (31%) | **10.3 KB (63%)** |
+| `hands` | 2.1 KB (32%) | 2.1 KB (13%) |
+| `hand_wins` | 1.3 KB (19%) | 1.9 KB (12%) |
 | everything else | 1.0 KB | 1.6 KB |
+
+Round-tripping is tested, not assumed: `rows.ts` maps a match onto these tables
+and back, and `rows.test.ts` plays a match containing one of every outcome —
+including a double ron, a nagashi and a manual correction — then rebuilds it from
+nothing but the rows and compares. Writing that test is what turned up
+`return_score`, `end_reason` and `situation_flags` missing.
+
+Deliberately **not** stored, both accounted for:
+
+- `pendingRiichi` — sticks declared for a hand that has not resolved. The server
+  holds the match to the last *completed* hand by design (`ARCHITECTURE.md`), so
+  a resume replays the hand in progress.
+- The live round, honba, pot and scores — all derivable. Scores are a prefix sum
+  of `score_delta` plus adjustments; the round marker follows from the last
+  hand's own row and its outcome. Storing them would be a second source of truth
+  that could drift from the hands.
 
 Two things worth knowing from this:
 
 - **`hand_tiles` is not the problem.** It is the one variable-length field and
   the obvious suspect, but a stored hand runs 45 chars typical, 96 at the heavy
-  p95, and `hand_wins` is only 11–19% of the total. Keeping history re-scorable
-  is close to free.
+  p95, and `hand_wins` — tiles, flags and all — is only 12–19% of the total.
+  Keeping history re-scorable is close to free.
 - **`hand_yakus` dominates, and more than half of it is index.** Every yaku is a
   row carrying the 28-byte Postgres tuple overhead plus two index entries, for a
   payload of about 20 bytes. If storage ever became tight, the lever is that

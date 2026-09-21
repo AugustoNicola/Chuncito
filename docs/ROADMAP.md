@@ -166,6 +166,13 @@ Fifth feedback round:
       they do, but the engine is asked one hand at a time and cannot be told
       about the other, so there is nothing to gain by enforcing it.
 
+Verified before Phase 3:
+- [x] Storage measured rather than estimated (`npm run measure:storage`)
+- [x] **Round trip tested.** `rows.ts` maps a match onto the tables and back;
+      `rows.test.ts` plays a match with one of every outcome and rebuilds it from
+      the rows alone. Writing it found three columns missing: `return_score`,
+      `end_reason` and `situation_flags`.
+
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
 - [ ] Landscape / tablet layout for the table

@@ -32,7 +32,8 @@ CREATE TABLE players (
 
 CREATE TABLE matches (
   id INTEGER PRIMARY KEY, name TEXT, length TEXT NOT NULL, starting_points INTEGER NOT NULL,
-  uma_json TEXT NOT NULL, status TEXT NOT NULL, started_at TEXT NOT NULL, ended_at TEXT,
+  uma_json TEXT NOT NULL, return_score INTEGER NOT NULL, status TEXT NOT NULL,
+  end_reason TEXT, started_at TEXT NOT NULL, ended_at TEXT,
   max_level TEXT, is_test INTEGER NOT NULL);
 
 CREATE TABLE match_players (
@@ -50,7 +51,7 @@ CREATE UNIQUE INDEX hands_match_seq ON hands (match_id, seq);
 CREATE TABLE hand_wins (
   hand_id INTEGER NOT NULL, winner_seat INTEGER NOT NULL, han INTEGER, fu INTEGER,
   level TEXT, base_points INTEGER, points_won INTEGER, is_manual INTEGER NOT NULL,
-  winner_open INTEGER, hand_tiles TEXT,
+  winner_open INTEGER, hand_tiles TEXT, situation_flags TEXT,
   PRIMARY KEY (hand_id, winner_seat));
 CREATE INDEX hand_wins_level ON hand_wins (level, base_points);
 
@@ -77,11 +78,12 @@ def load(db, matches):
 
     for m in matches:
         cur = db.execute(
-            "INSERT INTO matches (name, length, starting_points, uma_json, status,"
-            " started_at, ended_at, max_level, is_test) VALUES (?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO matches (name, length, starting_points, uma_json, return_score,"
+            " status, end_reason, started_at, ended_at, max_level, is_test)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             [m["match"][k] for k in ("name", "length", "starting_points", "uma_json",
-                                     "status", "started_at", "ended_at", "max_level",
-                                     "is_test")])
+                                     "return_score", "status", "end_reason", "started_at",
+                                     "ended_at", "max_level", "is_test")])
         match_id = cur.lastrowid
         bump("matches")
 
@@ -105,10 +107,10 @@ def load(db, matches):
 
             for w in h["wins"]:
                 db.execute(
-                    "INSERT INTO hand_wins VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO hand_wins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     [hand_id, w["winner_seat"], w["han"], w["fu"], w["level"],
                      w["base_points"], w["points_won"], w["is_manual"],
-                     w["winner_open"], w["hand_tiles"]])
+                     w["winner_open"], w["hand_tiles"], w["situation_flags"]])
                 bump("hand_wins")
                 for y in w["yakus"]:
                     db.execute("INSERT INTO hand_yakus VALUES (?,?,?,?)",
@@ -177,8 +179,9 @@ def pg_size(matches):
     for m in matches:
         mm = m["match"]
         # id, starting_points, is_test + timestamps (8 each)
-        row("matches", 4 + 4 + 1 + 8 + 8,
-            [mm["name"], mm["length"], mm["uma_json"], mm["status"], mm["max_level"]],
+        row("matches", 4 + 4 + 4 + 1 + 8 + 8,
+            [mm["name"], mm["length"], mm["uma_json"], mm["status"], mm["end_reason"],
+             mm["max_level"]],
             [4])                                   # PK
         for p in m["match_players"]:
             row("match_players", 4 + 2 + 4 + 4 + 2 + 2, [p["guest_name"]], [6])
@@ -189,7 +192,7 @@ def pg_size(matches):
                 [4, 8, 20])                        # PK, (match_id,seq), client_uuid
             for w in h["wins"]:
                 row("hand_wins", 4 + 2 + 2 + 2 + 4 + 4 + 1 + 1,
-                    [w["level"], w["hand_tiles"]],
+                    [w["level"], w["hand_tiles"], w["situation_flags"]],
                     [6, 12])                       # PK, (level, base_points)
                 for y in w["yakus"]:
                     row("hand_yakus", 4 + 2 + 2, [y["yaku"]],

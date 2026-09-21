@@ -156,6 +156,7 @@ function makeValue(s: Scenario, isDealer: boolean, mode: 'ron' | 'tsumo'): HandV
       level: levelFor(han, fu),
       yakus: fakeYakus(s),
       handTiles: fakeHandTiles(s),
+      flags: (['riichi', 'ippatsu', 'haitei'] as const).filter(() => chance(0.3)).slice(),
       open: chance(0.4),
     };
   }
@@ -234,7 +235,9 @@ function toRows(state: MatchState, s: Scenario) {
       length: state.config.length,
       starting_points: state.config.startingPoints,
       uma_json: JSON.stringify(state.config.uma),
+      return_score: state.config.returnScore,
       status: state.status,
+      end_reason: state.endReason,
       started_at: state.startedAt,
       ended_at: state.endedAt,
       max_level: 'haneman',
@@ -269,6 +272,7 @@ function toRows(state: MatchState, s: Scenario) {
         is_manual: win.isManual ? 1 : 0,
         winner_open: win.winnerOpen === null ? null : (win.winnerOpen ? 1 : 0),
         hand_tiles: win.handTiles,
+        situation_flags: win.situationFlags === null ? null : win.situationFlags.join(','),
         yakus: win.yakus,
       })),
       riichi: row.riichiSeats,
