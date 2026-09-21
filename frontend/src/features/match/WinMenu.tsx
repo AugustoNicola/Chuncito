@@ -294,7 +294,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
 
         <div className="field">
           <span className="field__label">Han</span>
-          <div className="pills" role="group" aria-label="Han">
+          <div className="pills pills--fill" role="group" aria-label="Han">
             {HAN_STEPS.map((value) => (
               <button key={value} type="button"
                       className={`pill${han === value ? ' pill--on' : ''}`}
