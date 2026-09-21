@@ -247,10 +247,11 @@ changes once kita are added is priced off the engine's choice. Logged in
 
 ## Phase 3 — Backend and sync — NEXT
 
-**Start here.** Phases 1 and 2 are closed and need no revisiting. The client is
-complete and local-only: a match can be set up, tracked hand by hand, scored
-against the Prolog engine, reviewed and finished, with an IndexedDB mirror that
-survives a reload.
+**Start here.** Phases 1 and 2 are closed and need no revisiting, and so are
+the sanma and small-feature rounds above them (2026-09-21). The client is
+complete and local-only: a four- or three-player match can be set up, tracked
+hand by hand, scored against the Prolog engine, reviewed and finished, with an
+IndexedDB mirror that survives a reload.
 
 What is already done for you:
 
@@ -261,7 +262,14 @@ What is already done for you:
 - Every hand row carries a `clientUuid`, so the endpoint is idempotent on it
   without any further client work.
 - `DATA_MODEL.md` is current and measured; `npm run measure:storage` reruns the
-  sizing if the schema changes.
+  sizing if the schema changes. It includes the two columns this round added,
+  `matches.players` (3 | 4) and `matches.red_fives`, and the `kita:nn` section
+  of `hand_tiles`. A sanma match has three `match_players` rows and
+  three-entry `score_delta`s; the round trip is tested for it (`sanma.test.ts`).
+- IndexedDB mirrors written before those columns existed are upgraded on load
+  (`persistence.ts`: four players, red fives on). Anything that imports old
+  local matches into the server should go through `loadMatch`/`listArchived`
+  rather than reading the store raw.
 
 Order that works: schema and migration first (it is already specified), then the
 endpoint, then the queue. The queue is the only genuinely new client code —
@@ -299,7 +307,7 @@ everything it sends already exists.
 ## Picking this up cold
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
-was learned building Phases 1 and 2:
+was learned building Phases 1 and 2 and the sanma round:
 
 - **The Prolog engine fails silently.** Validate before querying; sort melds.
 - **Never ask twice for a fact the match already holds.** The tracker supplies
@@ -307,16 +315,22 @@ was learned building Phases 1 and 2:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 177 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 186 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 100 checks, including a four-player match played end to end
-  and a sanma match with a tile-scored kita hand. Several real
-  bugs this session were caught only there: a ron reaching the reducer with no
-  discarder, and a CSS specificity bug that made a change apply to nothing.
+  UI in Firefox — 110 checks, including a four-player match played end to end
+  and a sanma match with a tile-scored kita hand. Several real bugs were caught
+  only there: a ron reaching the reducer with no discarder, a CSS specificity
+  bug that made a change apply to nothing, and place badges clipped to "1S" on
+  the side seats. It also checks the table's **geometry** (no overflow,
+  clipping or overlap at 390px and 360px), so a layout change that looks fine
+  in one screenshot cannot quietly break another seat.
+- **The user tests on their phone over the LAN.** `npm run dev -- --host` and
+  hand them the `Network:` URL. Layout feedback comes from real use at the
+  table, so check screenshots of every seat, not just the bottom one.
 - Screenshots: `SHOT_DIR=/some/dir npm run test:browser`. The one-off probe
   scripts used during development created Firefox profiles under
   `~/snap/firefox/common/` and did **not** clean up; the committed smoke test
@@ -330,5 +344,10 @@ Still open, none of it blocking:
   real red dragon mark.
 - `frontend/tsconfig.tsbuildinfo` is tracked and churns on every commit; it
   wants a `.gitignore` line and a `git rm --cached`.
-- Upstream: `riichi` is still granted on an open hand. Guarded client-side and
-  reported; see `SCORER_GAPS.md`.
+- Upstream: `riichi` is still granted on an open hand, and there is no
+  nukidora input (kita han are added after the engine, which can misprice a
+  hand whose best reading changes once they are added). Both guarded or
+  worked around client-side and reported; see `SCORER_GAPS.md`.
+- Sanma defaults — 35,000 start, 40,000 target, uma +15/0/−15 — were chosen,
+  not confirmed as the group's house rules. Editable at setup either way.
+- At 360px the "Sanma · South match" title nearly touches the header buttons.

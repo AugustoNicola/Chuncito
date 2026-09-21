@@ -13,7 +13,7 @@ All from `frontend/`:
 
 | Command | What |
 |---|---|
-| `npm run dev` | Vite dev server |
+| `npm run dev` | Vite dev server (`-- --host` to reach it from a phone on the LAN) |
 | `npm test` | Contract + unit tests (vitest, Node swipl bundle) |
 | `npm run test:browser` | Boots the app in the system Firefox and asserts a real score |
 | `npm run build` | Typecheck + production build |
