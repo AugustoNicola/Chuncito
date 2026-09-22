@@ -96,6 +96,9 @@ try {
           matchId: mine[0][0], matchName: mine[0][1].rows.match.name, roundWind: 'este', roundNumber: 2,
           level: 'haneman', han: 6, fu: 30, pointsWon: 12000, handTiles: tiles.handTiles,
         } : null,
+        winValues: mine.length ? [{ level: 'sinNombre', basePoints: 240, count: 2 },
+                                  { level: 'mangan', basePoints: 2000, count: 1 },
+                                  { level: 'haneman', basePoints: 3000, count: 1 }] : [],
         yakus: mine.length ? [{ yaku: 'riichi', count: 3 }, { yaku: 'dora', count: 3 },
                               { yaku: 'tanyao', count: 2 }, { yaku: 'pinfu', count: 1 }] : [],
       });
@@ -1299,6 +1302,17 @@ try {
     (els) => els.map((e) => getComputedStyle(e).backgroundColor));
   check(JSON.stringify(placeSwatches) === JSON.stringify(['rgb(255, 210, 74)', 'rgb(211, 218, 229)', 'rgb(205, 140, 79)']),
         `places are gold, silver and bronze (got ${JSON.stringify(placeSwatches)})`);
+  const histo = await page.$$eval('.histogram__col', (els) => els.map((c) => ({
+    label: c.querySelector('.histogram__label').textContent,
+    count: c.querySelector('.histogram__count').textContent,
+    fill: c.querySelector('.histogram__bar') && getComputedStyle(c.querySelector('.histogram__bar')).backgroundColor,
+  })));
+  check(histo.length === 12, `the value histogram always has twelve bars (got ${histo.length})`);
+  const bar = (label) => histo.find((h) => h.label === label);
+  check(bar('1k')?.count === '2' && bar('1k')?.fill === 'rgb(74, 158, 255)'
+        && bar('Man')?.fill === 'rgb(78, 205, 138)' && bar('Hane')?.fill === 'rgb(180, 122, 232)'
+        && bar('Yaku')?.fill === null,
+        `bars are counted and coloured by limit (got ${JSON.stringify(histo.filter((h) => h.count))})`);
   await page.click('.profile__notyet summary');
   const notYet = await page.$$eval('.profile__notyetlist li', (els) => els.map((e) => e.textContent));
   check(notYet.length > 10 && !notYet.includes('Riichi') && !notYet.includes('Tanyao') && !notYet.includes('Dora'),

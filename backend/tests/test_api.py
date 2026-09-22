@@ -324,10 +324,13 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     assert b['yakus'] == [{'yaku': 'dora', 'count': 2}, {'yaku': 'pinfu', 'count': 2},
                           {'yaku': 'riichi', 'count': 2}]
 
+    # Both rons were mangan (base 2000); the 4000-point tsumo was someone else's.
+    assert b['winValues'] == [{'level': 'mangan', 'basePoints': 2000, 'count': 2}]
+
     a = unlocked.get(f"/api/players/{ana['slug']}/stats").json()
     assert a['placementCounts'] == [0, 0, 0, 1]
     assert (a['wins'], a['dealIns']) == (0, 1)
-    assert a['bestHand'] is None and a['yakus'] == []
+    assert a['bestHand'] is None and a['yakus'] == [] and a['winValues'] == []
 
     # Sanma is kept apart: nothing of the four-player match shows there.
     s = unlocked.get(f"/api/players/{beto['slug']}/stats", params={'players': 3}).json()

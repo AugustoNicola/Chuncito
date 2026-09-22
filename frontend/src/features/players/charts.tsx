@@ -12,7 +12,7 @@
  * their numbers in the legend, the line has the match list under it.
  */
 import { useState } from 'react';
-import type { PlacedMatch, Slice } from './profile';
+import type { PlacedMatch, Slice, ValueBin } from './profile';
 
 // ---------- donut ----------
 
@@ -199,5 +199,34 @@ export function Bars({ rows, limit }: {
         </button>
       )}
     </>
+  );
+}
+
+// ---------- histogram ----------
+
+/**
+ * Wins by value, one bar per bin, each in its limit's colour: blue below
+ * mangan, then the tiers' own green, purple, bronze, silver and gold. Bars are
+ * adjacent, so they keep the 2px surface gap; counts sit on the bars that have
+ * any, so nothing needs a hover to read.
+ */
+export function Histogram({ bins }: { bins: ValueBin[] }) {
+  const max = Math.max(1, ...bins.map((b) => b.count));
+  return (
+    <div className="histogram" role="img"
+         aria-label={bins.map((b) => `${b.title}: ${b.count}`).join(', ')}>
+      {bins.map((b) => (
+        <div key={b.key} className="histogram__col" title={`${b.title}: ${b.count}`}>
+          <span className="histogram__count">{b.count || ''}</span>
+          <span className="histogram__track">
+            {b.count > 0 && (
+              <span className="histogram__bar" data-tier={b.tier}
+                    style={{ height: `${(100 * b.count) / max}%` }} />
+            )}
+          </span>
+          <span className="histogram__label">{b.label}</span>
+        </div>
+      ))}
+    </div>
   );
 }

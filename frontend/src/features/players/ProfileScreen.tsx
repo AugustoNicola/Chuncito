@@ -19,10 +19,10 @@ import type { Fetched } from '../history/history';
 import { matchDate } from '../history/MatchList';
 import { PinForm } from '../match/SyncPanel';
 import { type Round, roundLabel } from '../match/seats';
-import { Bars, Donut, PlacementLine } from './charts';
+import { Bars, Donut, Histogram, PlacementLine } from './charts';
 import {
   type PlayerStats, averagePlacement, fetchStats, percent, placementSlices, winMethodSlices,
-  yakuNotYet, yakuRows,
+  valueBins, yakuNotYet, yakuRows,
 } from './profile';
 
 const PLACE_COLOR = (key: string) => `var(--viz-place-${key.slice(1)})`;
@@ -157,6 +157,16 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
           : <Donut slices={winMethodSlices(stats.winMethods)} colorOf={(k) => METHOD_COLOR[k]!}
                    caption="wins" unit={(n) => `${n} win${n === 1 ? '' : 's'}`} />}
       </section>
+
+      {stats.wins > 0 && (
+        <section className="profile__section">
+          <h2 className="home__heading">Hand values</h2>
+          <Histogram bins={valueBins(stats.winValues)} />
+          <p className="field__hint">
+            Each win priced as a non-dealer ron, so a dealer's hand or honba does not move it.
+          </p>
+        </section>
+      )}
 
       <section className="profile__section">
         <h2 className="home__heading">Yaku won with</h2>

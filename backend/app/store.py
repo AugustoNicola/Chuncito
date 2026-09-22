@@ -31,7 +31,7 @@ from sqlalchemy import Connection, delete, exists, func, insert, or_, select
 from . import models as m
 from .schemas import (
     BestHand, MatchRows, MatchSummary, PlacedMatch, Player, PlayerOut, PlayerStats, WinMethods,
-    YakuCount,
+    WinValue, YakuCount,
 )
 
 
@@ -473,6 +473,13 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         .group_by(m.hand_yakus.c.yaku)
         .order_by(func.count().desc(), m.hand_yakus.c.yaku)).all()
 
+    # Grouped rather than listed: a histogram only needs how many of each.
+    values = conn.execute(
+        select(w.level, w.base_points, func.count().label('n'))
+        .select_from(my_wins).where(won)
+        .group_by(w.level, w.base_points)
+        .order_by(w.base_points.nulls_first(), w.level)).all()
+
     return PlayerStats(
         player=_player_out(who), players=players,
         matches_four=kinds.get(4, 0), matches_sanma=kinds.get(3, 0),
@@ -490,4 +497,5 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
             round_number=best.round_number, level=best.level, han=best.han, fu=best.fu,
             points_won=best.points_won, hand_tiles=best.hand_tiles),
         yakus=[YakuCount(yaku=y.yaku, count=y.n) for y in yakus],
+        win_values=[WinValue(level=v.level, base_points=v.base_points, count=v.n) for v in values],
     )

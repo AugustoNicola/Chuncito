@@ -38,6 +38,8 @@ export interface PlayerStats {
   winMethods: { riichi: number; dama: number; open: number; unknown: number };
   bestHand: BestHand | null;
   yakus: { yaku: string; count: number }[];
+  /** Wins grouped by level and base points, for the value histogram. */
+  winValues: { level: string | null; basePoints: number | null; count: number }[];
 }
 
 export const fetchStats = async (slug: string, players: 3 | 4): Promise<Fetched<PlayerStats>> =>
@@ -88,4 +90,60 @@ export function yakuNotYet(yakus: PlayerStats['yakus'], players: 3 | 4): { atom:
   const won = new Set(yakus.map((y) => y.yaku));
   return YAKU_CHOICES.filter((y) => !won.has(y.atom)
     && !(players === 3 && IMPOSSIBLE_IN_SANMA.has(y.atom)));
+}
+
+export interface ValueBin {
+  key: string;
+  /** Short, for under a narrow bar. */
+  label: string;
+  /** Long, for the tooltip and screen readers. */
+  title: string;
+  /** The limit tier whose colour it wears (`levelTier`'s names). */
+  tier: string;
+  count: number;
+}
+
+const LIMIT_BINS: readonly { key: string; label: string; title: string; tier: string }[] = [
+  { key: 'mangan', label: 'Man', title: 'Mangan', tier: 'mangan' },
+  { key: 'haneman', label: 'Hane', title: 'Haneman', tier: 'haneman' },
+  { key: 'baiman', label: 'Bai', title: 'Baiman', tier: 'baiman' },
+  { key: 'sanbaiman', label: 'San', title: 'Sanbaiman', tier: 'sanbaiman' },
+  { key: 'yakuman', label: 'Yaku', title: 'Yakuman (counted or not, and any multiple)', tier: 'yakuman' },
+];
+const LIMIT_OF: Record<string, string> = {
+  mangan: 'mangan', haneman: 'haneman', baiman: 'baiman', sanbaiman: 'sanbaiman',
+};
+
+/** A below-mangan hand's value as a non-dealer ron: base x 4, rounded up to 100. */
+export const ronValue = (base: number): number => Math.ceil((base * 4) / 100) * 100;
+
+/**
+ * The histogram's bars, always all twelve so two profiles compare at a glance:
+ * below mangan in 1,000-point bins (1,000-1,900 up to 7,000-7,700), then one
+ * bar per limit. Each win is priced as a **non-dealer ron** -- the same hand
+ * pays more to a dealer or with honba, and that is the table's business, not
+ * the hand's. A win with no base recorded is left out.
+ */
+export function valueBins(values: PlayerStats['winValues']): ValueBin[] {
+  const bins: ValueBin[] = [
+    ...Array.from({ length: 7 }, (_, i) => ({
+      key: `k${i + 1}`, label: `${i + 1}k`,
+      title: `${(i + 1).toLocaleString()},000–${i === 6 ? '7,700' : `${i + 1},900`}`,
+      tier: 'none', count: 0,
+    })),
+    ...LIMIT_BINS.map((b) => ({ ...b, count: 0 })),
+  ];
+  const at = (key: string) => bins.find((b) => b.key === key)!;
+  for (const v of values) {
+    const level = v.level ?? 'sinNombre';
+    if (level === 'sinNombre') {
+      if (v.basePoints === null) continue;
+      const k = Math.min(7, Math.max(1, Math.floor(ronValue(v.basePoints) / 1000)));
+      at(`k${k}`).count += v.count;
+    } else {
+      // Kazoe and every multiple of yakuman pay at least a yakuman.
+      at(LIMIT_OF[level] ?? 'yakuman').count += v.count;
+    }
+  }
+  return bins;
 }

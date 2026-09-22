@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  averagePlacement, percent, placementSlices, winMethodSlices, yakuNotYet, yakuRows,
+  averagePlacement, percent, placementSlices, ronValue, valueBins, winMethodSlices, yakuNotYet,
+  yakuRows,
 } from './profile';
 
 describe('profile arithmetic', () => {
@@ -37,5 +38,32 @@ describe('profile arithmetic', () => {
     expect(four).toContain('sanshokuDoujun');
     expect(four).not.toContain('dora');
     expect(yakuNotYet([], 3).map((y) => y.atom)).not.toContain('sanshokuDoujun');
+  });
+});
+
+describe('the hand value histogram', () => {
+  const count = (bins: ReturnType<typeof valueBins>) =>
+    Object.fromEntries(bins.filter((b) => b.count).map((b) => [b.key, b.count]));
+
+  it('prices a hand as a non-dealer ron', () => {
+    expect(ronValue(240)).toBe(1000);    // 1 han 30 fu
+    expect(ronValue(1920)).toBe(7700);   // 4 han 30 fu
+  });
+
+  it('bins below mangan by the thousand, and every limit on its own', () => {
+    expect(count(valueBins([
+      { level: 'sinNombre', basePoints: 240, count: 3 },   // 1,000
+      { level: 'sinNombre', basePoints: 480, count: 1 },   // 2,000
+      { level: 'sinNombre', basePoints: 1920, count: 1 },  // 7,700
+      { level: 'mangan', basePoints: 2000, count: 2 },
+      { level: 'kazoeYakuman', basePoints: 8000, count: 1 },
+      { level: 'dobleYakuman', basePoints: 16000, count: 1 },
+    ]))).toEqual({ k1: 3, k2: 1, k7: 1, mangan: 2, yakuman: 2 });
+  });
+
+  it('always has all twelve bars, and skips a win with no base', () => {
+    const bins = valueBins([{ level: null, basePoints: null, count: 4 }]);
+    expect(bins).toHaveLength(12);
+    expect(bins.every((b) => b.count === 0)).toBe(true);
   });
 });

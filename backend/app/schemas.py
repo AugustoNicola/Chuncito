@@ -247,6 +247,13 @@ class BestHand(Wire):
     hand_tiles: str | None
 
 
+class WinValue(Wire):
+    """How many wins had this level and base -- the histogram's raw counts."""
+    level: str | None
+    base_points: int | None
+    count: int
+
+
 class YakuCount(Wire):
     yaku: str
     count: int
@@ -275,3 +282,4 @@ class PlayerStats(Wire):
     win_methods: WinMethods
     best_hand: BestHand | None
     yakus: list[YakuCount]
+    win_values: list[WinValue]
