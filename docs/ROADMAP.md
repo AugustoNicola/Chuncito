@@ -450,10 +450,25 @@ their stats endpoints, then the desktop layout.
       assert the side-by-side geometry at 1280px, the table's width there, and
       no sideways scroll at 1280px and 360px.
 
-## Phase 5 — Polish, deploy, harden
+## Phase 5 — Polish, deploy, harden — NEXT
 
-- [ ] Heroku deploy, PWA install, service-worker caching of the wasm assets
+- [ ] **Heroku deploy.** Already in place: FastAPI serves `frontend/dist` with
+      an `index.html` fallback (`CHUNCITO_FRONTEND_DIST`, `test_frontend.py`),
+      so one dyno serves app and API on one origin, as the PIN cookie needs.
+      Still to do: a build that runs `npm run build` and installs
+      `backend/requirements.txt` (Node + Python buildpacks, or a Procfile with
+      a release phase), `CHUNCITO_TARGET=main`, `CHUNCITO_PIN`,
+      `CHUNCITO_SECRET` (set, or sessions die on every restart),
+      `CHUNCITO_SECURE_COOKIES=true`. **`main` has never been migrated**: the
+      first deploy needs `make db-migrate TARGET=main` — ask the user first,
+      it is the real branch. `main` is empty, so no backup is needed for that
+      one; from then on it is (see Phase 3's backups item).
+- [ ] PWA install, service-worker caching of the wasm assets (4.1 MB)
 - [ ] Limit-hand theming pass, empty/error states
+- [ ] **Home screen verdict.** The card home (`dc6b7ce`, `e195bd3`) is
+      experimental; the user may still scrap it — `git revert e195bd3 dc6b7ce`
+      takes it back whole. Open question from its last round: the three pins
+      are smaller than the other cards' glyphs (they share one card's width).
 
 
 ## Picking this up cold
@@ -504,7 +519,31 @@ was learned building Phases 1 to 3 and the sanma round:
   `~/snap/firefox/common/` and did **not** clean up; the committed smoke test
   does. If you write another probe, delete its profile.
 
+- **Routes** (Phase 4): `App.tsx` holds the match and the `<Routes>`; the
+  router is a *data* router because only that can block navigation, and
+  `MatchScreen` blocks every navigation but its own exits. Anything new
+  reachable from inside a match goes through one of those exits.
+- **History and stats read the server only**, and are filtered there; the
+  list's filters and a profile's four/sanma choice live in the URL.
+- **Charts are hand-rolled SVG/HTML** (`features/players/charts.tsx`), with
+  their colours as `--viz-*` roles in `theme.css`. The user chose the app's
+  own palette for them; the validator notes are in that CSS comment. The
+  dataviz validator ships as ESM for Node 20: under Node 18 copy it into a
+  directory with a `{"type":"module"}` package.json to run it.
+- A test that opens `/` while a match is in progress lands on the table —
+  that is the restore working, not a bug. It tripped this session's tests
+  twice.
+
 Still open, none of it blocking:
+
+- **`npm audit`: two moderate advisories, both blocked on the Node 18 pin.**
+  react-router 6 (an open redirect through a backslash in a `<Link>` or
+  `navigate` target — every path here is a constant or `encodeURIComponent`d,
+  so not reachable; and one for SSR, which is not used): fixed in v7, which
+  needs Node 20. esbuild via Vite 5 (a page in the same browser can read the
+  *dev* server's responses; dev only, but `--host` puts it on the LAN): fixed
+  in a Vite past the pin. Moving to Node 20 would clear both; it is the
+  user's call.
 
 - Agari-yame; landscape/tablet layout for the table; a "who am I" seat so the
   phone's owner sits at the bottom rather than seat 1.
