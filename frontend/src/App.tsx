@@ -15,6 +15,8 @@ import { SetupScreen } from './features/match/SetupScreen';
 import { createMatch, type MatchConfig, type MatchState } from './features/match/matchState';
 import { clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
+import { SyncPanel } from './features/match/SyncPanel';
+import { startSync, sync } from './features/match/syncClient';
 
 type Screen = 'home' | 'setup' | 'match' | 'calculator';
 
@@ -22,6 +24,8 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [match, setMatch] = useState<MatchState | null>(null);
   const [restoring, setRestoring] = useState(true);
+
+  useEffect(() => { void startSync(); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +61,7 @@ export function App() {
         onLeave={() => setScreen('home')}
         onDiscard={() => {
           void clearMatch();
+          sync.discard(match.id);
           setMatch(null);
           setScreen('home');
         }}
@@ -92,7 +97,9 @@ export function App() {
                   if (resumable) {
                     // Starting a new match discards the mirror, so the old one
                     // cannot come back on the next load and confuse the table.
+                    // It is thrown away, so it comes off the server as well.
                     void clearMatch();
+                    sync.discard(resumable.id);
                     setMatch(null);
                   }
                   setScreen('setup');
@@ -105,6 +112,8 @@ export function App() {
         </button>
 
         {restoring && <p className="home__hint">Looking for a match in progress…</p>}
+
+        <SyncPanel />
       </div>
     </div>
   );

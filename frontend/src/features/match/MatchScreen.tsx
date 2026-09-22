@@ -26,6 +26,8 @@ import { ManualControls } from './ManualControls';
 import { EndScreen } from './EndScreen';
 import { ConfirmChange } from './ConfirmChange';
 import { archiveMatch, clearMatch, saveMatch } from './persistence';
+import { SyncDot, SyncPanel } from './SyncPanel';
+import { queueMatch } from './syncClient';
 import type { WinMode } from '../../scorer/types';
 
 type Menu =
@@ -63,10 +65,15 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
 }) {
   const [menu, setMenu] = useState<Menu>({ at: 'table' });
   const [pending, setPending] = useState<Pending | null>(null);
+  const [showSync, setShowSync] = useState(false);
 
-  // The mirror follows the state rather than each action, so no caller can
-  // forget to save -- including the reducer paths that end the match.
-  useEffect(() => { void saveMatch(match); }, [match]);
+  // The mirror and the server both follow the state rather than each action, so
+  // no caller can forget to save -- including the reducer paths that end the
+  // match. The server copy is queued, never awaited: the table does not wait.
+  useEffect(() => {
+    void saveMatch(match);
+    queueMatch(match);
+  }, [match]);
 
   const nameOf = (seat: Seat) => match.config.seats[seat]!.name;
 
@@ -116,6 +123,9 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
         onSave={async (name) => {
           const named = setMatchName(match, name);
           onChange(named);
+          // Queued here as well as by the effect, which will not run: this
+          // screen is gone by the time the state change would reach it.
+          queueMatch(named);
           await archiveMatch(named);
           await clearMatch();
           onFinished();
@@ -194,12 +204,19 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
             <h1 className="app__title app__title--match">
               {match.config.players === 3 && 'Sanma · '}
               {match.config.length === 'east' ? 'East match' : 'South match'}
+              <SyncDot onClick={() => setShowSync((v) => !v)} />
             </h1>
             <button type="button" className="btn btn--quiet"
                     onClick={() => setMenu({ at: 'timeline' })}>
               Timeline
             </button>
           </header>
+
+          {showSync && (
+            <div className="app__syncpanel">
+              <SyncPanel />
+            </div>
+          )}
 
           <TableView
             state={match}

@@ -1,0 +1,128 @@
+{
+  "match": {
+    "id": "fixture-3p",
+    "name": "",
+    "players": 3,
+    "redFives": false,
+    "length": "east",
+    "startingPoints": 35000,
+    "returnScore": 40000,
+    "umaJson": "[15,0,-15]",
+    "status": "in_progress",
+    "endReason": null,
+    "startedAt": "2026-09-22T20:15:30.250Z",
+    "endedAt": null,
+    "maxLevel": "mangan",
+    "isTest": false
+  },
+  "matchPlayers": [
+    {
+      "seat": 0,
+      "playerId": null,
+      "guestName": "Ana",
+      "finalScore": 40000,
+      "placement": null,
+      "umaPoints": null
+    },
+    {
+      "seat": 1,
+      "playerId": null,
+      "guestName": "Beto",
+      "finalScore": 32500,
+      "placement": null,
+      "umaPoints": null
+    },
+    {
+      "seat": 2,
+      "playerId": null,
+      "guestName": "Cami",
+      "finalScore": 32500,
+      "placement": null,
+      "umaPoints": null
+    }
+  ],
+  "hands": [
+    {
+      "clientUuid": "fixture-3p-hand-1",
+      "seq": 1,
+      "roundWind": "este",
+      "roundNumber": 1,
+      "honba": 0,
+      "riichiPotBefore": 1,
+      "outcome": "tsumo",
+      "abortiveReason": null,
+      "dealInSeat": null,
+      "scoreDelta": "8000,-4000,-4000"
+    },
+    {
+      "clientUuid": "fixture-3p-hand-2",
+      "seq": 2,
+      "roundWind": "este",
+      "roundNumber": 1,
+      "honba": 1,
+      "riichiPotBefore": 0,
+      "outcome": "exhaustive_draw",
+      "abortiveReason": null,
+      "dealInSeat": null,
+      "scoreDelta": "-3000,1500,1500"
+    }
+  ],
+  "handWins": [
+    {
+      "handSeq": 1,
+      "winnerSeat": 0,
+      "han": 5,
+      "fu": 30,
+      "level": "mangan",
+      "basePoints": 2000,
+      "pointsWon": 8000,
+      "isManual": false,
+      "winnerOpen": false,
+      "handTiles": "p2p3p4p5p6p7s2s3s4s6s7s8s5s5|kita:nn|dora:m1",
+      "situationFlags": "riichi"
+    }
+  ],
+  "handRiichi": [
+    {
+      "handSeq": 1,
+      "seat": 0
+    }
+  ],
+  "handTenpai": [
+    {
+      "handSeq": 2,
+      "seat": 1
+    },
+    {
+      "handSeq": 2,
+      "seat": 2
+    }
+  ],
+  "handYakus": [
+    {
+      "handSeq": 1,
+      "winnerSeat": 0,
+      "yaku": "riichi",
+      "han": 1
+    },
+    {
+      "handSeq": 1,
+      "winnerSeat": 0,
+      "yaku": "menzenTsumo",
+      "han": 1
+    },
+    {
+      "handSeq": 1,
+      "winnerSeat": 0,
+      "yaku": "dora",
+      "han": 1
+    },
+    {
+      "handSeq": 1,
+      "winnerSeat": 0,
+      "yaku": "nukiDora",
+      "han": 2
+    }
+  ],
+  "adjustments": []
+}

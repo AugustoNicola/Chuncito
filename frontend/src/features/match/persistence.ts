@@ -13,11 +13,13 @@
  * blocked site data). Losing the mirror must never break the tracker: the
  * authority is the in-memory state, and from Phase 3 the server.
  */
-import type { MatchState } from './matchState';
+import { type MatchState, uuid } from './matchState';
 
 const DB_NAME = 'chuncito';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'matches';
+/** What the server has acknowledged and what is still to send; see `sync.ts`. */
+export const SYNC_STORE = 'sync';
 const CURRENT = 'current';
 
 /** Names typed at setup, so repeat players are one tap next time. */
@@ -33,6 +35,7 @@ function openDb(): Promise<IDBDatabase | null> {
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+        if (!db.objectStoreNames.contains(SYNC_STORE)) db.createObjectStore(SYNC_STORE);
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => resolve(null);
@@ -43,16 +46,17 @@ function openDb(): Promise<IDBDatabase | null> {
   }));
 }
 
-async function withStore<T>(
+export async function withStore<T>(
   mode: IDBTransactionMode,
   run: (store: IDBObjectStore) => IDBRequest<T>,
+  storeName: string = STORE,
 ): Promise<T | null> {
   const db = await openDb();
   if (!db) return null;
   return new Promise((resolve) => {
     try {
-      const tx = db.transaction(STORE, mode);
-      const request = run(tx.objectStore(STORE));
+      const tx = db.transaction(storeName, mode);
+      const request = run(tx.objectStore(storeName));
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => resolve(null);
       tx.onabort = () => resolve(null);
@@ -70,28 +74,41 @@ export const saveMatch = (state: MatchState): Promise<unknown> =>
   withStore('readwrite', (store) => store.put(state, CURRENT));
 
 /**
+ * Brings a mirror written by an older version up to date.
+ *
  * Mirrors written before sanma existed have no player count, and ones written
  * before red fives were optional have no setting for them; they were all
- * four-player matches with red fives. Filled in on the way out so nothing
- * downstream has to guess.
+ * four-player matches with red fives. Ones written before the server existed
+ * have no id. Filled in on the way out so nothing downstream has to guess --
+ * and the caller writes an upgraded mirror back, because an id made up afresh
+ * on every load would upload the same match under a new name each time.
  */
-function upgrade(state: MatchState): MatchState {
+function upgrade(state: MatchState): { state: MatchState; changed: boolean } {
   const { players = 4, redFives = true } = state.config as Partial<MatchState['config']>;
-  if (state.config.players === players && state.config.redFives === redFives) return state;
-  return { ...state, config: { ...state.config, players, redFives } };
+  const id = (state as Partial<MatchState>).id ?? uuid();
+  if (state.config.players === players && state.config.redFives === redFives
+      && state.id === id) {
+    return { state, changed: false };
+  }
+  return { state: { ...state, id, config: { ...state.config, players, redFives } }, changed: true };
 }
 
 export const loadMatch = async (): Promise<MatchState | null> => {
   const saved = await withStore<MatchState>(
     'readonly', (store) => store.get(CURRENT) as IDBRequest<MatchState>);
-  return saved ? upgrade(saved) : null;
+  if (!saved) return null;
+  const { state, changed } = upgrade(saved);
+  if (changed) await saveMatch(state);
+  return state;
 };
 
 export const clearMatch = (): Promise<unknown> =>
   withStore('readwrite', (store) => store.delete(CURRENT));
 
 /**
- * Finished matches, kept locally until Phase 3 gives them somewhere to go.
+ * Finished matches, kept on the phone as well as on the server. `sync.ts` reads
+ * them at start-up, which is how matches finished before the server existed get
+ * uploaded -- through `upgrade`, like everything else read from here.
  *
  * Keyed by start time so the list is chronological, and so replaying a save
  * cannot collide with an earlier one.
@@ -104,14 +121,24 @@ export async function listArchived(): Promise<MatchState[]> {
   if (!db) return [];
   return new Promise((resolve) => {
     try {
-      const tx = db.transaction(STORE, 'readonly');
-      const request = tx.objectStore(STORE).getAll();
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const request = store.openCursor();
+      const all: MatchState[] = [];
       request.onsuccess = () => {
-        const all = (request.result as MatchState[])
-          .filter((m) => m?.status === 'finished')
-          .map(upgrade);
-        all.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-        resolve(all);
+        const cursor = request.result;
+        if (!cursor) {
+          all.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+          resolve(all);
+          return;
+        }
+        const saved = cursor.value as MatchState | undefined;
+        if (cursor.key !== CURRENT && saved?.status === 'finished') {
+          const { state, changed } = upgrade(saved);
+          if (changed) cursor.update(state);
+          all.push(state);
+        }
+        cursor.continue();
       };
       request.onerror = () => resolve([]);
     } catch {

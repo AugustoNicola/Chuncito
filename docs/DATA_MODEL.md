@@ -6,7 +6,10 @@ rather than redesign.
 
 As of Phase 2 it does: `HandRow` in `frontend/src/features/match/matchState.ts`
 is this `hands` row, with `riichiSeats` / `tenpaiSeats` / `yakus` as the child
-tables. The vendor is still undecided; nothing here is engine-specific.
+tables. As of Phase 3 it is built: Neon Postgres 18, the tables defined in
+`backend/app/models.py` and created by migration `0001`. The shorthand below is
+the design; where the implementation departs from it, it says so under
+**Implementation** at the end of this section.
 
 See `ARCHITECTURE.md` for why there is no event log.
 
@@ -47,6 +50,21 @@ hand_tenpai(hand_id, seat)      PK(hand_id, seat)   -- exhaustive draws
 hand_yakus(hand_id, winner_seat, yaku, han)  PK(hand_id, winner_seat, yaku)
 adjustments(id, match_id, after_seq, seat, delta, note)
 ```
+
+**Implementation** (`backend/app/models.py`), where it differs from the above:
+
+- Enums are `text` with `CHECK` constraints rather than Postgres `ENUM`s, which
+  cannot gain a value inside a transaction.
+- `score_delta` is `integer[]`; the API still speaks the comma string.
+- `level` and `max_level` keep the engine's atom as text, with a generated
+  `level_rank` / `max_level_rank` smallint beside them for range filters
+  (`sinNombre` 0 … `kazoeYakuman` 5, `yakuman` 6, `dobleYakuman` 7,
+  `tripleYakuman` 8, anything else 6).
+- `hand_yakus.position` keeps the engine's yaku order, which the display uses.
+- `adjustments.client_uuid` (unique), mirroring `hands`.
+- `matches.revision`, `content_hash`, `updated_at`: sync bookkeeping, not match
+  data. See `backend/app/store.py`.
+- Ids (`matches.id`, `client_uuid`s) are text: they are made on the phone.
 
 Notes:
 
@@ -171,4 +189,4 @@ Two things worth knowing from this:
 So the vendor question stays about **backup retention and durability**, not
 capacity. A group playing weekly gets a few hundred matches a year; 5 MB is
 several years even on the heavy figures, and the typical case is closer to a
-decade. See the plan's storage table; Neon is the recommendation.
+decade. Neon's free plan allows 0.5 GB, a hundred times that.

@@ -7,91 +7,14 @@
  * difference rather than as an oversight nobody noticed until Phase 3.
  */
 import { describe, expect, it } from 'vitest';
-import {
-  type HandInput, type MatchConfig, type MatchState,
-  adjustScores, createMatch, endMatchManually, recordHand, setMatchName, toggleRiichi,
-} from './matchState';
-import { basePoints, levelFor, paymentFor, placements } from './scoring';
+import { createMatch, recordHand } from './matchState';
+import { placements } from './scoring';
 import { fromRows, toRows } from './rows';
-import type { Seat } from './seats';
-
-const config: MatchConfig = {
-  players: 4,
-  redFives: true,
-  length: 'south',
-  startingPoints: 25000,
-  returnScore: 30000,
-  uma: [20, 10, -10, -20],
-  seats: [
-    { playerId: null, name: 'Ana' }, { playerId: null, name: 'Beto' },
-    { playerId: null, name: 'Cami' }, { playerId: null, name: 'Dani' },
-  ],
-};
-
-const manual = (winner: Seat, dealer: Seat, mode: 'ron' | 'tsumo', han = 3, fu = 30) => ({
-  winner,
-  value: {
-    source: 'manual' as const,
-    payment: paymentFor(basePoints(han, fu), winner === dealer, mode),
-    han, fu, level: levelFor(han, fu), basePoints: basePoints(han, fu), open: false,
-  },
-});
-
-const scored = (winner: Seat, dealer: Seat) => ({
-  winner,
-  value: {
-    source: 'scored' as const,
-    payment: paymentFor(2000, winner === dealer, 'ron'),
-    han: 5, fu: 40, level: 'mangan' as const,
-    yakus: [{ yaku: 'riichi', han: 1 }, { yaku: 'pinfu', han: 1 }, { yaku: 'dora', han: 3 }],
-    handTiles: 'm2m2m3m4p3p4p5s3s4s5m6m7m8m5|chii:s3s4s5R|dora:m9|ura:s1',
-    flags: ['riichi' as const, 'ippatsu' as const],
-    open: false,
-  },
-});
-
-/** A match with one of everything the tracker can record. */
-function playEverything(): MatchState {
-  let state = createMatch(config, new Date('2026-09-21T10:00:00.000Z'));
-  const play = (input: HandInput) => { state = recordHand(state, input).state; };
-
-  // A riichi, then a scored ron that collects the stick.
-  state = toggleRiichi(state, 1);
-  play({ kind: 'win', mode: 'ron', dealIn: 2, wins: [scored(1, 0)] });
-
-  // A tsumo.
-  play({ kind: 'win', mode: 'tsumo', dealIn: null, wins: [manual(2, 1, 'tsumo')] });
-
-  // An exhaustive draw with tenpai players.
-  state = toggleRiichi(state, 3);
-  play({ kind: 'exhaustiveDraw', tenpai: [0, 3] });
-
-  // An abortive draw, which carries a reason.
-  play({ kind: 'abortiveDraw', reason: 'four_kans' });
-
-  // A double ron: two winners, one discarder, one of each entry route.
-  play({
-    kind: 'win', mode: 'ron', dealIn: 0,
-    wins: [scored(1, 2), manual(3, 2, 'ron', 2, 40)],
-  });
-
-  // A nagashi mangan.
-  play({ kind: 'nagashiMangan', winner: 2, tenpai: [2] });
-
-  state = adjustScores(state, state.scores.map((s, i) => (i === 0 ? s - 8000 : s + 2000)) as
-    [number, number, number, number], 'chombo, agreed at the table');
-  state = endMatchManually(state, new Date('2026-09-21T11:30:00.000Z'));
-  return setMatchName(state, 'the one with the double ron');
-}
+import { fourPlayerConfig as config, manual, playEverything } from './testMatches';
 
 describe('a match survives the database', () => {
   const original = playEverything();
-  const standings = placements(original.scores, original.config.uma);
-  const placementOf = (seat: Seat) => {
-    const p = standings.find((x) => x.seat === seat)!;
-    return { placement: p.place, umaPoints: p.umaPoints };
-  };
-  const rebuilt = fromRows(toRows(original, placementOf));
+  const rebuilt = fromRows(toRows(original));
 
   it('records one of every outcome, so the check means something', () => {
     expect(new Set(original.hands.map((h) => h.outcome))).toEqual(new Set([
@@ -174,10 +97,34 @@ describe('a match survives the database', () => {
     expect(fromRows(toRows(state))).toEqual(state);
   });
 
-  it('keeps placements and uma on the seats', () => {
-    const rows = toRows(original, placementOf);
-    const first = rows.matchPlayers.find((p) => p.placement === 1)!;
-    expect(first.umaPoints).toBe(20);
-    expect(first.finalScore).toBe(original.scores[first.seat]);
+  it('keeps placements and uma on the seats, as the end screen gives them', () => {
+    const rows = toRows(original);
+    for (const p of placements(original.scores, original.config.uma)) {
+      expect(rows.matchPlayers[p.seat]).toMatchObject({
+        placement: p.place, umaPoints: p.umaPoints, finalScore: p.score,
+      });
+    }
+  });
+
+  it('leaves placements empty while the match is still being played', () => {
+    const state = recordHand(createMatch(config), {
+      kind: 'win', mode: 'ron', dealIn: 2, wins: [manual(1, 0, 'ron')],
+    }).state;
+    expect(toRows(state).matchPlayers.every((p) => p.placement === null)).toBe(true);
+  });
+
+  it('records the best level reached, for the "mangan or better" filter', () => {
+    expect(toRows(original).match.maxLevel).toBe('mangan');
+    expect(toRows(createMatch(config)).match.maxLevel).toBeNull();
+  });
+
+  it('keeps the match id, which the server stores it under', () => {
+    expect(rebuilt.id).toBe(original.id);
+    expect(toRows(original).match.id).toBe(original.id);
+  });
+
+  it('stores a double ron in seat order, however it was entered', () => {
+    const double = original.hands.find((h) => h.wins.length > 1)!;
+    expect(double.wins.map((w) => w.winnerSeat)).toEqual([1, 3]);
   });
 });

@@ -24,6 +24,11 @@ From the repo root:
 | Command | What |
 |---|---|
 | `./scorer/sync-prolog.sh` | Re-vendor the Prolog; refuses if upstream tests fail |
+| `make backend-setup` | Python venv in `backend/.venv` |
+| `make backend-dev` | API on `:8000` (Vite proxies `/api` to it); needs `CHUNCITO_PIN` |
+| `make backend-test` | pytest against a throwaway schema on the Neon **dev** branch |
+| `make db-backup` | `pg_dump` into `backups/` (needs `postgresql-client-18`) |
+| `make db-migrate` | `alembic upgrade head`. Add `TARGET=main` for real data |
 
 ## Layout
 
@@ -39,6 +44,11 @@ frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
                              table/menu/timeline components
 frontend/src/ui/             Tile, theme.css
 frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
+backend/app/                 FastAPI: settings (dev/main target), db, models (the
+                             tables), schemas (the wire format = MatchRows), store
+                             (save/load a whole match), auth (the PIN), main (routes)
+backend/migrations/          Alembic; 0001 is the whole schema
+backend/tests/               pytest on real Postgres; fixtures/ written by wire.test.ts
 docs/                        contract, gaps, architecture, data model, roadmap
 ```
 
@@ -95,9 +105,28 @@ one, a ron one to three.
 
 **`rows.ts` is the only mapping to the database.** `toRows`/`fromRows` convert a
 match to the tables in `DATA_MODEL.md` and back, and `rows.test.ts` proves the
-round trip. Phase 3 POSTs `toRows(state)`; it does not build a second
+round trip. The sync PUTs `toRows(state)` as it is, and the backend's
+`schemas.py` mirrors `MatchRows` field for field; there is no second
 serialisation. If a field is added to `MatchState`, the round-trip test is what
-fails, and that is the point.
+fails; if it is added to `rows.ts`, `wire.test.ts` fails until the backend
+fixtures are regenerated (`UPDATE_FIXTURES=1 npm test -- wire`), and then the
+backend tests fail until the server stores it. That chain is the point.
+
+**The order of rows is part of the contract.** The server hands rows back in a
+fixed order (winners by seat, yaku by `position`, adjustments as inserted), and
+the backend tests require the round trip to be exact. So the reducer stores
+lists whose order carries no meaning — a double ron's winners, tenpai seats —
+in seat order.
+
+**The dev branch unless told otherwise.** `.env` holds URLs for both Neon
+branches; `backend/app/settings.py` uses `dev` unless `CHUNCITO_TARGET=main`.
+Never run anything against `main` without the user asking; the tests refuse to.
+Backups are deferred for now (`main` is empty); once it holds real matches,
+`make db-backup` before any migration on it.
+
+**The tracker never waits on the server.** Saves are queued (`sync.ts`) and
+the table plays from local state; a missing, locked or failing server must
+only ever show up in the status dot and the home-screen panel.
 
 **A hand row carries the round state it was played under.** That is what makes
 undo exact without an event log; see `docs/ARCHITECTURE.md`. Riichi sticks move

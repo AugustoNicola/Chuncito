@@ -131,6 +131,11 @@ export interface Adjustment {
 export type EndReason = 'final_round' | 'bust' | 'manual';
 
 export interface MatchState {
+  /**
+   * Made on the phone when the match starts, so it can be saved before the
+   * server has ever heard of it; the server stores it as given.
+   */
+  id: string;
   config: MatchConfig;
   round: Round;
   honba: number;
@@ -193,8 +198,24 @@ export function winnersOf(input: HandInput): Seat[] {
   return [];
 }
 
-const uuid = (): string =>
-  (globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2)}-${Date.now()}`);
+/**
+ * A version-4 UUID. `randomUUID` exists only in a secure context, and the phone
+ * reaches the dev server over plain HTTP on the LAN, so there is a fallback that
+ * builds the same thing from `getRandomValues`, which is available everywhere.
+ * (Matches recorded before this carry `id-...` strings; the server takes those
+ * too, since it stores ids as text.)
+ */
+export function uuid(): string {
+  const c = globalThis.crypto;
+  if (typeof c?.randomUUID === 'function') return c.randomUUID();
+  const b = new Uint8Array(16);
+  if (typeof c?.getRandomValues === 'function') c.getRandomValues(b);
+  else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 /** Setup defaults, per player count. Every one of them is editable at setup. */
 export const DEFAULTS: Readonly<Record<PlayerCount, {
@@ -210,11 +231,12 @@ export const DEFAULT_UMA: readonly number[] = DEFAULTS[4].uma;
 export const seatsIn = (state: { config: MatchConfig }): readonly Seat[] =>
   seatsOf(state.config.players);
 
-export function createMatch(config: MatchConfig, now = new Date()): MatchState {
+export function createMatch(config: MatchConfig, now = new Date(), id = uuid()): MatchState {
   if (config.seats.length !== config.players || config.uma.length !== config.players) {
     throw new Error(`a ${config.players}-player match needs ${config.players} seats and uma`);
   }
   return {
+    id,
     config,
     round: { wind: 'este', number: 1 },
     honba: 0,
@@ -388,8 +410,12 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
   const mode = input.kind === 'win' ? input.mode : undefined;
   const collectsPot = input.kind === 'win';
 
+  // Winners in seat order, whatever order they were entered in. The order means
+  // nothing -- the honba and odd stick already went by turn order in the delta --
+  // so it is fixed here, where the database can reproduce it: `hand_wins` has no
+  // column to remember an arbitrary one.
   const wins: WinRow[] = input.kind === 'win'
-    ? input.wins.map(({ winner, value }) => ({
+    ? [...input.wins].sort((a, b) => a.winner - b.winner).map(({ winner, value }) => ({
         winnerSeat: winner,
         han: value.han,
         fu: value.fu,
@@ -433,7 +459,8 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
     scoreDelta: delta,
     riichiSeats,
     tenpaiSeats:
-      input.kind === 'exhaustiveDraw' || input.kind === 'nagashiMangan' ? [...input.tenpai] : [],
+      input.kind === 'exhaustiveDraw' || input.kind === 'nagashiMangan'
+        ? [...input.tenpai].sort((a, b) => a - b) : [],
     abortiveReason: input.kind === 'abortiveDraw' ? input.reason : null,
   };
 

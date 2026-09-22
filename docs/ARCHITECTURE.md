@@ -83,10 +83,23 @@ match.
 
 ## Offline posture
 
-Crash-safe and blip-tolerant, **not** full offline-first. A hand is POSTed as it
-is recorded, so the server always holds the match up to the last completed hand
-(which gives resume-on-another-device for free). IndexedDB covers only the gap
-between a dropped connection and the next successful flush.
+Crash-safe and blip-tolerant, **not** full offline-first. The match is saved to
+the server as each hand is recorded, so the server holds it up to the last
+completed hand (which gives resume-on-another-device for free). IndexedDB covers
+the gap between a dropped connection and the next successful flush.
+
+**A save is the whole match** (`PUT /api/matches/{id}` with `toRows(state)`),
+not the new hand. The server swaps its copy in one transaction. That turns undo,
+corrections, renames and end-of-match placements into ordinary saves rather
+than four more endpoints, for a few KB per request. Saves coalesce — ten hands
+recorded offline go up as one request — and each names the revision it was
+based on, so a phone that was offline while the match moved on elsewhere gets a
+409 instead of overwriting newer hands. See `frontend/src/features/match/sync.ts`
+and `backend/app/store.py`.
+
+The tracker never waits on the server. It plays from its own state and the
+IndexedDB mirror; a server that is down, locked or refusing shows up only as a
+status dot and a note on the home screen.
 
 ## Vendoring
 

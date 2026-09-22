@@ -17,16 +17,17 @@
  *   of truth that could disagree with the hands.
  */
 import type { Flag, Level, SituationWind, YakuHan } from '../../scorer/types';
-import type {
-  AbortiveReason, Adjustment, EndReason, HandRow, MatchConfig, MatchState, Outcome, SeatPlayer,
-  WinRow,
+import {
+  type AbortiveReason, type Adjustment, type EndReason, type HandRow, type MatchConfig,
+  type MatchState, type Outcome, type SeatPlayer, type WinRow, maxLevel,
 } from './matchState';
-import { type Delta, RIICHI_STICK, deltaOf } from './scoring';
+import { type Delta, RIICHI_STICK, deltaOf, placements } from './scoring';
 import {
   type MatchLength, type PlayerCount, type Round, type Seat, dealerOf, nextRound, seatsOf,
 } from './seats';
 
 export interface MatchTableRow {
+  id: string;
   name: string;
   /**
    * 3 or 4. Derivable from counting `match_players`, but it is the ruleset --
@@ -101,11 +102,18 @@ export interface MatchRows {
   adjustments: AdjustmentRow[];
 }
 
-export function toRows(state: MatchState, placementOf?: (seat: Seat) => {
-  placement: number; umaPoints: number;
-}): MatchRows {
+/**
+ * The match as rows. Placements and uma are filled in once the match is over --
+ * from the same `placements` the end screen shows -- and left null while it is
+ * still being played, since a place mid-match is not a result.
+ */
+export function toRows(state: MatchState): MatchRows {
+  const standings = state.status === 'finished'
+    ? placements(state.scores, state.config.uma)
+    : [];
   const rows: MatchRows = {
     match: {
+      id: state.id,
       name: state.name,
       players: state.config.players,
       redFives: state.config.redFives,
@@ -117,19 +125,24 @@ export function toRows(state: MatchState, placementOf?: (seat: Seat) => {
       endReason: state.endReason,
       startedAt: state.startedAt,
       endedAt: state.endedAt,
-      maxLevel: null,
+      maxLevel: maxLevel(state),
       isTest: false,
     },
     matchPlayers: seatsOf(state.config.players).map((seat) => {
       const player = state.config.seats[seat]!;
-      const place = placementOf?.(seat);
+      const place = standings.find((p) => p.seat === seat);
       return {
         seat,
         playerId: player.playerId,
         // A guest is a seat with no player behind it; that is where the name lives.
         guestName: player.playerId === null ? player.name : null,
-        finalScore: state.scores[seat],
-        placement: place?.placement ?? null,
+        // As of the last completed hand: a stick declared in the hand being
+        // played is not in any row yet, so it is not taken off here either.
+        // Once the match is over, sticks still out were lost and it is.
+        finalScore: state.scores[seat]
+          + (state.status === 'in_progress' && state.pendingRiichi.includes(seat)
+            ? RIICHI_STICK : 0),
+        placement: place?.place ?? null,
         umaPoints: place?.umaPoints ?? null,
       };
     }),
@@ -289,6 +302,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     : { round: { wind: 'este' as const, number: 1 }, honba: 0, pot: 0 };
 
   return {
+    id: rows.match.id,
     config,
     round: after.round,
     honba: after.honba,

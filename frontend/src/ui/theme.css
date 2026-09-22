@@ -17,6 +17,7 @@
   --accent-dim:    #2b5f99;
   --danger:        #ff6b6b;
   --ok:            #5ad19a;
+  --sync-attention: #f0b44c;
 
   /*
    * Limit-hand colours: green mangan, purple haneman, bronze baiman, silver
@@ -491,6 +492,49 @@ button {
 .home__resume { display: flex; flex-direction: column; gap: 2px; }
 .home__resumemeta { font-size: 0.78rem; color: var(--text-dim); font-weight: 400; }
 .home__hint { color: var(--text-faint); font-size: 0.85rem; text-align: center; margin: 0; }
+
+/* ---------- sync ---------- */
+
+.sync {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+}
+.sync[data-state="locked"], .sync[data-state="problem"] { border-color: var(--sync-attention); }
+.sync__text { margin: 0; font-size: 0.88rem; color: var(--text-dim); line-height: 1.4; }
+.sync__pin, .sync__problem { display: flex; flex-direction: column; gap: 8px; }
+.sync__row { display: flex; gap: 8px; }
+.sync__input {
+  flex: 1; min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+  letter-spacing: 0.2em;
+}
+.sync__input:focus { outline: none; border-color: var(--accent); }
+.sync__error { margin: 0; font-size: 0.85rem; color: var(--danger); }
+
+/* The match header's status: a dot, with a generous tap target around it. */
+.syncdot {
+  --dot: var(--ok);
+  display: inline-block;
+  width: 22px; height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  vertical-align: middle;
+  background: radial-gradient(circle, var(--dot) 0 4px, transparent 5px);
+  cursor: pointer;
+}
+.syncdot[data-state="saving"] { --dot: var(--accent); }
+.syncdot[data-state="waiting"] { --dot: var(--text-faint); }
+.syncdot[data-state="locked"], .syncdot[data-state="problem"] { --dot: var(--sync-attention); }
+.app__syncpanel { padding: 4px 0 8px; }
 
 /* ---------- setup ---------- */
 

@@ -38,6 +38,40 @@ try {
   page.on('pageerror', (e) => { failed = true; console.error('  [pageerror]', e.message); });
   page.on('console', (m) => { if (m.type() === 'error') console.error('  [console]', m.text()); });
 
+  // A stand-in for the backend, so the run stays hermetic: it starts locked,
+  // takes the PIN, and keeps what it is sent. The real server's rules are the
+  // backend's own tests; this only has to be the right shape.
+  const api = { pin: '2468', unlocked: false, matches: new Map(), requests: [] };
+  await page.setRequestInterception(true);
+  page.on('request', async (req) => {
+    const url = new URL(req.url());
+    if (!url.pathname.startsWith('/api/')) { void req.continue(); return; }
+    const path = url.pathname.slice('/api'.length);
+    const method = req.method();
+    api.requests.push(`${method} ${path}`);
+    const reply = (status, body) => req.respond({
+      status, contentType: 'application/json',
+      body: body === undefined ? '' : JSON.stringify(body),
+    });
+    // Firefox (BiDi) only hands the body over asynchronously.
+    const raw = req.hasPostData() ? await req.fetchPostData() : undefined;
+    const body = raw ? JSON.parse(raw) : undefined;
+    if (path === '/session') {
+      if (method === 'GET') return reply(200, { unlocked: api.unlocked, configured: true });
+      api.unlocked = body?.pin === api.pin;
+      return api.unlocked ? reply(204) : reply(401, { detail: 'wrong PIN' });
+    }
+    if (!api.unlocked) return reply(401, { detail: 'enter the PIN' });
+    const id = decodeURIComponent(path.replace('/matches/', ''));
+    if (method === 'DELETE') { api.matches.delete(id); return reply(204); }
+    if (method === 'PUT') {
+      const revision = (api.matches.get(id)?.revision ?? 0) + 1;
+      api.matches.set(id, { revision, rows: body.rows });
+      return reply(200, { revision });
+    }
+    return reply(404, { detail: 'not in the fake' });
+  });
+
   await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
 
   const byText = async (text) => page.evaluate((t) => {
@@ -820,6 +854,60 @@ try {
   check(JSON.stringify(plainKan) === JSON.stringify(['back', 'p5', 'p5', 'back']),
         `a kan of fives is all plain without red fives (got ${JSON.stringify(plainKan)})`);
   await shot('40-no-red.png');
+
+  // ==================== the server ====================
+
+  // Everything so far was recorded against a locked server: the tracker never
+  // noticed, and the home screen asks for the PIN.
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.sync[data-state="locked"]', { timeout: 10_000 });
+  check(api.matches.size === 0, 'nothing reaches a locked server');
+  await shot('50-sync-locked.png');
+
+  await page.type('.sync__input', '1111');
+  await byText('Unlock');
+  await page.waitForSelector('.sync__error');
+  check((await page.$eval('.sync__error', (el) => el.textContent)).includes('not the PIN'),
+        'a wrong PIN is refused, in words');
+
+  await page.$eval('.sync__input', (el) => { el.value = ''; });
+  await page.click('.sync__input', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.type('.sync__input', api.pin);
+  await byText('Unlock');
+  await page.waitForFunction(() => !document.querySelector('.sync'), { timeout: 10_000 });
+  check(true, 'the right PIN unlocks, and the panel goes quiet once everything is saved');
+
+  const uploaded = [...api.matches.values()].map((m) => m.rows);
+  const finished = uploaded.find((r) => r.match.status === 'finished' && r.hands.length === 2);
+  check(uploaded.length > 0, `matches played while locked are uploaded (${uploaded.length})`);
+  check(finished !== undefined
+        && finished.hands.map((h) => `${h.roundWind} ${h.roundNumber}`).join() === 'este 1,este 2'
+        && finished.matchPlayers.every((p) => p.placement !== null),
+        'the finished match arrives with its hands and its placements');
+
+  // A new match goes up as soon as it starts, and the header says so.
+  const before = api.matches.size;
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  const syncInputs = await page.$$('.setup__name');
+  for (let i = 0; i < names.length; i++) await syncInputs[i].type(names[i]);
+  await byText('Start match');
+  await page.waitForSelector('.table');
+  await page.waitForSelector('.syncdot[data-state="synced"]', { timeout: 10_000 });
+  check(api.matches.size === before + 1, 'a new match is saved when it starts');
+
+  // Discarding it takes it off the server again.
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Discard this match');
+  await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
+  const deadline = Date.now() + 10_000;
+  while (api.matches.size !== before && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  check(api.matches.size === before, 'a discarded match comes off the server');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {
