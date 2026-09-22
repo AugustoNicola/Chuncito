@@ -55,13 +55,14 @@ export function MatchList({ onBack }: { onBack: () => void }) {
   });
 
   return (
-    <div className="app">
+    <div className="app app--wide">
       <header className="app__bar">
         <button type="button" className="btn btn--quiet" onClick={onBack}>Back</button>
         <h1 className="app__title">History</h1>
         <span className="app__barspacer" />
       </header>
 
+      <div className="history">
       <section className="history__filters" aria-label="Filters">
         <input className="history__search" type="search" value={filters.text}
                placeholder="Search by match or player name" aria-label="Search"
@@ -113,8 +114,11 @@ export function MatchList({ onBack }: { onBack: () => void }) {
         )}
       </section>
 
-      <Results result={result} filtered={isFiltered(filters)}
-               onUnlocked={() => setReload((n) => n + 1)} />
+      <div className="history__results">
+        <Results result={result} filtered={isFiltered(filters)}
+                 onUnlocked={() => setReload((n) => n + 1)} />
+      </div>
+      </div>
     </div>
   );
 }

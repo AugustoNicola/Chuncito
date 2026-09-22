@@ -1297,6 +1297,8 @@ button {
 .review__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .review__when { margin: 10px 0 0; font-size: 0.82rem; color: var(--text-dim); text-align: center; }
 .review__heading { margin: 16px 0 4px; }
+/* Grid children, which would otherwise size to their longest name. */
+.history__results, .review__hands { min-width: 0; }
 
 /* ---------- player profile ---------- */
 
@@ -1320,6 +1322,7 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
 
 .profile { display: flex; flex-direction: column; gap: 14px; padding: 12px 0 20px; }
 .profile__count { font-size: 0.8em; color: var(--text-faint); margin-left: 4px; }
+.segmented__btn--on .profile__count { color: var(--text-dim); }
 .profile__section { display: flex; flex-direction: column; gap: 10px; }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -1417,3 +1420,28 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
 .profile__matchname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile__matchdate { grid-column: 2; font-size: 0.75rem; color: var(--text-faint); }
 .profile__matchscore { grid-column: 3; grid-row: 1; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+
+/* ---------- desktop ---------- */
+
+/* The table is phone-first and stays a column wherever it is shown. Only the
+   screens for reading back -- history, a match, a player -- spread out on a
+   wide screen, where they are mostly used. */
+@media (min-width: 900px) {
+  .app--wide { max-width: 1120px; padding-left: 24px; padding-right: 24px; }
+
+  .history { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; }
+  .history__filters { position: sticky; top: 12px; }
+  .history__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); margin-top: 12px; }
+  .history__item { height: 100%; box-sizing: border-box; }
+  .history__item:hover { border-color: var(--border-strong); background: color-mix(in srgb, var(--bg-raised) 85%, var(--text) 3%); }
+  .history__item[data-tier]:hover { border-color: var(--tier); }
+
+  .review { display: grid; grid-template-columns: minmax(340px, 420px) 1fr; gap: 24px; align-items: start; }
+  .review__outcome { position: sticky; top: 12px; }
+  .review__heading { margin-top: 12px; }
+
+  .stats { grid-template-columns: repeat(6, 1fr); }
+  .profile__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; align-items: start; }
+  .linechart__point, .profile__match { cursor: pointer; }
+  .profile__match:hover .profile__matchname { color: var(--accent); }
+}

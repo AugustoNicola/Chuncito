@@ -331,7 +331,7 @@ Things learned doing it, worth keeping:
   scores from deltas, which do not include it. Only visible if such a match is
   resumed from the server.
 
-## Phase 4 — History and stats — IN PROGRESS (desktop layout left)
+## Phase 4 — History and stats — DONE (2026-09-22)
 
 Decided with the user (2026-09-21):
 
@@ -423,7 +423,14 @@ their stats endpoints, then the desktop layout.
         one gold ramp — the app's gold/silver/bronze failed as a chart palette
         (silver reads grey). The validator needs Node ≥ 20 as shipped; under
         Node 18 copy it into a directory with `{"type":"module"}`.
-- [ ] Desktop layout
+- [x] **Desktop layout** (≥ 900px). Only the read-back screens spread out,
+      via `.app--wide` (1120px): history puts the filters in a sticky sidebar
+      beside a two-across grid of matches; a review puts the outcome, sticky,
+      beside the hands; a profile has its six tiles in one row and its
+      sections in two columns. **The table, setup, home and calculator stay a
+      560px column** — they are used at the table, on a phone. Browser checks
+      assert the side-by-side geometry at 1280px, the table's width there, and
+      no sideways scroll at 1280px and 360px.
 
 ## Phase 5 — Polish, deploy, harden
 
@@ -448,7 +455,7 @@ was learned building Phases 1 to 3 and the sanma round:
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 172 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
+  UI in Firefox — 185 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
   a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
   screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught

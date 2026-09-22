@@ -1312,6 +1312,63 @@ try {
     .includes('no such player'), { timeout: 10_000 });
   check(true, 'an unknown player says so');
 
+  // ==================== desktop, and narrow ====================
+
+  const box = (sel) => page.$eval(sel, (el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+  });
+  const fitsWidth = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.goto('http://localhost:5199/matches', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.history__item', { timeout: 10_000 });
+  const filtersBox = await box('.history__filters');
+  const listBox = await box('.history__list');
+  check(filtersBox.right <= listBox.left && Math.abs(filtersBox.top - listBox.top) < 40,
+        'on a wide screen the filters sit beside the matches');
+  const cards = await page.$$eval('.history__item', (els) => els.map((e) => e.getBoundingClientRect().top));
+  check(cards.length >= 2 && cards[0] === cards[1], 'and the matches are laid out two across');
+  check(await fitsWidth(), 'the wide history does not scroll sideways');
+  await shot('80-desktop-history.png');
+
+  await page.goto('http://localhost:5199/matches/hist-beto', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.standings', { timeout: 10_000 });
+  const outcomeBox = await box('.review__outcome');
+  const handsBox = await box('.review__hands');
+  check(outcomeBox.right <= handsBox.left, 'a wide review puts the outcome beside the hands');
+  check(await fitsWidth(), 'the wide review does not scroll sideways');
+  await shot('81-desktop-review.png');
+
+  await page.goto('http://localhost:5199/players/beto?players=3', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.linechart', { timeout: 10_000 });
+  const tileTops = await page.$$eval('.stat', (els) => els.map((e) => e.getBoundingClientRect().top));
+  check(new Set(tileTops).size === 1, `a wide profile has its tiles in one row (got ${tileTops.length} tiles)`);
+  const sections = await page.$$eval('.profile__grid > .profile__section',
+    (els) => els.map((e) => e.getBoundingClientRect().left));
+  check(new Set(sections).size === 2, 'and its sections in two columns');
+  check(await fitsWidth(), 'the wide profile does not scroll sideways');
+  await shot('82-desktop-profile.png', { fullPage: true });
+
+  // The table stays a phone-width column even on a wide screen.
+  const tableWidth = await page.evaluate(() => {
+    const app = document.createElement('div');
+    app.className = 'app app--table';
+    document.body.append(app);
+    const w = app.getBoundingClientRect().width;
+    app.remove();
+    return w;
+  });
+  check(tableWidth <= 560, `the table keeps its phone width on a wide screen (got ${tableWidth}px)`);
+
+  await page.setViewport({ width: 360, height: 740 });
+  for (const path of ['/matches', '/matches/hist-beto', '/players/beto?players=3']) {
+    await page.goto(`http://localhost:5199${path}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.history__item, .standings, .linechart', { timeout: 10_000 });
+    check(await fitsWidth(), `${path} fits a 360px phone`);
+  }
+  await page.setViewport({ width: 390, height: 844 });
+
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {
   failed = true;

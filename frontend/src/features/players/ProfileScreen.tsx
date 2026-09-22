@@ -57,7 +57,7 @@ export function ProfileScreen({ onBack }: { onBack: () => void }) {
   const stats = result?.kind === 'ok' && result.value.players === players ? result.value : null;
 
   return (
-    <div className="app">
+    <div className="app app--wide">
       <header className="app__bar">
         <button type="button" className="btn btn--quiet" onClick={onBack}>Back</button>
         <h1 className="app__title review__title">{stats?.player.displayName ?? 'Player'}</h1>
@@ -118,6 +118,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
               detail={`${stats.riichis} of ${stats.hands} hands`} />
       </div>
 
+      <div className="profile__grid">
       <section className="profile__section">
         <h2 className="home__heading">Placements</h2>
         <PlacementLine matches={stats.matches} players={stats.players} onOpen={onOpen} />
@@ -162,6 +163,8 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
           <Bars rows={yakus.map((y) => ({ key: y.yaku, name: y.name, count: y.count }))} limit={8} />
         </section>
       )}
+
+      </div>
 
       <section className="profile__section">
         <details className="profile__table">

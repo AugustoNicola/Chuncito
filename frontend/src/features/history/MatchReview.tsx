@@ -28,7 +28,7 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
   const state = result?.kind === 'ok' ? result.value : null;
 
   return (
-    <div className="app">
+    <div className="app app--wide">
       <header className="app__bar">
         <button type="button" className="btn btn--quiet" onClick={onBack}>Back</button>
         <h1 className="app__title review__title">
@@ -54,11 +54,15 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
             {' · '}{state.config.players === 3 ? 'Sanma · ' : ''}
             {state.config.length === 'east' ? 'East match' : 'South match'}
           </p>
-          <div className="endscreen">
-            <MatchOutcome state={state} />
+          <div className="review">
+            <div className="endscreen review__outcome">
+              <MatchOutcome state={state} />
+            </div>
+            <section className="review__hands">
+              <h2 className="home__heading review__heading">Hands</h2>
+              <TimelineList state={state} />
+            </section>
           </div>
-          <h2 className="home__heading review__heading">Hands</h2>
-          <TimelineList state={state} />
         </>
       )}
     </div>
