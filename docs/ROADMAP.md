@@ -331,8 +331,24 @@ Things learned doing it, worth keeping:
   scores from deltas, which do not include it. Only visible if such a match is
   resumed from the server.
 
-## Phase 4 — History and stats
+## Phase 4 — History and stats — NEXT
 
+Decided with the user (2026-09-21):
+
+- **Four-player and sanma stats are kept separate** — placements, average
+  rank, rates, everything. A 1st of three is not a 1st of four. A profile
+  shows one at a time, with a toggle.
+- **Profile customisation waits** (tile avatar, accent colour): after Phase 4,
+  once there is a profile page to put it on.
+- **Guest seats do not count** towards anyone's stats.
+- Still on the Neon `dev` branch; no deploy to `main` for now.
+
+Order: real routes first (history and profiles need URLs, and the back
+button must work), then the match list and match review, then profiles and
+their stats endpoints, then the desktop layout.
+
+- [ ] Routing (React Router; the server must fall back to `index.html`). The
+      match in progress keeps guarding against a stray back gesture.
 - [ ] Match list: filter by name, players, hand level ≥ X, yaku achieved
 - [ ] **Hand order is chronological for any finished match** — East 1 at the top,
       the last hand at the bottom. Only a match *in progress* reads newest
