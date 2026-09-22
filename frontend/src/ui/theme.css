@@ -519,15 +519,11 @@ button {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   container-type: size;
 }
-/* A tile is sized off whichever of the art's width or height runs out first. */
+/* A tile's space, sized off whichever of the art's width or height runs out
+   first. The glyph alone is drawn: no outline. */
 .home__tile {
   --tile-h: min(62cqh, 62cqw * 4 / 3);
   height: var(--tile-h); aspect-ratio: 3 / 4;
-  box-sizing: border-box;
-  padding: 9%;
-  border-radius: 12%;
-  background: rgb(255 255 255 / 0.08);
-  border: 1.5px solid rgb(255 255 255 / 0.35);
 }
 .home__glyph {
   display: block; width: 100%; height: 100%;
@@ -536,7 +532,8 @@ button {
   -webkit-mask-position: center; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat;
 }
 /* Three tiles in a row share the width. */
-.home__art[data-art="calculator"] .home__tile { --tile-h: min(50cqh, (100cqw - 12px) / 3 * 4 / 3); }
+.home__art[data-art="calculator"] { gap: 0; }
+.home__art[data-art="calculator"] .home__tile { --tile-h: min(60cqh, 100cqw / 3 * 4 / 3); }
 /* The winds sit in the card's corners, as their seats do round a table. */
 .home__art[data-art="players"] {
   display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;

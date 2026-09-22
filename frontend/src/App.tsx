@@ -220,7 +220,9 @@ export function App() {
  */
 const ART: Record<string, readonly string[]> = {
   new: ['r'],
-  calculator: ['p1', 'p2', 'p3'],
+  // Drawn for this card: the pins' white details, which a plain mask of the
+  // playing tiles' glyphs would fill in as solid discs.
+  calculator: ['white/p1', 'white/p2', 'white/p3'],
   history: ['m3'],
   // East, South / West, North: the corners of the card, as seats round a table.
   players: ['e', 's', 'w', 'n'],
@@ -231,8 +233,6 @@ function HomeCard({ label, art, onClick }: { label: string; art: string; onClick
     <button type="button" className="home__card" onClick={onClick}>
       <span className="home__art" data-art={art} aria-hidden="true">
         {ART[art]!.map((tile) => (
-          // A ghost of the tile's outline behind the glyph, so pins read as
-          // tiles in a run rather than as loose dots.
           <span key={tile} className="home__tile">
             <span className="home__glyph"
                   style={{ maskImage: `url(/tiles/${tile}.svg)`, WebkitMaskImage: `url(/tiles/${tile}.svg)` }} />

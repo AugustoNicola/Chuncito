@@ -123,3 +123,9 @@ The artwork is layered rather than pre-composited: `front.svg` is the tile face
 and the glyphs are transparent overlays, so the face can be tinted or swapped for
 theming without touching 37 files. `back.svg` renders the face-down outer tiles
 of a concealed kan.
+
+`tiles/white/` holds the home screen's pin art (`p1`–`p3`): the pins redrawn by
+the user as white details on transparency, used as masks like the other home
+glyphs. A plain mask of the playing tiles' pins fills them in as solid discs,
+which is why these exist. Each is an SVG wrapping a PNG; the editor's EXIF
+profile was stripped when they were added (pixels unchanged).
