@@ -124,32 +124,23 @@ export function App() {
           </button>
         )}
 
-        <button type="button" className={`btn btn--wide${resumable ? '' : ' btn--primary'}`}
-                onClick={() => {
-                  if (resumable) {
-                    // Starting a new match discards the mirror, so the old one
-                    // cannot come back on the next load and confuse the table.
-                    // It is thrown away, so it comes off the server as well.
-                    void clearMatch();
-                    sync.discard(resumable.id);
-                    setMatch(null);
-                  }
-                  navigate('/setup');
-                }}>
-          {resumable ? 'Start a different match' : 'New match'}
-        </button>
-
-        <button type="button" className="btn btn--wide" onClick={() => navigate('/calculator')}>
-          Hand calculator
-        </button>
-
-        <button type="button" className="btn btn--wide" onClick={() => navigate('/matches')}>
-          History
-        </button>
-
-        <button type="button" className="btn btn--wide" onClick={() => navigate('/players')}>
-          Players
-        </button>
+        <nav className="home__grid" aria-label="Chuncito">
+          <HomeCard label={resumable ? 'Start a different match' : 'New match'} art="new"
+                    onClick={() => {
+                      if (resumable) {
+                        // Starting a new match discards the mirror, so the old one
+                        // cannot come back on the next load and confuse the table.
+                        // It is thrown away, so it comes off the server as well.
+                        void clearMatch();
+                        sync.discard(resumable.id);
+                        setMatch(null);
+                      }
+                      navigate('/setup');
+                    }} />
+          <HomeCard label="Hand calculator" art="calculator" onClick={() => navigate('/calculator')} />
+          <HomeCard label="History" art="history" onClick={() => navigate('/matches')} />
+          <HomeCard label="Players" art="players" onClick={() => navigate('/players')} />
+        </nav>
 
         {restoring && <p className="home__hint">Looking for a match in progress…</p>}
 
@@ -218,5 +209,37 @@ export function App() {
       <Route path="/matches/:id" element={<MatchReview onBack={back('/matches')} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+/**
+ * The home screen's four ways in, each a tall card with tile glyphs for art.
+ * The glyphs are masks painted in one colour, the same trick as the logo, so
+ * they read as the app's own marks rather than as tiles to be played.
+ * Experimental: the old version was four wide buttons.
+ */
+const ART: Record<string, readonly string[]> = {
+  new: ['r'],
+  calculator: ['p1', 'p2', 'p3'],
+  history: ['m3'],
+  // East, South / West, North: the corners of the card, as seats round a table.
+  players: ['e', 's', 'w', 'n'],
+};
+
+function HomeCard({ label, art, onClick }: { label: string; art: string; onClick: () => void }) {
+  return (
+    <button type="button" className="home__card" onClick={onClick}>
+      <span className="home__art" data-art={art} aria-hidden="true">
+        {ART[art]!.map((tile) => (
+          // A ghost of the tile's outline behind the glyph, so pins read as
+          // tiles in a run rather than as loose dots.
+          <span key={tile} className="home__tile">
+            <span className="home__glyph"
+                  style={{ maskImage: `url(/tiles/${tile}.svg)`, WebkitMaskImage: `url(/tiles/${tile}.svg)` }} />
+          </span>
+        ))}
+      </span>
+      <span className="home__cardlabel">{label}</span>
+    </button>
   );
 }

@@ -179,8 +179,34 @@ try {
     }
   };
 
+  const shot = async (name, opts = {}) => {
+    if (SHOT_DIR) { mkdirSync(SHOT_DIR, { recursive: true }); await page.screenshot({ path: join(SHOT_DIR, name), ...opts }); }
+  };
+
   // The tracker owns the root now; the calculator is one tap in.
   await page.waitForSelector('.home');
+  await page.waitForSelector('.brand__logo');
+  check((await page.$eval('.app__title--home', (el) => getComputedStyle(el).color)) === 'rgb(74, 158, 255)',
+        'the home title is the accent blue, with the chun mark');
+  const homeCards = await page.$$eval('.home__card', (els) => els.map((e) => {
+    const r = e.getBoundingClientRect();
+    return { label: e.textContent, left: Math.round(r.left), top: Math.round(r.top),
+             tall: r.height > r.width, bottom: r.bottom };
+  }));
+  check(JSON.stringify(homeCards.map((c) => c.label))
+        === JSON.stringify(['New match', 'Hand calculator', 'History', 'Players']),
+        `home has the four cards (got ${JSON.stringify(homeCards.map((c) => c.label))})`);
+  check(homeCards.every((c) => c.tall) && homeCards[0].top === homeCards[1].top && homeCards[2].top > homeCards[0].top
+        && homeCards[0].left === homeCards[2].left,
+        'as tall cards, two across');
+  check(homeCards.every((c) => c.bottom <= 844), 'all four fit on a phone screen without scrolling');
+  const winds = await page.$$eval('.home__art[data-art="players"] .home__glyph', (els) => els.map((e) => {
+    const r = e.getBoundingClientRect(); return [r.left, r.top];
+  }));
+  check(winds.length === 4 && winds[0][0] < winds[1][0] && winds[0][1] === winds[1][1]
+        && winds[2][1] > winds[0][1] && winds[2][0] === winds[0][0],
+        'the winds sit in the corners, East top left to North bottom right');
+  await shot('00-home.png');
   await byText('Hand calculator');
   await page.waitForSelector('.keyboard');
 
@@ -189,10 +215,6 @@ try {
     () => !document.querySelector('.status')?.textContent?.includes('Loading'),
     { timeout: 90_000 },
   );
-
-  const shot = async (name, opts = {}) => {
-    if (SHOT_DIR) { mkdirSync(SHOT_DIR, { recursive: true }); await page.screenshot({ path: join(SHOT_DIR, name), ...opts }); }
-  };
 
   // --- disable logic is live in the DOM ---
   await page.click('.modebar__btn[aria-pressed="false"]'); // arm chii (first button)
