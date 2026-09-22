@@ -104,7 +104,8 @@ export type Fetched<T> =
   | { kind: 'missing' }
   | { kind: 'unreachable' };
 
-async function get(path: string): Promise<Fetched<unknown>> {
+/** A GET, sorted into what the screens distinguish. */
+export async function fetchJson(path: string): Promise<Fetched<unknown>> {
   try {
     const r = await fetchTransport('GET', path);
     if (r.status === 200) return { kind: 'ok', value: r.body };
@@ -117,11 +118,11 @@ async function get(path: string): Promise<Fetched<unknown>> {
 }
 
 export const fetchHistory = async (f: HistoryFilters): Promise<Fetched<ServerMatch[]>> =>
-  await get(apiPath(f)) as Fetched<ServerMatch[]>;
+  await fetchJson(apiPath(f)) as Fetched<ServerMatch[]>;
 
 /** One match, rebuilt from its rows exactly as a carried-on match is. */
 export async function fetchMatch(id: string): Promise<Fetched<MatchState>> {
-  const got = await get(`/matches/${encodeURIComponent(id)}`);
+  const got = await fetchJson(`/matches/${encodeURIComponent(id)}`);
   if (got.kind !== 'ok') return got;
   const body = got.value as { rows: MatchRows; players: { id: string; displayName: string }[] };
   const names = new Map(body.players.map((p) => [p.id, p.displayName]));

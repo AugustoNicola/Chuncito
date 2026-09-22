@@ -292,6 +292,54 @@ def test_the_list_filters_for_history(unlocked):
     assert listed['filter-3p']['placements'] == [None, None, None]
 
 
+# --- player stats ---
+
+def test_a_profile_counts_only_what_that_player_did(unlocked):
+    # Fresh players, so the matches other tests saved do not count here.
+    ana = unlocked.post('/api/players', json={'displayName': 'Stats Ana'}).json()
+    beto = unlocked.post('/api/players', json={'displayName': 'Stats Beto'}).json()
+    rows = fixture('four-player-finished', 'stats-4p')
+    rows['matchPlayers'][0]['playerId'] = ana['id']
+    rows['matchPlayers'][1]['playerId'] = beto['id']
+    assert put(unlocked, rows).status_code == 200
+    # A test match never counts.
+    hidden = fixture('four-player-finished', 'stats-test')
+    hidden['match']['isTest'] = True
+    hidden['matchPlayers'] = copy.deepcopy(rows['matchPlayers'])
+    assert put(unlocked, hidden).status_code == 200
+
+    b = unlocked.get(f"/api/players/{beto['slug']}/stats").json()
+    assert b['players'] == 4 and b['matchesFour'] == 1 and b['matchesSanma'] == 0
+    assert [m['matchId'] for m in b['matches']] == ['stats-4p']
+    assert b['placementCounts'] == [1, 0, 0, 0]
+    assert b['umaTotal'] == 20
+    assert b['hands'] == 6
+    # Two rons (one after riichi); the nagashi mangan pays but is not a won hand.
+    assert (b['wins'], b['tsumoWins'], b['dealIns'], b['riichis']) == (2, 0, 0, 1)
+    assert b['winMethods'] == {'riichi': 1, 'dama': 1, 'open': 0, 'unknown': 0}
+    assert b['bestHand']['level'] == 'mangan' and b['bestHand']['matchId'] == 'stats-4p'
+    # Yaku are counted off the hands' yaku rows. (The fixture's hand 5 lists a
+    # riichi yaku its table never declared, so the two disagree on purpose here:
+    # the win method reads the declaration, the frequency reads the yaku.)
+    assert b['yakus'] == [{'yaku': 'dora', 'count': 2}, {'yaku': 'pinfu', 'count': 2},
+                          {'yaku': 'riichi', 'count': 2}]
+
+    a = unlocked.get(f"/api/players/{ana['slug']}/stats").json()
+    assert a['placementCounts'] == [0, 0, 0, 1]
+    assert (a['wins'], a['dealIns']) == (0, 1)
+    assert a['bestHand'] is None and a['yakus'] == []
+
+    # Sanma is kept apart: nothing of the four-player match shows there.
+    s = unlocked.get(f"/api/players/{beto['slug']}/stats", params={'players': 3}).json()
+    assert s['players'] == 3 and s['matches'] == [] and s['placementCounts'] == [0, 0, 0]
+    assert s['matchesFour'] == 1
+
+
+def test_a_profile_needs_a_real_player(unlocked, client):
+    assert unlocked.get('/api/players/nobody-at-all/stats').status_code == 404
+    assert unlocked.get('/api/players/nobody-at-all/stats', params={'players': 5}).status_code == 422
+
+
 def test_a_discarded_match_is_deleted_with_everything_in_it(unlocked, engine):
     rows = fixture('four-player-finished', 'gone')
     put(unlocked, rows)

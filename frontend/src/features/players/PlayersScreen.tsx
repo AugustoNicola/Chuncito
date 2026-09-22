@@ -2,8 +2,9 @@
  * The Players screen: where people are added to the group, on purpose.
  *
  * Deliberately the only place a player is created, so that a typo at the
- * table cannot invent one. For now a player is a name; it is the natural home
- * for the rest of a profile later (a tile avatar, an accent colour).
+ * table cannot invent one. Each name opens that player's stats
+ * (`ProfileScreen`); a profile's extras (a tile avatar, an accent colour) are
+ * still to come.
  *
  * Needs the server, since the list is the group's rather than the phone's.
  * Offline it shows the cached list and says why it cannot add to it.
@@ -13,7 +14,8 @@ import { PinForm } from '../match/SyncPanel';
 import {
   createPlayer, refreshPlayers, renamePlayer, sessionLocked, useSyncStatus,
 } from '../match/syncClient';
-import { type Player, cachedPlayers } from './players';
+import { Link } from 'react-router-dom';
+import { type Player, cachedPlayers, slugOf } from './players';
 
 type Reach = 'checking' | 'online' | 'unreachable';
 
@@ -134,7 +136,9 @@ export function PlayersScreen({ onBack }: { onBack: () => void }) {
                   </form>
                 ) : (
                   <>
-                    <span className="players__name">{p.displayName}</span>
+                    <Link className="players__name" to={`/players/${slugOf(p.displayName)}`}>
+                      {p.displayName}
+                    </Link>
                     <button type="button" className="btn btn--quiet players__rename"
                             onClick={() => { setEditing({ id: p.id, name: p.displayName }); setMessage(null); }}>
                       Rename

@@ -8,6 +8,7 @@
  * | `/match`      | the table, for the match in progress on this phone |
  * | `/calculator` | the hand calculator on its own |
  * | `/players`    | adding and renaming players |
+ * | `/players/:slug` | a player's stats; `?players=3` for sanma |
  * | `/matches`    | finished matches; the filters are the query string |
  * | `/matches/:id`| one finished match, read back |
  *
@@ -28,6 +29,7 @@ import { clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
 import { SyncPanel } from './features/match/SyncPanel';
 import { PlayersScreen } from './features/players/PlayersScreen';
+import { ProfileScreen } from './features/players/ProfileScreen';
 import { MatchList } from './features/history/MatchList';
 import { MatchReview } from './features/history/MatchReview';
 import {
@@ -207,6 +209,7 @@ export function App() {
       } />
       <Route path="/calculator" element={<HandBuilder onCancel={back()} />} />
       <Route path="/players" element={<PlayersScreen onBack={back()} />} />
+      <Route path="/players/:slug" element={<ProfileScreen onBack={back('/players')} />} />
       <Route path="/matches" element={<MatchList onBack={back()} />} />
       <Route path="/matches/:id" element={<MatchReview onBack={back('/matches')} />} />
       <Route path="*" element={<Navigate to="/" replace />} />

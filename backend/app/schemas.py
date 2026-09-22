@@ -214,3 +214,64 @@ class PinIn(Wire):
 class SessionState(Wire):
     unlocked: bool
     configured: bool
+
+
+class PlacedMatch(Wire):
+    """One finished match, from the player's seat: a point on the placement line."""
+    match_id: str
+    name: str
+    started_at: str
+    placement: int
+    final_score: int
+    uma_points: float | None
+
+
+class WinMethods(Wire):
+    """How the player's wins were made. A declared riichi wins over the rest."""
+    riichi: int
+    dama: int
+    open: int
+    # A typed-in value without the hand's shape: nobody said whether it was open.
+    unknown: int
+
+
+class BestHand(Wire):
+    match_id: str
+    match_name: str
+    round_wind: str
+    round_number: int
+    level: str | None
+    han: int | None
+    fu: int | None
+    points_won: int | None
+    hand_tiles: str | None
+
+
+class YakuCount(Wire):
+    yaku: str
+    count: int
+
+
+class PlayerStats(Wire):
+    """
+    One player's record in one kind of match (`players`: 4, or 3 for sanma --
+    never mixed, since a 1st of three is not a 1st of four). Finished, non-test
+    matches only; guest seats never count, having no player.
+
+    Counts rather than rates, so the page can say "12 of 80" as well as "15%".
+    """
+    player: PlayerOut
+    players: Literal[3, 4]
+    matches_four: int
+    matches_sanma: int
+    matches: list[PlacedMatch]
+    placement_counts: list[int]
+    uma_total: float
+    hands: int
+    wins: int
+    tsumo_wins: int
+    deal_ins: int
+    riichis: int
+    win_methods: WinMethods
+    best_hand: BestHand | None
+    yakus: list[YakuCount]

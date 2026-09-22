@@ -69,6 +69,37 @@ try {
     const slug = (n) => n.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     if (path === '/players' && method === 'GET') return reply(200, [...api.players.values()]);
+    if (/^\/players\/[^/]+\/stats$/.test(path)) {
+      // The UI's half only: the arithmetic is the backend's tests' business.
+      const who = [...api.players.values()].find((p) => p.slug === path.split('/')[2]);
+      if (!who) return reply(404, { detail: 'no such player' });
+      const kind = Number(url.searchParams.get('players') ?? 4);
+      const sat = [...api.matches.entries()].filter(([, { rows: r }]) => r.match.status === 'finished'
+        && r.matchPlayers.some((p) => p.playerId === who.id));
+      const mine = sat.filter(([, { rows: r }]) => r.match.players === kind);
+      const seatOf = (r) => r.matchPlayers.find((p) => p.playerId === who.id);
+      const tiles = mine.flatMap(([, { rows: r }]) => r.handWins).find((w) => w.handTiles);
+      return reply(200, {
+        player: who, players: kind,
+        matchesFour: sat.filter(([, m]) => m.rows.match.players === 4).length,
+        matchesSanma: sat.filter(([, m]) => m.rows.match.players === 3).length,
+        matches: mine.map(([id, { rows: r }]) => ({
+          matchId: id, name: r.match.name, startedAt: r.match.startedAt,
+          placement: seatOf(r).placement, finalScore: seatOf(r).finalScore, umaPoints: seatOf(r).umaPoints,
+        })),
+        placementCounts: Array.from({ length: kind }, (_, i) =>
+          mine.filter(([, { rows: r }]) => seatOf(r).placement === i + 1).length),
+        umaTotal: mine.reduce((a, [, { rows: r }]) => a + (seatOf(r).umaPoints ?? 0), 0),
+        hands: 20, wins: 4, tsumoWins: 1, dealIns: 3, riichis: 5,
+        winMethods: { riichi: 2, dama: 1, open: 1, unknown: 0 },
+        bestHand: mine.length && tiles ? {
+          matchId: mine[0][0], matchName: mine[0][1].rows.match.name, roundWind: 'este', roundNumber: 2,
+          level: 'haneman', han: 6, fu: 30, pointsWon: 12000, handTiles: tiles.handTiles,
+        } : null,
+        yakus: mine.length ? [{ yaku: 'riichi', count: 3 }, { yaku: 'dora', count: 3 },
+                              { yaku: 'tanyao', count: 2 }, { yaku: 'pinfu', count: 1 }] : [],
+      });
+    }
     if (path.startsWith('/players')) {
       const name = body.displayName.trim();
       const id = method === 'POST' ? `p-${api.players.size + 1}` : path.split('/')[2];
@@ -156,8 +187,8 @@ try {
     { timeout: 90_000 },
   );
 
-  const shot = async (name) => {
-    if (SHOT_DIR) { mkdirSync(SHOT_DIR, { recursive: true }); await page.screenshot({ path: join(SHOT_DIR, name) }); }
+  const shot = async (name, opts = {}) => {
+    if (SHOT_DIR) { mkdirSync(SHOT_DIR, { recursive: true }); await page.screenshot({ path: join(SHOT_DIR, name), ...opts }); }
   };
 
   // --- disable logic is live in the DOM ---
@@ -1231,6 +1262,55 @@ try {
   await byText('Unlock');
   await page.waitForSelector('.history__item', { timeout: 10_000 });
   check(true, 'and the list appears once it is in');
+
+  // ==================== player profiles ====================
+
+  await page.goto('http://localhost:5199/players', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('a.players__name');
+  await page.evaluate(() => [...document.querySelectorAll('a.players__name')]
+    .find((a) => a.textContent.trim() === 'Beto').click());
+  await page.waitForSelector('.profile', { timeout: 10_000 });
+  await page.waitForSelector('.linechart', { timeout: 10_000 });
+  check(await at() === '/players/beto', `a name on the Players screen opens their page (got ${await at()})`);
+  check((await page.evaluate(() => location.search)) === '?players=3',
+        'a player with only sanma behind them opens on sanma');
+  check((await page.$eval('.app__title', (el) => el.textContent)) === 'Beto', 'the page is titled with the name');
+  const tiles = await page.$$eval('.stat__label', (els) => els.map((e) => e.textContent));
+  check(tiles.length === 6 && ['Win rate', 'Tsumo rate', 'Deal-in rate', 'Riichi rate', 'Average place'].every((t) => tiles.includes(t)),
+        `the rates are there, as an even grid (got ${JSON.stringify(tiles)})`);
+  const winRate = await page.evaluate(() => [...document.querySelectorAll('.stat')]
+    .find((s) => s.querySelector('.stat__label').textContent === 'Win rate')
+    .querySelector('.stat__value').textContent);
+  check(winRate === '20%', `4 wins in 20 hands is a 20% win rate (got ${winRate})`);
+  const placeRows = await page.$$eval('.profile__section:first-of-type .donut__label',
+    (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(placeRows) === JSON.stringify(['1st', '2nd', '3rd']),
+        `sanma placements have three slices (got ${JSON.stringify(placeRows)})`);
+  const bars = await page.$$eval('.bars__name', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(bars) === JSON.stringify(['Riichi', 'Tanyao', 'Pinfu']),
+        `the yaku leave dora out (got ${JSON.stringify(bars)})`);
+  check(await page.$('.endscreen__best .handsummary') !== null, 'the best hand shows its tiles');
+  await shot('70-profile.png', { fullPage: true });
+  await page.hover('.linechart__point');
+  await page.waitForSelector('.linechart__tip');
+  check((await page.$eval('.linechart__tipname', (el) => el.textContent)) === 'with Beto',
+        'hovering a placement names its match');
+  await page.click('.linechart__point');
+  await page.waitForSelector('.standings', { timeout: 10_000 });
+  check(await at() === '/matches/hist-beto', `a placement opens its match (got ${await at()})`);
+  await page.goBack(); await settle();
+  await page.waitForSelector('.profile');
+  check((await page.evaluate(() => location.search)) === '?players=3', 'Back returns to the sanma page');
+
+  await byText('Four players');
+  await page.waitForFunction(() => document.querySelector('.home__hint')?.textContent
+    .includes('No finished matches yet'), { timeout: 10_000 });
+  check((await page.evaluate(() => location.search)) === '?players=4',
+        'choosing four-player sticks, and is written out so the sanma redirect cannot undo it');
+  await page.goto('http://localhost:5199/players/nobody', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('.home__hint')?.textContent
+    .includes('no such player'), { timeout: 10_000 });
+  check(true, 'an unknown player says so');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {

@@ -331,7 +331,7 @@ Things learned doing it, worth keeping:
   scores from deltas, which do not include it. Only visible if such a match is
   resumed from the server.
 
-## Phase 4 — History and stats — NEXT
+## Phase 4 — History and stats — IN PROGRESS (desktop layout left)
 
 Decided with the user (2026-09-21):
 
@@ -394,8 +394,35 @@ their stats endpoints, then the desktop layout.
 - History reads the server only. The phone's own archive is not merged in:
   every finished match is uploaded anyway, and a second source would need
   de-duplicating for no gain.
-- [ ] Player directory + per-player page (placement line, best hand, win-method
-      pie, placement pie, avg rank, tsumo/deal-in/riichi rates, yaku frequency)
+- [x] **Player pages** (`/players/:slug`, `?players=3` for sanma). The
+      Players screen is the directory: each name opens its page.
+      `GET /api/players/{slug}/stats?players=4|3` (`store.player_stats`) does
+      the counting over finished, non-test matches the player sat in, one kind
+      at a time; guests never count, having no player. It returns **counts,
+      not rates**, so the page can say "12 of 80" as well as "15%"
+      (`profile.ts` does the arithmetic, tested).
+      - Stat tiles: average place, uma, win / tsumo / deal-in / riichi rates.
+        Win rate and deal-in rate are per hand played; tsumo rate is per win.
+      - Placement line (oldest left, 1st on top; each point opens its match),
+        placement donut, win-method donut (riichi / closed without riichi /
+        open, plus "not recorded" for a typed-in win that never said), yaku
+        frequency bars (dora of every kind left out), best hand with tiles,
+        and the matches as a plain list — every value is readable without a
+        hover.
+      - **A nagashi mangan is not a win** for these stats: it pays like one,
+        but there is no hand, riichi or otherwise.
+      - Win method reads the *declaration* (`hand_riichi`), yaku frequency
+        reads the *yaku rows*. They can disagree only on bad data.
+      - Opened with no choice, on a player with only sanma, it shows sanma;
+        once chosen, the choice is written out (`?players=4` too) so that
+        redirect cannot undo it.
+      - Charts are plain SVG (`charts.tsx`). Colours are `--viz-*` in
+        `theme.css`, **validated with the dataviz palette validator** against
+        `--bg-raised`: win method uses its dark categorical slots 1–3 (all
+        pairs pass for colour-blind separation); placement is ordered, so it is
+        one gold ramp — the app's gold/silver/bronze failed as a chart palette
+        (silver reads grey). The validator needs Node ≥ 20 as shipped; under
+        Node 18 copy it into a directory with `{"type":"module"}`.
 - [ ] Desktop layout
 
 ## Phase 5 — Polish, deploy, harden
@@ -415,13 +442,13 @@ was learned building Phases 1 to 3 and the sanma round:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 224 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 229 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 160 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review,
+  UI in Firefox — 172 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
   a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
   screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught

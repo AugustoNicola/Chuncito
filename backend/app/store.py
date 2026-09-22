@@ -29,7 +29,10 @@ from datetime import UTC, datetime
 from sqlalchemy import Connection, delete, exists, func, insert, or_, select
 
 from . import models as m
-from .schemas import MatchRows, MatchSummary, Player, PlayerOut
+from .schemas import (
+    BestHand, MatchRows, MatchSummary, PlacedMatch, Player, PlayerOut, PlayerStats, WinMethods,
+    YakuCount,
+)
 
 
 class StaleWrite(Exception):
@@ -394,3 +397,97 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
         max_level=t.max_level,
         revision=t.revision,
     ) for t in matches]
+
+
+def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | None:
+    """
+    Everything the profile page shows, for one kind of match. None if there is
+    no such player. The heavy lifting is a handful of aggregate queries over
+    `mine`: the (match, seat) pairs where this player sat.
+    """
+    who = conn.execute(select(m.players).where(m.players.c.slug == slug)).first()
+    if who is None:
+        return None
+    c, mp, h, w = m.matches.c, m.match_players.c, m.hands.c, m.hand_wins.c
+    counted = (c.status == 'finished') & c.is_test.is_(False)
+
+    kinds = dict(conn.execute(
+        select(c.players, func.count())
+        .select_from(m.match_players.join(m.matches, c.id == mp.match_id))
+        .where(mp.player_id == who.id, counted)
+        .group_by(c.players)).all())
+
+    mine = (select(mp.match_id, mp.seat)
+            .join(m.matches, c.id == mp.match_id)
+            .where(mp.player_id == who.id, counted, c.players == players)
+            .subquery('mine'))
+
+    placed = conn.execute(
+        select(c.id, c.name, c.started_at, mp.placement, mp.final_score, mp.uma_points)
+        .select_from(m.match_players.join(m.matches, c.id == mp.match_id))
+        .join(mine, (mine.c.match_id == mp.match_id) & (mine.c.seat == mp.seat))
+        .where(mp.placement.is_not(None))
+        .order_by(c.started_at)).all()
+    counts = [0] * players
+    for p in placed:
+        if 1 <= p.placement <= players:
+            counts[p.placement - 1] += 1
+
+    my_hands = m.hands.join(mine, mine.c.match_id == h.match_id)
+    riichi_here = exists().where(m.hand_riichi.c.hand_id == h.id,
+                                 m.hand_riichi.c.seat == mine.c.seat)
+    hand_totals = conn.execute(select(
+        func.count(),
+        func.count().filter(h.deal_in_seat == mine.c.seat),
+        func.count().filter(riichi_here),
+    ).select_from(my_hands)).one()
+
+    # Wins are tsumo and ron. A nagashi mangan pays like one but is not a won
+    # hand -- there is no hand to have won with, riichi or not.
+    my_wins = my_hands.join(m.hand_wins, (w.hand_id == h.id) & (w.winner_seat == mine.c.seat))
+    won = h.outcome.in_(('tsumo', 'ron'))
+    riichi_won = exists().where(m.hand_riichi.c.hand_id == h.id,
+                                m.hand_riichi.c.seat == w.winner_seat)
+    win_totals = conn.execute(select(
+        func.count(),
+        func.count().filter(h.outcome == 'tsumo'),
+        func.count().filter(riichi_won),
+        func.count().filter(~riichi_won & w.winner_open.is_(False)),
+        func.count().filter(~riichi_won & w.winner_open.is_(True)),
+        func.count().filter(~riichi_won & w.winner_open.is_(None)),
+    ).select_from(my_wins).where(won)).one()
+
+    best = conn.execute(
+        select(c.id, c.name, h.round_wind, h.round_number,
+               w.level, w.han, w.fu, w.points_won, w.hand_tiles)
+        .select_from(my_wins.join(m.matches, c.id == h.match_id))
+        .where(won)
+        .order_by(w.level_rank.desc().nulls_last(), w.base_points.desc().nulls_last(), c.started_at)
+        .limit(1)).first()
+
+    yakus = conn.execute(
+        select(m.hand_yakus.c.yaku, func.count().label('n'))
+        .select_from(my_wins.join(m.hand_yakus, (m.hand_yakus.c.hand_id == h.id)
+                                  & (m.hand_yakus.c.winner_seat == w.winner_seat)))
+        .where(won)
+        .group_by(m.hand_yakus.c.yaku)
+        .order_by(func.count().desc(), m.hand_yakus.c.yaku)).all()
+
+    return PlayerStats(
+        player=_player_out(who), players=players,
+        matches_four=kinds.get(4, 0), matches_sanma=kinds.get(3, 0),
+        matches=[PlacedMatch(match_id=p.id, name=p.name, started_at=_format_time(p.started_at),
+                             placement=p.placement, final_score=p.final_score,
+                             uma_points=p.uma_points) for p in placed],
+        placement_counts=counts,
+        uma_total=sum(p.uma_points or 0 for p in placed),
+        hands=hand_totals[0], deal_ins=hand_totals[1], riichis=hand_totals[2],
+        wins=win_totals[0], tsumo_wins=win_totals[1],
+        win_methods=WinMethods(riichi=win_totals[2], dama=win_totals[3],
+                               open=win_totals[4], unknown=win_totals[5]),
+        best_hand=None if best is None else BestHand(
+            match_id=best.id, match_name=best.name, round_wind=best.round_wind,
+            round_number=best.round_number, level=best.level, han=best.han, fu=best.fu,
+            points_won=best.points_won, hand_tiles=best.hand_tiles),
+        yakus=[YakuCount(yaku=y.yaku, count=y.n) for y in yakus],
+    )

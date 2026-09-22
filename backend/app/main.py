@@ -10,6 +10,7 @@ The API. Run with `uvicorn app.main:app` from `backend/`.
 | `GET  /api/players`         | everyone registered, by name |
 | `POST /api/players`         | `{displayName}` -> the new player; 409 if the name is taken |
 | `PATCH /api/players/{id}`   | `{displayName}` -> renamed; 409 if the name is taken |
+| `GET  /api/players/{slug}/stats` | a profile, `?players=4` or `3`; never both |
 | `GET  /api/matches`         | summaries, newest first; filters below |
 | `GET  /api/matches/{id}`    | `{revision, rows, players}` -- `rows` is `MatchRows` |
 | `PUT  /api/matches/{id}`    | `{baseRevision, rows}` -> `{revision}`; 409 if stale |
@@ -36,7 +37,7 @@ from . import auth, store
 from .db import get_engine
 from .settings import get_settings
 from .schemas import (
-    MatchSummary, MatchWithRevision, PinIn, PlayerName, PlayerOut, PutMatch, Saved,
+    MatchSummary, MatchWithRevision, PinIn, PlayerName, PlayerOut, PlayerStats, PutMatch, Saved,
     SessionState,
 )
 
@@ -113,6 +114,16 @@ def rename_player(player_id: str, body: PlayerName):
         return _exists(taken)
     except store.NoSuchPlayer:
         raise HTTPException(status.HTTP_404_NOT_FOUND, 'no such player') from None
+
+
+@app.get('/api/players/{slug}/stats', response_model=PlayerStats, response_model_by_alias=True,
+         dependencies=gated)
+def player_stats(slug: str, players: Annotated[int, Query(ge=3, le=4)] = 4) -> PlayerStats:
+    with get_engine().connect() as conn:
+        found = store.player_stats(conn, slug, players)
+    if found is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'no such player')
+    return found
 
 
 @app.get('/api/matches', response_model=list[MatchSummary], response_model_by_alias=True,
