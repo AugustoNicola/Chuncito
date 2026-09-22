@@ -481,7 +481,10 @@ button {
 /* The table fills what is left between the bar and the bottom of the screen. */
 .app--table { gap: 6px; }
 .app__title--match { color: var(--text-dim); font-weight: 500; }
-.app__title--home { font-size: 1.4rem; letter-spacing: 0.04em; }
+.app__title--home {
+  display: flex; align-items: center; gap: 0.3em;
+  font-size: 1.4rem; letter-spacing: 0.04em; color: var(--accent);
+}
 .app__bar--home { justify-content: center; padding: 18px 0 6px; }
 /* Balances a single button in the bar so the title stays centred. */
 .app__barspacer { width: 56px; }
@@ -838,7 +841,15 @@ button {
   font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em;
 }
 /* The chun glyph as a mask rather than an image, so it takes the app's colour
-   instead of its own red. Stands in until the real logo exists. */
+   instead of its own red. Stands in until the real logo exists. The home
+   title wears the same mark (`.brand__logo`), sized by its own font. */
+.brand__logo {
+  width: 0.74em; height: 1em;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: url('/tiles/r.svg') center / contain no-repeat;
+  mask: url('/tiles/r.svg') center / contain no-repeat;
+}
 .centre__logo {
   width: 14px; height: 19px;
   flex: none;

@@ -106,7 +106,11 @@ export function App() {
   const home = (
     <div className="app">
       <header className="app__bar app__bar--home">
-        <h1 className="app__title app__title--home">Chuncito</h1>
+        <h1 className="app__title app__title--home">
+          {/* The centre box's wordmark, so the app is branded one way. */}
+          <span className="brand__logo" aria-hidden="true" />
+          Chuncito
+        </h1>
       </header>
 
       <div className="home">
