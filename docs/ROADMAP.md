@@ -391,6 +391,15 @@ their stats endpoints, then the desktop layout.
       drift apart. Offline says so; locked asks for the PIN in place.
 - [x] **Hand order is chronological for any finished match** — `TimelineList`
       orders off `status`, and the review uses it.
+- Feedback round (2026-09-22): matches are dated **to the minute, in local
+  time**, everywhere they are listed, so two on one evening are told apart.
+  The profile's donuts use the app's own palette at the user's request —
+  places in gold / silver / bronze / accent blue, win method riichi gold,
+  closed-without-riichi purple, open red — rather than the validator's
+  defaults: every pair still separates (worst ΔE 17), only the lightness band
+  and silver's chroma fail, and the legends name and count every slice. "Yaku
+  won with" folds out the yaku still to come (sanshoku doujun left out in
+  sanma, where there are no manzu runs).
 - History reads the server only. The phone's own archive is not merged in:
   every finished match is uploaded anyway, and a second source would need
   de-duplicating for no gain.
@@ -449,13 +458,13 @@ was learned building Phases 1 to 3 and the sanma round:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 229 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 230 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 185 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
+  UI in Firefox — 192 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
   a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
   screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught

@@ -10,7 +10,7 @@
  * names are short; the API's are spelled out (`min_level`), and `apiPath` is
  * the only place that knows both.
  */
-import { YAKU_NAMES } from '../hand/yakuNames';
+import { YAKU_NAMES, isDora } from '../hand/yakuNames';
 import { type MatchRows, fromRows } from '../match/rows';
 import type { MatchState } from '../match/matchState';
 import { type ServerMatch, fetchTransport } from '../match/syncClient';
@@ -46,13 +46,10 @@ export const LEVELS: readonly { rank: number; label: string }[] = [
   { rank: 6, label: 'Yakuman' },
 ];
 
-/** Dora of every kind count for han but are not yaku anyone "achieved". */
-const NOT_A_YAKU = new Set(['dora', 'akaDora', 'uraDora', 'nukiDora']);
-
 /** Every yaku worth filtering by, alphabetically by display name. */
 export const YAKU_CHOICES: readonly { atom: string; name: string }[] =
   Object.entries(YAKU_NAMES)
-    .filter(([atom]) => !NOT_A_YAKU.has(atom))
+    .filter(([atom]) => !isDora(atom))
     .map(([atom, name]) => ({ atom, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 

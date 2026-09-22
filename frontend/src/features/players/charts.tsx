@@ -2,14 +2,11 @@
  * The profile's charts, as plain SVG -- three small charts do not earn a
  * charting library on a phone that already downloads 4 MB of Prolog.
  *
- * Colours are roles defined in `theme.css` (`--viz-*`), validated against the
- * raised surface they sit on:
- * - win method is categorical (three hues, checked all-pairs for colour-blind
- *   separation);
- * - placement is *ordered*, so it is one gold ramp, 1st brightest, rather than
- *   four unrelated colours -- the app's gold, silver and bronze fail as a
- *   chart palette (silver reads as grey);
- * - the placement line is a single series in the accent.
+ * Colours are roles defined in `theme.css` (`--viz-*`), themed on the app's
+ * own palette -- places in their metals, win methods in gold, purple and red --
+ * and checked with the dataviz validator; see the note there for what passes
+ * and why the rest is accepted. The placement line is a single series in the
+ * accent.
  *
  * Every value a hover shows is also on the page without it: the donuts carry
  * their numbers in the legend, the line has the match list under it.
@@ -110,6 +107,10 @@ export function PlacementLine({ matches, players, onOpen }: {
   // Past a few dozen matches the dots would merge into the line; it carries alone.
   const dots = n <= 40;
   const date = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  // The tooltip names one match, so it can afford the time that tells it from
+  // another played the same day; the axis keeps to dates.
+  const when = (iso: string) => new Date(iso).toLocaleString(undefined, {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const focus = hot === null ? null : matches[hot] ?? null;
 
   return (
@@ -133,7 +134,7 @@ export function PlacementLine({ matches, players, onOpen }: {
         )}
         {matches.map((m, i) => (
           <g key={m.matchId} className="linechart__point" tabIndex={0} role="link"
-             aria-label={`${m.name || 'Unnamed match'}, ${date(m.startedAt)}: placed ${m.placement}`}
+             aria-label={`${m.name || 'Unnamed match'}, ${when(m.startedAt)}: placed ${m.placement}`}
              onPointerEnter={() => setHot(i)} onPointerLeave={() => setHot(null)}
              onFocus={() => setHot(i)} onBlur={() => setHot(null)}
              onClick={() => onOpen(m.matchId)}
@@ -161,7 +162,7 @@ export function PlacementLine({ matches, players, onOpen }: {
         <div className="linechart__tip"
              style={{ left: `${(x(hot) / W) * 100}%`, top: `${(y(focus.placement) / H) * 100}%` }}>
           <span className="linechart__tipname">{focus.name || 'Unnamed match'}</span>
-          <span>{date(focus.startedAt)} · {['1st', '2nd', '3rd', '4th'][focus.placement - 1]}</span>
+          <span>{when(focus.startedAt)} · {['1st', '2nd', '3rd', '4th'][focus.placement - 1]}</span>
           <span>{focus.finalScore.toLocaleString()}</span>
         </div>
       )}

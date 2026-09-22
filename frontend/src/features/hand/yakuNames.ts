@@ -35,6 +35,10 @@ export const YAKU_NAMES: Readonly<Record<string, string>> = {
 
 export const yakuName = (atom: string): string => YAKU_NAMES[atom] ?? atom;
 
+/** Dora of every kind count for han, but are not yaku anyone won with or went for. */
+const DORA_KINDS = new Set(['dora', 'akaDora', 'uraDora', 'nukiDora']);
+export const isDora = (atom: string): boolean => DORA_KINDS.has(atom);
+
 const LEVEL_NAMES: Readonly<Record<string, string>> = {
   sinNombre: '', mangan: 'Mangan', haneman: 'Haneman', baiman: 'Baiman',
   sanbaiman: 'Sanbaiman', kazoeYakuman: 'Kazoe Yakuman',

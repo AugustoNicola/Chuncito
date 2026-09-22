@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { averagePlacement, percent, placementSlices, winMethodSlices, yakuRows } from './profile';
+import {
+  averagePlacement, percent, placementSlices, winMethodSlices, yakuNotYet, yakuRows,
+} from './profile';
 
 describe('profile arithmetic', () => {
   it('rounds a share, and has none of nothing', () => {
@@ -27,5 +29,13 @@ describe('profile arithmetic', () => {
     expect(yakuRows([{ yaku: 'dora', count: 5 }, { yaku: 'pinfu', count: 2 },
                      { yaku: 'nukiDora', count: 1 }]))
       .toEqual([{ yaku: 'pinfu', count: 2, name: 'Pinfu' }]);
+  });
+
+  it('lists the yaku still to win with, without the dora or what sanma cannot make', () => {
+    const four = yakuNotYet([{ yaku: 'pinfu', count: 2 }, { yaku: 'dora', count: 1 }], 4).map((y) => y.atom);
+    expect(four).not.toContain('pinfu');
+    expect(four).toContain('sanshokuDoujun');
+    expect(four).not.toContain('dora');
+    expect(yakuNotYet([], 3).map((y) => y.atom)).not.toContain('sanshokuDoujun');
   });
 });

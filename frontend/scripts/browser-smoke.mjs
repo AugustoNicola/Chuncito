@@ -1192,6 +1192,8 @@ try {
   const level = await page.$eval('.history__item[data-tier="haneman"] .history__level',
     (el) => el.textContent).catch(() => null);
   check(level === 'Haneman', `a match shows its best hand, themed (got ${level})`);
+  const meta = await page.$eval('.history__meta', (el) => el.textContent);
+  check(/\d{1,2}:\d{2}/.test(meta), `the history shows when a match started, to the minute (got "${meta}")`);
   await shot('60-history.png');
 
   // Filtering by a player puts it in the URL.
@@ -1290,6 +1292,20 @@ try {
   check(JSON.stringify(bars) === JSON.stringify(['Riichi', 'Tanyao', 'Pinfu']),
         `the yaku leave dora out (got ${JSON.stringify(bars)})`);
   check(await page.$('.endscreen__best .handsummary') !== null, 'the best hand shows its tiles');
+  const fills = await page.$$eval('.donut__slice', (els) => els.map((e) => getComputedStyle(e).fill));
+  check(fills.includes('rgb(255, 210, 74)') && fills.includes('rgb(180, 122, 232)') && fills.includes('rgb(255, 107, 107)'),
+        `win method is gold, purple and red (got ${JSON.stringify(fills)})`);
+  const placeSwatches = await page.$$eval('.profile__section:first-of-type .donut__swatch',
+    (els) => els.map((e) => getComputedStyle(e).backgroundColor));
+  check(JSON.stringify(placeSwatches) === JSON.stringify(['rgb(255, 210, 74)', 'rgb(211, 218, 229)', 'rgb(205, 140, 79)']),
+        `places are gold, silver and bronze (got ${JSON.stringify(placeSwatches)})`);
+  await page.click('.profile__notyet summary');
+  const notYet = await page.$$eval('.profile__notyetlist li', (els) => els.map((e) => e.textContent));
+  check(notYet.length > 10 && !notYet.includes('Riichi') && !notYet.includes('Tanyao') && !notYet.includes('Dora'),
+        `the yaku still to come leave out what was won, and dora (${notYet.length} listed)`);
+  check(!notYet.includes('Sanshoku Doujun'), 'sanma does not ask for a sanshoku it cannot make');
+  const listTime = await page.$eval('.profile__matchdate', (el) => el.textContent);
+  check(/\d{1,2}:\d{2}/.test(listTime), `a match is dated to the minute (got "${listTime}")`);
   await shot('70-profile.png', { fullPage: true });
   await page.hover('.linechart__point');
   await page.waitForSelector('.linechart__tip');

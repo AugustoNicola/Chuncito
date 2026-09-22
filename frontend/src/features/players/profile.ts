@@ -6,8 +6,8 @@
  * of four), so everything here is for one `players` at a time, and the server
  * is asked for one at a time.
  */
-import { type Fetched, fetchJson } from '../history/history';
-import { yakuName } from '../hand/yakuNames';
+import { type Fetched, YAKU_CHOICES, fetchJson } from '../history/history';
+import { isDora, yakuName } from '../hand/yakuNames';
 
 export interface PlacedMatch {
   matchId: string; name: string; startedAt: string;
@@ -73,9 +73,19 @@ const PLACE = ['1st', '2nd', '3rd', '4th'];
 export const placementSlices = (counts: readonly number[]): Slice[] =>
   counts.map((value, i) => ({ key: `p${i + 1}`, label: PLACE[i] ?? `${i + 1}th`, value }));
 
-/** Dora of every kind are han, not yaku anyone chose to go for. */
-const NOT_A_YAKU = new Set(['dora', 'akaDora', 'uraDora', 'nukiDora']);
-
 /** Yaku by how often they were won with, commonest first, as the server ordered them. */
 export const yakuRows = (yakus: PlayerStats['yakus']) =>
-  yakus.filter((y) => !NOT_A_YAKU.has(y.yaku)).map((y) => ({ ...y, name: yakuName(y.yaku) }));
+  yakus.filter((y) => !isDora(y.yaku)).map((y) => ({ ...y, name: yakuName(y.yaku) }));
+
+/**
+ * Sanma has only 1m and 9m of manzu, so there is no manzu run and a sanshoku
+ * doujun cannot be made: it is not "yet to come", and is left out.
+ */
+const IMPOSSIBLE_IN_SANMA = new Set(['sanshokuDoujun']);
+
+/** Every yaku this player has still to win with, in this kind of match, by name. */
+export function yakuNotYet(yakus: PlayerStats['yakus'], players: 3 | 4): { atom: string; name: string }[] {
+  const won = new Set(yakus.map((y) => y.yaku));
+  return YAKU_CHOICES.filter((y) => !won.has(y.atom)
+    && !(players === 3 && IMPOSSIBLE_IN_SANMA.has(y.atom)));
+}

@@ -20,8 +20,13 @@ import {
 /** Long enough that typing a name is one request, short enough to feel live. */
 const TYPING_MS = 250;
 
-export const matchDate = (iso: string): string => new Date(iso).toLocaleDateString(undefined, {
+/**
+ * When a match started, in the phone's own time zone, to the minute: two
+ * matches on one evening are told apart by the time, not the date.
+ */
+export const matchDate = (iso: string): string => new Date(iso).toLocaleString(undefined, {
   weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+  hour: '2-digit', minute: '2-digit',
 });
 
 export function MatchList({ onBack }: { onBack: () => void }) {

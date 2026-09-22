@@ -22,12 +22,12 @@ import { type Round, roundLabel } from '../match/seats';
 import { Bars, Donut, PlacementLine } from './charts';
 import {
   type PlayerStats, averagePlacement, fetchStats, percent, placementSlices, winMethodSlices,
-  yakuRows,
+  yakuNotYet, yakuRows,
 } from './profile';
 
 const PLACE_COLOR = (key: string) => `var(--viz-place-${key.slice(1)})`;
 const METHOD_COLOR: Record<string, string> = {
-  riichi: 'var(--viz-series-1)', dama: 'var(--viz-series-2)', open: 'var(--viz-series-3)',
+  riichi: 'var(--viz-riichi)', dama: 'var(--viz-dama)', open: 'var(--viz-open)',
   unknown: 'var(--viz-unknown)',
 };
 
@@ -99,6 +99,7 @@ export function ProfileScreen({ onBack }: { onBack: () => void }) {
 function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: string) => void }) {
   const avg = averagePlacement(stats.placementCounts);
   const yakus = yakuRows(stats.yakus);
+  const notYet = yakuNotYet(stats.yakus, stats.players);
   const best = stats.bestHand;
   const sanma = stats.players === 3;
 
@@ -157,12 +158,20 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
                    caption="wins" unit={(n) => `${n} win${n === 1 ? '' : 's'}`} />}
       </section>
 
-      {yakus.length > 0 && (
-        <section className="profile__section">
-          <h2 className="home__heading">Yaku won with</h2>
-          <Bars rows={yakus.map((y) => ({ key: y.yaku, name: y.name, count: y.count }))} limit={8} />
-        </section>
-      )}
+      <section className="profile__section">
+        <h2 className="home__heading">Yaku won with</h2>
+        {yakus.length > 0
+          ? <Bars rows={yakus.map((y) => ({ key: y.yaku, name: y.name, count: y.count }))} limit={8} />
+          : <p className="home__hint">No yaku yet.</p>}
+        {notYet.length > 0 && (
+          <details className="profile__notyet">
+            <summary>Not won with yet ({notYet.length})</summary>
+            <ul className="profile__notyetlist">
+              {notYet.map((y) => <li key={y.atom} className="timeline__tag">{y.name}</li>)}
+            </ul>
+          </details>
+        )}
+      </section>
 
       </div>
 
