@@ -16,7 +16,9 @@ import { createMatch, type MatchConfig, type MatchState } from './features/match
 import { clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
 import { SyncPanel } from './features/match/SyncPanel';
-import { startSync, sync } from './features/match/syncClient';
+import {
+  type ServerMatch, matchesInProgress, resumeFromServer, startSync, sync, useSyncStatus,
+} from './features/match/syncClient';
 
 type Screen = 'home' | 'setup' | 'match' | 'calculator';
 
@@ -24,8 +26,20 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [match, setMatch] = useState<MatchState | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [elsewhere, setElsewhere] = useState<ServerMatch[]>([]);
+  const [fetching, setFetching] = useState<string | null>(null);
+  const syncState = useSyncStatus().state;
 
   useEffect(() => { void startSync(); }, []);
+
+  // Matches being played on other phones, offered for carrying on here. Asked
+  // again whenever home is shown or the server comes unlocked.
+  useEffect(() => {
+    if (screen !== 'home' || restoring) return;
+    let cancelled = false;
+    void matchesInProgress().then((list) => { if (!cancelled) setElsewhere(list); });
+    return () => { cancelled = true; };
+  }, [screen, restoring, syncState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +88,18 @@ export function App() {
   }
 
   const resumable = match?.status === 'in_progress' ? match : null;
+  // Only when this phone has no match of its own on the go: carrying on another
+  // one would replace it, and that choice deserves more than a list item.
+  const others = resumable ? [] : elsewhere;
+
+  async function carryOn(id: string) {
+    setFetching(id);
+    const state = await resumeFromServer(id);
+    setFetching(null);
+    if (!state) return;
+    setMatch(state);
+    setScreen('match');
+  }
 
   return (
     <div className="app">
@@ -112,6 +138,30 @@ export function App() {
         </button>
 
         {restoring && <p className="home__hint">Looking for a match in progress…</p>}
+
+        {others.length > 0 && (
+          <section className="home__elsewhere">
+            <h2 className="home__heading">In progress on another device</h2>
+            {others.map((m) => (
+              <button key={m.id} type="button" className="btn btn--wide home__resume"
+                      disabled={fetching !== null}
+                      onClick={() => void carryOn(m.id)}>
+                <span>{m.seats.join(', ')}</span>
+                <span className="home__resumemeta">
+                  {fetching === m.id ? 'Fetching…' : (
+                    `${m.players === 3 ? 'Sanma · ' : ''}${m.hands} hand${m.hands === 1 ? '' : 's'}`
+                    + ` · started ${new Date(m.startedAt).toLocaleString(undefined, {
+                      weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+                  )}
+                </span>
+              </button>
+            ))}
+            <p className="home__hint">
+              Carrying one on here moves it to this phone. If the other phone records
+              a hand too, whichever saves second is asked which copy to keep.
+            </p>
+          </section>
+        )}
 
         <SyncPanel />
       </div>

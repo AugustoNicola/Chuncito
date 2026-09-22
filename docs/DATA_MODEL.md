@@ -64,7 +64,12 @@ adjustments(id, match_id, after_seq, seat, delta, note)
 - `adjustments.client_uuid` (unique), mirroring `hands`.
 - `matches.revision`, `content_hash`, `updated_at`: sync bookkeeping, not match
   data. See `backend/app/store.py`.
-- Ids (`matches.id`, `client_uuid`s) are text: they are made on the phone.
+- Ids (`matches.id`, `client_uuid`s, `players.id`) are text: they are made on
+  the phone.
+- `players.slug` is unique and is the test of sameness: "Ana", "ana" and "Aná"
+  are one player. A phone that invents a second id for a known slug has it
+  mapped to the first on save (`store.resolve_players`). A save never renames
+  a known player.
 
 Notes:
 

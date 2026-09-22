@@ -24,8 +24,27 @@
 import type { MatchState } from './matchState';
 import { type MatchRows, toRows } from './rows';
 
+/**
+ * What a save sends: the rows, and the registered players they seat. The
+ * server may be hearing of a player for the first time -- they are made on the
+ * phone at setup -- so a match brings its players with it.
+ */
+export interface SyncPayload {
+  rows: MatchRows;
+  players: { id: string; displayName: string }[];
+}
+
+export function payloadOf(state: MatchState): SyncPayload {
+  return {
+    rows: toRows(state),
+    players: state.config.seats
+      .filter((s): s is { playerId: string; name: string } => s.playerId !== null)
+      .map((s) => ({ id: s.playerId, displayName: s.name })),
+  };
+}
+
 type Pending =
-  | { kind: 'put'; rows: MatchRows; json: string }
+  | { kind: 'put'; payload: SyncPayload; json: string }
   | { kind: 'delete' };
 
 /** One match's sync bookkeeping, persisted so a reload does not lose a pending save. */
@@ -110,10 +129,20 @@ export class SyncQueue {
     private readonly transport: Transport,
     private readonly store: RecordStore,
     private readonly timers: Timers = realTimers,
+    /** Told when the server stored a new player under an id it already had. */
+    private readonly onAliases: (aliases: Record<string, string>) => void = () => {},
   ) {}
 
   async load(): Promise<void> {
-    for (const record of await this.store.all()) this.records.set(record.id, record);
+    for (const record of await this.store.all()) {
+      // Written before saves carried players, when every seat was a guest. The
+      // server recognises the rows, so re-sending costs one request at most.
+      const old = record.pending as { kind: 'put'; rows?: MatchRows } | null;
+      if (old?.kind === 'put' && old.rows) {
+        record.pending = { kind: 'put', payload: { rows: old.rows, players: [] }, json: '' };
+      }
+      this.records.set(record.id, record);
+    }
     this.loaded = true;
     for (const run of this.early.splice(0)) run();
     this.publish();
@@ -130,14 +159,14 @@ export class SyncQueue {
   /** Queues the match's current state, if the server does not already have it. */
   enqueue(state: MatchState): void {
     if (this.whenLoaded(() => this.enqueue(state))) return;
-    const rows = toRows(state);
-    const json = JSON.stringify(rows);
+    const payload = payloadOf(state);
+    const json = JSON.stringify(payload);
     const record = this.records.get(state.id) ?? {
       id: state.id, revision: 0, sentJson: null, pending: null, problem: null,
     };
     const unsent = record.pending?.kind === 'put' ? record.pending.json : record.sentJson;
     if (unsent === json && record.pending?.kind !== 'delete') return;
-    record.pending = { kind: 'put', rows, json };
+    record.pending = { kind: 'put', payload, json };
     // A malformed match that has since changed may well be fine now.
     if (record.problem === 'rejected') record.problem = null;
     this.save(record);
@@ -160,6 +189,18 @@ export class SyncQueue {
     record.problem = null;
     this.save(record);
     this.kick();
+  }
+
+  /**
+   * Takes on a match fetched from the server -- resumed from another device --
+   * as already saved at `revision`, so the next hand here builds on it.
+   */
+  adopt(state: MatchState, revision: number): void {
+    if (this.whenLoaded(() => this.adopt(state, revision))) return;
+    this.save({
+      id: state.id, revision, sentJson: JSON.stringify(payloadOf(state)),
+      pending: null, problem: null,
+    });
   }
 
   /**
@@ -288,7 +329,7 @@ export class SyncQueue {
     try {
       response = pending.kind === 'put'
         ? await this.transport('PUT', `/matches/${encodeURIComponent(record.id)}`,
-          { baseRevision: record.revision, rows: pending.rows })
+          { baseRevision: record.revision, ...pending.payload })
         : await this.transport('DELETE', `/matches/${encodeURIComponent(record.id)}`);
     } catch {
       this.backOff();
@@ -312,7 +353,11 @@ export class SyncQueue {
     }
 
     if (response.status === 200) {
-      record.revision = (response.body as { revision: number }).revision;
+      const body = response.body as { revision: number; playerAliases?: Record<string, string> };
+      record.revision = body.revision;
+      if (body.playerAliases && Object.keys(body.playerAliases).length > 0) {
+        this.onAliases(body.playerAliases);
+      }
       record.sentJson = pending.json;
       if (!this.records.has(record.id)) {
         // Discarded while its first save was in flight: it did land, so it has

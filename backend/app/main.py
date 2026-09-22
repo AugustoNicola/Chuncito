@@ -7,12 +7,13 @@ The API. Run with `uvicorn app.main:app` from `backend/`.
 | `GET  /api/session`         | is this browser unlocked? is a PIN configured? |
 | `POST /api/session`         | `{pin}` -> sets the session cookie |
 | `DELETE /api/session`       | forget the cookie |
-| `GET  /api/matches`         | summaries, newest first |
-| `GET  /api/matches/{id}`    | `{revision, rows}` -- `rows` is `MatchRows` |
-| `PUT  /api/matches/{id}`    | `{baseRevision, rows}` -> `{revision}`; 409 if stale |
+| `GET  /api/players`         | everyone registered, by name |
+| `GET  /api/matches`         | summaries, newest first; `?status=in_progress` |
+| `GET  /api/matches/{id}`    | `{revision, rows, players}` -- `rows` is `MatchRows` |
+| `PUT  /api/matches/{id}`    | `{baseRevision, rows, players}` -> `{revision, playerAliases}`; 409 if stale |
 | `DELETE /api/matches/{id}`  | a match thrown away at the table |
 
-Everything under `/api/matches` needs the PIN cookie.
+Everything under `/api/players` and `/api/matches` needs the PIN cookie.
 
 Nothing here is meant to be found: every response says `noindex`, and
 `/robots.txt` turns crawlers away (the frontend serves one too).
@@ -25,7 +26,7 @@ from sqlalchemy.exc import IntegrityError
 from . import auth, store
 from .db import get_engine
 from .schemas import (
-    MatchSummary, MatchWithRevision, PinIn, PutMatch, Saved, SessionState,
+    MatchSummary, MatchWithRevision, PinIn, PlayerOut, PutMatch, Saved, SessionState,
 )
 
 app = FastAPI(title='Chuncito', docs_url=None, redoc_url=None, openapi_url=None)
@@ -68,11 +69,18 @@ def close_session(response: Response) -> None:
 gated = [Depends(auth.require_session)]
 
 
+@app.get('/api/players', response_model=list[PlayerOut], response_model_by_alias=True,
+         dependencies=gated)
+def list_players() -> list[PlayerOut]:
+    with get_engine().connect() as conn:
+        return store.list_players(conn)
+
+
 @app.get('/api/matches', response_model=list[MatchSummary], response_model_by_alias=True,
          dependencies=gated)
-def list_matches(include_test: bool = False) -> list[MatchSummary]:
+def list_matches(include_test: bool = False, status: str | None = None) -> list[MatchSummary]:
     with get_engine().connect() as conn:
-        return store.list_matches(conn, include_test)
+        return store.list_matches(conn, include_test, status)
 
 
 @app.get('/api/matches/{match_id}', response_model=MatchWithRevision,
@@ -82,8 +90,8 @@ def get_match(match_id: str) -> MatchWithRevision:
         found = store.load_match(conn, match_id)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, 'no such match')
-    revision, rows = found
-    return MatchWithRevision(revision=revision, rows=rows)
+    revision, rows, players = found
+    return MatchWithRevision(revision=revision, rows=rows, players=players)
 
 
 @app.put('/api/matches/{match_id}', response_model=Saved, response_model_by_alias=True,
@@ -93,15 +101,19 @@ def put_match(match_id: str, body: PutMatch):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, 'the id in the path and body differ')
     try:
         with get_engine().begin() as conn:
-            revision = store.save_match(conn, body.rows, body.base_revision)
+            revision, aliases = store.save_match(
+                conn, body.rows, body.base_revision, body.players)
     except store.StaleWrite as stale:
         return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={
             'detail': 'this match was changed from another device', 'revision': stale.revision,
         })
+    except store.UnknownPlayer as unknown:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            f'unknown player: {unknown}') from None
     except (store.DuplicateId, IntegrityError):
         raise HTTPException(status.HTTP_409_CONFLICT,
                             'a hand in this match already belongs to another match')
-    return Saved(revision=revision)
+    return Saved(revision=revision, player_aliases=aliases)
 
 
 @app.delete('/api/matches/{match_id}', status_code=status.HTTP_204_NO_CONTENT,

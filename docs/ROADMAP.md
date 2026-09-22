@@ -245,11 +245,12 @@ changes once kita are added is priced off the engine's choice. Logged in
 - [x] A finished match's timeline reads East 1 first; an ongoing one stays
       newest first.
 
-## Phase 3 — Backend and sync — IN PROGRESS (2026-09-21)
+## Phase 3 — Backend and sync — DONE (2026-09-21)
 
-The server exists and the phone saves to it. What is left in this phase is
-registered players (below) and a first real deploy of the backend, which is
-Phase 5's Heroku item pulled forward whenever convenient.
+The server exists, the phone saves to it, seats are registered players, and a
+match can be carried on from another device. What is not done is a real deploy
+of the backend: that is Phase 5's Heroku item, and `main` has not been migrated
+until it happens.
 
 **Database: Neon, Postgres 18,** region `aws-us-east-2`. Two branches: `main`
 (real matches) and `dev` (development and tests). The repo-root `.env`
@@ -296,13 +297,23 @@ wakes itself.
       are on it: install the client, make `db-migrate` depend on
       `db-backup` again, and consider a scheduled dump, since Neon's free
       restore window is short.
-- [ ] Replace the guest-only seats with real `players` rows — `SetupScreen` sets
-      `playerId: null` for everyone today, and `fromRows` already takes a
-      `nameOf(playerId)` lookup for when that changes. The table exists; this
-      is the UI and an endpoint. Needs a decision on how players get created
-      (on the fly from a guest name, or a directory screen).
-- [ ] Resume a match on another device. The server side is there
-      (`GET /api/matches/{id}` → `fromRows`); there is no screen for it.
+- [x] **Registered players, created on the fly** (`players.ts`). A name typed
+      at setup is a player: the same name (ignoring case and accents — the
+      server's `slugify`) seats the same player, a new one creates one with a
+      phone-made id, offline or not. Each save carries the players it seats and
+      the server creates the ones it has not seen; if two phones created the
+      same person offline, the second is stored under the first's id and the
+      phone is told (`playerAliases`). The roster lives in localStorage, is
+      refreshed from `GET /api/players` at start-up and on unlock, and
+      replaced the old remembered-names list (migrated on first read). No
+      guests are created by the UI any more; the schema still allows them, and
+      matches recorded before this have them. A directory screen, and merging
+      or renaming players, belong to Phase 4.
+- [x] Carry on a match from another device: the home screen lists matches in
+      progress on the server (when this phone has none of its own), and taking
+      one fetches it, rebuilds it with `fromRows`, and adopts it at the
+      server's revision. If both phones go on recording, whichever saves
+      second gets the conflict panel.
 
 Things learned doing it, worth keeping:
 
@@ -348,15 +359,16 @@ was learned building Phases 1 to 3 and the sanma round:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 210 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 221 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 117 checks, including a four-player match played end to end,
-  a sanma match with a tile-scored kita hand, and the PIN and upload against a
-  fake API (request interception; the run never touches the database). Several real bugs were caught
+  UI in Firefox — 120 checks, including a four-player match played end to end,
+  a sanma match with a tile-scored kita hand, and the PIN, upload, players and
+  carrying a match on against a fake API (request interception; the run never
+  touches the database). Several real bugs were caught
   only there: a ron reaching the reducer with no discarder, a CSS specificity
   bug that made a change apply to nothing, and place badges clipped to "1S" on
   the side seats. It also checks the table's **geometry** (no overflow,
@@ -367,7 +379,7 @@ was learned building Phases 1 to 3 and the sanma round:
   table, so check screenshots of every seat, not just the bottom one.
 - **The backend tests run against real Postgres** — a throwaway schema on the
   Neon `dev` branch, built by the real migration and dropped afterwards
-  (`make backend-test`, ~75 s from here, nearly all of it round trips to
+  (`make backend-test`, ~100 s from here, nearly all of it round trips to
   Ohio). The fixtures they PUT are written by `wire.test.ts` from real
   matches, and that test fails if they go stale: regenerate with
   `UPDATE_FIXTURES=1 npm test -- wire`. So a field added to `rows.ts` has to

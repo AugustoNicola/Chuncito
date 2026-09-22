@@ -40,7 +40,8 @@ frontend/src/scorer/         contract layer: types, order, serialize, decode, va
                              dora, engine (+ .node / .browser factories)
 frontend/src/features/hand/  hand input: handState (pure) + handTiles + nukidora + components
 frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
-                             rows (DB mapping), persistence, and the
+                             rows (DB mapping), persistence, players (the roster),
+                             sync + syncClient (saving to the server), and the
                              table/menu/timeline components
 frontend/src/ui/             Tile, theme.css
 frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test

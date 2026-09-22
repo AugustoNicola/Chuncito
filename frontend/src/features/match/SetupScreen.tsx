@@ -1,19 +1,17 @@
 /**
  * Match setup: who is playing, where they sit, and the rules.
  *
- * Players are plain names for now. Phase 3 introduces the `players` table and a
- * real roster; until then names typed here are remembered locally and offered
- * as chips, which is most of the convenience of a roster at none of the cost.
- * `playerId` stays null, so every seat is a `guest_name` row -- exactly what the
- * data model already says a guest is.
+ * A name typed here is a player (`players.ts`): a name seen before seats the
+ * same player, a new one creates one, and both work offline. The chips offer
+ * whoever played most recently.
  */
 import { useState } from 'react';
-import type { MatchConfig, SeatPlayer } from './matchState';
+import type { MatchConfig } from './matchState';
 import { DEFAULTS } from './matchState';
 import type { MatchLength, PlayerCount, Seat } from './seats';
 import { roundKanji, roundName, seatsOf } from './seats';
 import { SITUATION_WINDS } from '../../scorer/types';
-import { recallNames, rememberNames } from './persistence';
+import { recentNames, seatPlayers, slugOf } from './players';
 import { placeLabel } from './scoring';
 
 const umaFields = (players: PlayerCount): string[] => DEFAULTS[players].uma.map(String);
@@ -43,7 +41,7 @@ export function SetupScreen({ onStart, onCancel }: {
   const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
   const [returnScore, setReturnScore] = useState(DEFAULTS[4].returnScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
-  const [remembered] = useState<string[]>(() => recallNames());
+  const [remembered] = useState<string[]>(() => recentNames());
 
   const seats = seatsOf(players);
   const names = allNames.slice(0, players);
@@ -65,7 +63,8 @@ export function SetupScreen({ onStart, onCancel }: {
   };
 
   const filled = names.every((n) => n.trim().length > 0);
-  const duplicate = new Set(names.map((n) => n.trim().toLowerCase())).size < players;
+  // The same test as "is this the same player": case and accents do not count.
+  const duplicate = new Set(names.map((n) => slugOf(n.trim()))).size < players;
   const umaValues = uma.map((v) => Number(v.trim()));
   const umaValid = umaValues.every((n) => Number.isFinite(n) && Number.isInteger(n));
   // Uma that does not sum to zero would invent or destroy points across the
@@ -75,14 +74,12 @@ export function SetupScreen({ onStart, onCancel }: {
 
   /** Free names, for the quick-fill chips: those not already seated. */
   const unused = remembered.filter(
-    (n) => !names.some((v) => v.trim().toLowerCase() === n.toLowerCase()),
+    (n) => !names.some((v) => v.trim() !== '' && slugOf(v.trim()) === slugOf(n)),
   );
   const firstEmpty = names.findIndex((n) => n.trim() === '');
 
   function start() {
     if (!ready) return;
-    const trimmed = names.map((n) => n.trim());
-    rememberNames(trimmed);
     onStart({
       players,
       redFives,
@@ -90,7 +87,7 @@ export function SetupScreen({ onStart, onCancel }: {
       startingPoints,
       returnScore,
       uma: umaValues,
-      seats: trimmed.map<SeatPlayer>((name) => ({ playerId: null, name })),
+      seats: seatPlayers(names),
     });
   }
 

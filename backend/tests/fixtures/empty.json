@@ -1,58 +1,70 @@
 {
-  "match": {
-    "id": "fixture-empty",
-    "name": "",
-    "players": 4,
-    "redFives": true,
-    "length": "south",
-    "startingPoints": 25000,
-    "returnScore": 30000,
-    "umaJson": "[20,10,-10,-20]",
-    "status": "in_progress",
-    "endReason": null,
-    "startedAt": "2026-09-23T00:00:00.000Z",
-    "endedAt": null,
-    "maxLevel": null,
-    "isTest": false
+  "rows": {
+    "match": {
+      "id": "fixture-empty",
+      "name": "",
+      "players": 4,
+      "redFives": true,
+      "length": "south",
+      "startingPoints": 25000,
+      "returnScore": 30000,
+      "umaJson": "[20,10,-10,-20]",
+      "status": "in_progress",
+      "endReason": null,
+      "startedAt": "2026-09-23T00:00:00.000Z",
+      "endedAt": null,
+      "maxLevel": null,
+      "isTest": false
+    },
+    "matchPlayers": [
+      {
+        "seat": 0,
+        "playerId": "player-ana",
+        "guestName": null,
+        "finalScore": 25000,
+        "placement": null,
+        "umaPoints": null
+      },
+      {
+        "seat": 1,
+        "playerId": "player-beto",
+        "guestName": null,
+        "finalScore": 25000,
+        "placement": null,
+        "umaPoints": null
+      },
+      {
+        "seat": 2,
+        "playerId": null,
+        "guestName": "Cami",
+        "finalScore": 25000,
+        "placement": null,
+        "umaPoints": null
+      },
+      {
+        "seat": 3,
+        "playerId": null,
+        "guestName": "Dani",
+        "finalScore": 25000,
+        "placement": null,
+        "umaPoints": null
+      }
+    ],
+    "hands": [],
+    "handWins": [],
+    "handRiichi": [],
+    "handTenpai": [],
+    "handYakus": [],
+    "adjustments": []
   },
-  "matchPlayers": [
+  "players": [
     {
-      "seat": 0,
-      "playerId": null,
-      "guestName": "Ana",
-      "finalScore": 25000,
-      "placement": null,
-      "umaPoints": null
+      "id": "player-ana",
+      "displayName": "Ana"
     },
     {
-      "seat": 1,
-      "playerId": null,
-      "guestName": "Beto",
-      "finalScore": 25000,
-      "placement": null,
-      "umaPoints": null
-    },
-    {
-      "seat": 2,
-      "playerId": null,
-      "guestName": "Cami",
-      "finalScore": 25000,
-      "placement": null,
-      "umaPoints": null
-    },
-    {
-      "seat": 3,
-      "playerId": null,
-      "guestName": "Dani",
-      "finalScore": 25000,
-      "placement": null,
-      "umaPoints": null
+      "id": "player-beto",
+      "displayName": "Beto"
     }
-  ],
-  "hands": [],
-  "handWins": [],
-  "handRiichi": [],
-  "handTenpai": [],
-  "handYakus": [],
-  "adjustments": []
+  ]
 }

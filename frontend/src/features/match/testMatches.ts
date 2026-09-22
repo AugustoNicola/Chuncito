@@ -13,6 +13,7 @@ import { DEFAULTS } from './matchState';
 import { basePoints, levelFor, paymentFor } from './scoring';
 import type { Seat } from './seats';
 
+/** Two registered players and two guests, so both kinds of seat are covered. */
 export const fourPlayerConfig: MatchConfig = {
   players: 4,
   redFives: true,
@@ -21,10 +22,16 @@ export const fourPlayerConfig: MatchConfig = {
   returnScore: 30000,
   uma: [20, 10, -10, -20],
   seats: [
-    { playerId: null, name: 'Ana' }, { playerId: null, name: 'Beto' },
+    { playerId: 'player-ana', name: 'Ana' }, { playerId: 'player-beto', name: 'Beto' },
     { playerId: null, name: 'Cami' }, { playerId: null, name: 'Dani' },
   ],
 };
+
+/** Display names for the registered seats above, as `fromRows` wants them. */
+export const testNames: Readonly<Record<string, string>> = {
+  'player-ana': 'Ana', 'player-beto': 'Beto',
+};
+export const nameOfTest = (id: string): string => testNames[id] ?? id;
 
 export const manual = (winner: Seat, dealer: Seat, mode: 'ron' | 'tsumo', han = 3, fu = 30) => ({
   winner,

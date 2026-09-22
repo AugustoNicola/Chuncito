@@ -15,6 +15,9 @@ class FakeServer {
   pin = '1234';
   unlocked = false;
   down = false;
+  /** What the server will say it stored players under. */
+  aliases: Record<string, string> = {};
+  lastPlayers: { id: string }[] = [];
   /** Holds the next request until released, to test what happens mid-flight. */
   hold: (() => void) | null = null;
 
@@ -33,16 +36,22 @@ class FakeServer {
       this.matches.delete(id);
       return { status: 204, body: null };
     }
-    const { baseRevision, rows } = body as { baseRevision: number; rows: MatchRows };
+    const { baseRevision, rows, players } = body as {
+      baseRevision: number; rows: MatchRows; players: { id: string }[];
+    };
+    this.lastPlayers = players;
     const json = JSON.stringify(rows);
     const current = this.matches.get(id);
-    if (current?.json === json) return { status: 200, body: { revision: current.revision } };
+    const playerAliases = this.aliases;
+    if (current?.json === json) {
+      return { status: 200, body: { revision: current.revision, playerAliases } };
+    }
     if (current && current.revision !== baseRevision) {
       return { status: 409, body: { revision: current.revision } };
     }
     const revision = (current?.revision ?? 0) + 1;
     this.matches.set(id, { revision, json });
-    return { status: 200, body: { revision } };
+    return { status: 200, body: { revision, playerAliases } };
   };
 
   rowsOf(id: string): MatchRows {
@@ -71,6 +80,7 @@ let server: FakeServer;
 let store: MemoryStore;
 let timers: ManualTimers;
 let queue: SyncQueue;
+let heardAliases: Record<string, string>[];
 
 const start = () => createMatch(fourPlayerConfig, new Date('2026-09-21T10:00:00.000Z'), 'm1');
 const ron = (state: ReturnType<typeof start>) => recordHand(state, {
@@ -82,7 +92,8 @@ beforeEach(async () => {
   server.unlocked = true;
   store = new MemoryStore();
   timers = new ManualTimers();
-  queue = new SyncQueue(server.transport, store, timers);
+  heardAliases = [];
+  queue = new SyncQueue(server.transport, store, timers, (a) => heardAliases.push(a));
   await queue.load();
 });
 
@@ -123,6 +134,41 @@ describe('saving', () => {
     queue.enqueue(undoLastHand(s));
     await settle();
     expect(server.rowsOf('m1').hands).toHaveLength(0);
+  });
+});
+
+describe('players', () => {
+  it('sends the registered players a match seats, and not the guests', async () => {
+    queue.enqueue(start());
+    await settle();
+    expect(server.lastPlayers).toEqual([
+      { id: 'player-ana', displayName: 'Ana' }, { id: 'player-beto', displayName: 'Beto' },
+    ]);
+  });
+
+  it('passes on what the server says about players it already had', async () => {
+    server.aliases = { 'player-ana': 'srv-ana' };
+    queue.enqueue(start());
+    await settle();
+    expect(heardAliases).toEqual([{ 'player-ana': 'srv-ana' }]);
+  });
+});
+
+describe('carrying on a match from another device', () => {
+  it('builds the next save on the revision it was fetched at', async () => {
+    const s = start();
+    server.matches.set('m1', { revision: 7, json: 'whatever the other phone sent' });
+    queue.adopt(s, 7);
+    await settle();
+    expect(server.requests).toEqual([]);      // nothing new to send yet
+
+    queue.enqueue(s);                         // the match screen's first save
+    await settle();
+    expect(server.requests).toEqual([]);      // still the same match
+
+    queue.enqueue(ron(s));
+    await settle();
+    expect(server.matches.get('m1')?.revision).toBe(8);
   });
 });
 

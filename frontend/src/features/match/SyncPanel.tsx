@@ -6,7 +6,7 @@
  * something the person can do or ought to know.
  */
 import { useState } from 'react';
-import { sync, useSyncStatus } from './syncClient';
+import { refreshPlayers, sync, useSyncStatus } from './syncClient';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -30,7 +30,10 @@ export function SyncPanel() {
           const problem = await sync.unlock(pin);
           setBusy(false);
           setError(problem);
-          if (!problem) setPin('');
+          if (!problem) {
+            setPin('');
+            void refreshPlayers();
+          }
         }}>
           <p className="sync__text">
             {matches} on this phone {status.pending === 1 ? 'is' : 'are'} not on the server

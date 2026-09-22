@@ -1,285 +1,297 @@
 {
-  "match": {
-    "id": "fixture-4p",
-    "name": "the one with the double ron",
-    "players": 4,
-    "redFives": true,
-    "length": "south",
-    "startingPoints": 25000,
-    "returnScore": 30000,
-    "umaJson": "[20,10,-10,-20]",
-    "status": "finished",
-    "endReason": "manual",
-    "startedAt": "2026-09-21T10:00:00.000Z",
-    "endedAt": "2026-09-21T11:30:00.000Z",
-    "maxLevel": "mangan",
-    "isTest": false
+  "rows": {
+    "match": {
+      "id": "fixture-4p",
+      "name": "the one with the double ron",
+      "players": 4,
+      "redFives": true,
+      "length": "south",
+      "startingPoints": 25000,
+      "returnScore": 30000,
+      "umaJson": "[20,10,-10,-20]",
+      "status": "finished",
+      "endReason": "manual",
+      "startedAt": "2026-09-21T10:00:00.000Z",
+      "endedAt": "2026-09-21T11:30:00.000Z",
+      "maxLevel": "mangan",
+      "isTest": false
+    },
+    "matchPlayers": [
+      {
+        "seat": 0,
+        "playerId": "player-ana",
+        "guestName": null,
+        "finalScore": 4000,
+        "placement": 4,
+        "umaPoints": -20
+      },
+      {
+        "seat": 1,
+        "playerId": "player-beto",
+        "guestName": null,
+        "finalScore": 38800,
+        "placement": 1,
+        "umaPoints": 20
+      },
+      {
+        "seat": 2,
+        "playerId": null,
+        "guestName": "Cami",
+        "finalScore": 30400,
+        "placement": 2,
+        "umaPoints": 10
+      },
+      {
+        "seat": 3,
+        "playerId": null,
+        "guestName": "Dani",
+        "finalScore": 24800,
+        "placement": 3,
+        "umaPoints": -10
+      }
+    ],
+    "hands": [
+      {
+        "clientUuid": "fixture-4p-hand-1",
+        "seq": 1,
+        "roundWind": "este",
+        "roundNumber": 1,
+        "honba": 0,
+        "riichiPotBefore": 1,
+        "outcome": "ron",
+        "abortiveReason": null,
+        "dealInSeat": 2,
+        "scoreDelta": "0,8000,-8000,0"
+      },
+      {
+        "clientUuid": "fixture-4p-hand-2",
+        "seq": 2,
+        "roundWind": "este",
+        "roundNumber": 2,
+        "honba": 0,
+        "riichiPotBefore": 0,
+        "outcome": "tsumo",
+        "abortiveReason": null,
+        "dealInSeat": null,
+        "scoreDelta": "-1000,-2000,4000,-1000"
+      },
+      {
+        "clientUuid": "fixture-4p-hand-3",
+        "seq": 3,
+        "roundWind": "este",
+        "roundNumber": 3,
+        "honba": 0,
+        "riichiPotBefore": 1,
+        "outcome": "exhaustive_draw",
+        "abortiveReason": null,
+        "dealInSeat": null,
+        "scoreDelta": "1500,-1500,-1500,500"
+      },
+      {
+        "clientUuid": "fixture-4p-hand-4",
+        "seq": 4,
+        "roundWind": "este",
+        "roundNumber": 4,
+        "honba": 1,
+        "riichiPotBefore": 1,
+        "outcome": "abortive_draw",
+        "abortiveReason": "four_kans",
+        "dealInSeat": null,
+        "scoreDelta": "0,0,0,0"
+      },
+      {
+        "clientUuid": "fixture-4p-hand-5",
+        "seq": 5,
+        "roundWind": "este",
+        "roundNumber": 4,
+        "honba": 2,
+        "riichiPotBefore": 1,
+        "outcome": "ron",
+        "abortiveReason": null,
+        "dealInSeat": 0,
+        "scoreDelta": "-11200,9600,0,2600"
+      },
+      {
+        "clientUuid": "fixture-4p-hand-6",
+        "seq": 6,
+        "roundWind": "este",
+        "roundNumber": 4,
+        "honba": 3,
+        "riichiPotBefore": 0,
+        "outcome": "nagashi_mangan",
+        "abortiveReason": null,
+        "dealInSeat": null,
+        "scoreDelta": "-2300,-2300,8900,-4300"
+      }
+    ],
+    "handWins": [
+      {
+        "handSeq": 1,
+        "winnerSeat": 1,
+        "han": 5,
+        "fu": 40,
+        "level": "mangan",
+        "basePoints": 2000,
+        "pointsWon": 8000,
+        "isManual": false,
+        "winnerOpen": false,
+        "handTiles": "m2m2m3m4p3p4p5s3s4s5m6m7m8m5|chii:s3s4s5R|dora:m9|ura:s1",
+        "situationFlags": "riichi,ippatsu"
+      },
+      {
+        "handSeq": 2,
+        "winnerSeat": 2,
+        "han": 3,
+        "fu": 30,
+        "level": "sinNombre",
+        "basePoints": 960,
+        "pointsWon": 4000,
+        "isManual": true,
+        "winnerOpen": false,
+        "handTiles": null,
+        "situationFlags": null
+      },
+      {
+        "handSeq": 5,
+        "winnerSeat": 1,
+        "han": 5,
+        "fu": 40,
+        "level": "mangan",
+        "basePoints": 2000,
+        "pointsWon": 8000,
+        "isManual": false,
+        "winnerOpen": false,
+        "handTiles": "m2m2m3m4p3p4p5s3s4s5m6m7m8m5|chii:s3s4s5R|dora:m9|ura:s1",
+        "situationFlags": "riichi,ippatsu"
+      },
+      {
+        "handSeq": 5,
+        "winnerSeat": 3,
+        "han": 2,
+        "fu": 40,
+        "level": "sinNombre",
+        "basePoints": 640,
+        "pointsWon": 2600,
+        "isManual": true,
+        "winnerOpen": false,
+        "handTiles": null,
+        "situationFlags": null
+      },
+      {
+        "handSeq": 6,
+        "winnerSeat": 2,
+        "han": null,
+        "fu": null,
+        "level": "mangan",
+        "basePoints": 2000,
+        "pointsWon": 8000,
+        "isManual": true,
+        "winnerOpen": null,
+        "handTiles": null,
+        "situationFlags": null
+      }
+    ],
+    "handRiichi": [
+      {
+        "handSeq": 1,
+        "seat": 1
+      },
+      {
+        "handSeq": 3,
+        "seat": 3
+      }
+    ],
+    "handTenpai": [
+      {
+        "handSeq": 3,
+        "seat": 0
+      },
+      {
+        "handSeq": 3,
+        "seat": 3
+      },
+      {
+        "handSeq": 6,
+        "seat": 2
+      }
+    ],
+    "handYakus": [
+      {
+        "handSeq": 1,
+        "winnerSeat": 1,
+        "yaku": "riichi",
+        "han": 1
+      },
+      {
+        "handSeq": 1,
+        "winnerSeat": 1,
+        "yaku": "pinfu",
+        "han": 1
+      },
+      {
+        "handSeq": 1,
+        "winnerSeat": 1,
+        "yaku": "dora",
+        "han": 3
+      },
+      {
+        "handSeq": 5,
+        "winnerSeat": 1,
+        "yaku": "riichi",
+        "han": 1
+      },
+      {
+        "handSeq": 5,
+        "winnerSeat": 1,
+        "yaku": "pinfu",
+        "han": 1
+      },
+      {
+        "handSeq": 5,
+        "winnerSeat": 1,
+        "yaku": "dora",
+        "han": 3
+      }
+    ],
+    "adjustments": [
+      {
+        "clientUuid": "fixture-4p-adj-1",
+        "afterSeq": 6,
+        "seat": 0,
+        "delta": -8000,
+        "note": "chombo, agreed at the table"
+      },
+      {
+        "clientUuid": "fixture-4p-adj-2",
+        "afterSeq": 6,
+        "seat": 1,
+        "delta": 2000,
+        "note": "chombo, agreed at the table"
+      },
+      {
+        "clientUuid": "fixture-4p-adj-3",
+        "afterSeq": 6,
+        "seat": 2,
+        "delta": 2000,
+        "note": "chombo, agreed at the table"
+      },
+      {
+        "clientUuid": "fixture-4p-adj-4",
+        "afterSeq": 6,
+        "seat": 3,
+        "delta": 2000,
+        "note": "chombo, agreed at the table"
+      }
+    ]
   },
-  "matchPlayers": [
+  "players": [
     {
-      "seat": 0,
-      "playerId": null,
-      "guestName": "Ana",
-      "finalScore": 4000,
-      "placement": 4,
-      "umaPoints": -20
+      "id": "player-ana",
+      "displayName": "Ana"
     },
     {
-      "seat": 1,
-      "playerId": null,
-      "guestName": "Beto",
-      "finalScore": 38800,
-      "placement": 1,
-      "umaPoints": 20
-    },
-    {
-      "seat": 2,
-      "playerId": null,
-      "guestName": "Cami",
-      "finalScore": 30400,
-      "placement": 2,
-      "umaPoints": 10
-    },
-    {
-      "seat": 3,
-      "playerId": null,
-      "guestName": "Dani",
-      "finalScore": 24800,
-      "placement": 3,
-      "umaPoints": -10
-    }
-  ],
-  "hands": [
-    {
-      "clientUuid": "fixture-4p-hand-1",
-      "seq": 1,
-      "roundWind": "este",
-      "roundNumber": 1,
-      "honba": 0,
-      "riichiPotBefore": 1,
-      "outcome": "ron",
-      "abortiveReason": null,
-      "dealInSeat": 2,
-      "scoreDelta": "0,8000,-8000,0"
-    },
-    {
-      "clientUuid": "fixture-4p-hand-2",
-      "seq": 2,
-      "roundWind": "este",
-      "roundNumber": 2,
-      "honba": 0,
-      "riichiPotBefore": 0,
-      "outcome": "tsumo",
-      "abortiveReason": null,
-      "dealInSeat": null,
-      "scoreDelta": "-1000,-2000,4000,-1000"
-    },
-    {
-      "clientUuid": "fixture-4p-hand-3",
-      "seq": 3,
-      "roundWind": "este",
-      "roundNumber": 3,
-      "honba": 0,
-      "riichiPotBefore": 1,
-      "outcome": "exhaustive_draw",
-      "abortiveReason": null,
-      "dealInSeat": null,
-      "scoreDelta": "1500,-1500,-1500,500"
-    },
-    {
-      "clientUuid": "fixture-4p-hand-4",
-      "seq": 4,
-      "roundWind": "este",
-      "roundNumber": 4,
-      "honba": 1,
-      "riichiPotBefore": 1,
-      "outcome": "abortive_draw",
-      "abortiveReason": "four_kans",
-      "dealInSeat": null,
-      "scoreDelta": "0,0,0,0"
-    },
-    {
-      "clientUuid": "fixture-4p-hand-5",
-      "seq": 5,
-      "roundWind": "este",
-      "roundNumber": 4,
-      "honba": 2,
-      "riichiPotBefore": 1,
-      "outcome": "ron",
-      "abortiveReason": null,
-      "dealInSeat": 0,
-      "scoreDelta": "-11200,9600,0,2600"
-    },
-    {
-      "clientUuid": "fixture-4p-hand-6",
-      "seq": 6,
-      "roundWind": "este",
-      "roundNumber": 4,
-      "honba": 3,
-      "riichiPotBefore": 0,
-      "outcome": "nagashi_mangan",
-      "abortiveReason": null,
-      "dealInSeat": null,
-      "scoreDelta": "-2300,-2300,8900,-4300"
-    }
-  ],
-  "handWins": [
-    {
-      "handSeq": 1,
-      "winnerSeat": 1,
-      "han": 5,
-      "fu": 40,
-      "level": "mangan",
-      "basePoints": 2000,
-      "pointsWon": 8000,
-      "isManual": false,
-      "winnerOpen": false,
-      "handTiles": "m2m2m3m4p3p4p5s3s4s5m6m7m8m5|chii:s3s4s5R|dora:m9|ura:s1",
-      "situationFlags": "riichi,ippatsu"
-    },
-    {
-      "handSeq": 2,
-      "winnerSeat": 2,
-      "han": 3,
-      "fu": 30,
-      "level": "sinNombre",
-      "basePoints": 960,
-      "pointsWon": 4000,
-      "isManual": true,
-      "winnerOpen": false,
-      "handTiles": null,
-      "situationFlags": null
-    },
-    {
-      "handSeq": 5,
-      "winnerSeat": 1,
-      "han": 5,
-      "fu": 40,
-      "level": "mangan",
-      "basePoints": 2000,
-      "pointsWon": 8000,
-      "isManual": false,
-      "winnerOpen": false,
-      "handTiles": "m2m2m3m4p3p4p5s3s4s5m6m7m8m5|chii:s3s4s5R|dora:m9|ura:s1",
-      "situationFlags": "riichi,ippatsu"
-    },
-    {
-      "handSeq": 5,
-      "winnerSeat": 3,
-      "han": 2,
-      "fu": 40,
-      "level": "sinNombre",
-      "basePoints": 640,
-      "pointsWon": 2600,
-      "isManual": true,
-      "winnerOpen": false,
-      "handTiles": null,
-      "situationFlags": null
-    },
-    {
-      "handSeq": 6,
-      "winnerSeat": 2,
-      "han": null,
-      "fu": null,
-      "level": "mangan",
-      "basePoints": 2000,
-      "pointsWon": 8000,
-      "isManual": true,
-      "winnerOpen": null,
-      "handTiles": null,
-      "situationFlags": null
-    }
-  ],
-  "handRiichi": [
-    {
-      "handSeq": 1,
-      "seat": 1
-    },
-    {
-      "handSeq": 3,
-      "seat": 3
-    }
-  ],
-  "handTenpai": [
-    {
-      "handSeq": 3,
-      "seat": 0
-    },
-    {
-      "handSeq": 3,
-      "seat": 3
-    },
-    {
-      "handSeq": 6,
-      "seat": 2
-    }
-  ],
-  "handYakus": [
-    {
-      "handSeq": 1,
-      "winnerSeat": 1,
-      "yaku": "riichi",
-      "han": 1
-    },
-    {
-      "handSeq": 1,
-      "winnerSeat": 1,
-      "yaku": "pinfu",
-      "han": 1
-    },
-    {
-      "handSeq": 1,
-      "winnerSeat": 1,
-      "yaku": "dora",
-      "han": 3
-    },
-    {
-      "handSeq": 5,
-      "winnerSeat": 1,
-      "yaku": "riichi",
-      "han": 1
-    },
-    {
-      "handSeq": 5,
-      "winnerSeat": 1,
-      "yaku": "pinfu",
-      "han": 1
-    },
-    {
-      "handSeq": 5,
-      "winnerSeat": 1,
-      "yaku": "dora",
-      "han": 3
-    }
-  ],
-  "adjustments": [
-    {
-      "clientUuid": "fixture-4p-adj-1",
-      "afterSeq": 6,
-      "seat": 0,
-      "delta": -8000,
-      "note": "chombo, agreed at the table"
-    },
-    {
-      "clientUuid": "fixture-4p-adj-2",
-      "afterSeq": 6,
-      "seat": 1,
-      "delta": 2000,
-      "note": "chombo, agreed at the table"
-    },
-    {
-      "clientUuid": "fixture-4p-adj-3",
-      "afterSeq": 6,
-      "seat": 2,
-      "delta": 2000,
-      "note": "chombo, agreed at the table"
-    },
-    {
-      "clientUuid": "fixture-4p-adj-4",
-      "afterSeq": 6,
-      "seat": 3,
-      "delta": 2000,
-      "note": "chombo, agreed at the table"
+      "id": "player-beto",
+      "displayName": "Beto"
     }
   ]
 }

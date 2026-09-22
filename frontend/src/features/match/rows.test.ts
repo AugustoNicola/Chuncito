@@ -10,11 +10,11 @@ import { describe, expect, it } from 'vitest';
 import { createMatch, recordHand } from './matchState';
 import { placements } from './scoring';
 import { fromRows, toRows } from './rows';
-import { fourPlayerConfig as config, manual, playEverything } from './testMatches';
+import { fourPlayerConfig as config, manual, nameOfTest, playEverything } from './testMatches';
 
 describe('a match survives the database', () => {
   const original = playEverything();
-  const rebuilt = fromRows(toRows(original));
+  const rebuilt = fromRows(toRows(original), nameOfTest);
 
   it('records one of every outcome, so the check means something', () => {
     expect(new Set(original.hands.map((h) => h.outcome))).toEqual(new Set([
@@ -82,19 +82,19 @@ describe('a match survives the database', () => {
     state = recordHand(state, {
       kind: 'win', mode: 'ron', dealIn: 2, wins: [manual(1, 0, 'ron')],
     }).state;
-    const back = fromRows(toRows(state));
+    const back = fromRows(toRows(state), nameOfTest);
     expect(back).toEqual(state);
   });
 
   it('keeps whether the match played with red fives', () => {
     const state = createMatch({ ...config, redFives: false });
     expect(toRows(state).match.redFives).toBe(false);
-    expect(fromRows(toRows(state))).toEqual(state);
+    expect(fromRows(toRows(state), nameOfTest)).toEqual(state);
   });
 
   it('round-trips an empty match', () => {
     const state = createMatch(config);
-    expect(fromRows(toRows(state))).toEqual(state);
+    expect(fromRows(toRows(state), nameOfTest)).toEqual(state);
   });
 
   it('keeps placements and uma on the seats, as the end screen gives them', () => {
@@ -116,6 +116,12 @@ describe('a match survives the database', () => {
   it('records the best level reached, for the "mangan or better" filter', () => {
     expect(toRows(original).match.maxLevel).toBe('mangan');
     expect(toRows(createMatch(config)).match.maxLevel).toBeNull();
+  });
+
+  it('stores a registered player by id and a guest by name', () => {
+    const seats = toRows(original).matchPlayers;
+    expect(seats[0]).toMatchObject({ playerId: 'player-ana', guestName: null });
+    expect(seats[2]).toMatchObject({ playerId: null, guestName: 'Cami' });
   });
 
   it('keeps the match id, which the server stores it under', () => {

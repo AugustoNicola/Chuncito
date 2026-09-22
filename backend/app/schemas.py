@@ -142,6 +142,15 @@ class MatchRows(Wire):
         return self
 
 
+class Player(Wire):
+    id: str = Field(min_length=1, max_length=64)
+    display_name: str = Field(min_length=1, max_length=60)
+
+
+class PlayerOut(Player):
+    slug: str
+
+
 class PutMatch(Wire):
     """
     A whole match, plus the revision the phone last saw.
@@ -149,13 +158,21 @@ class PutMatch(Wire):
     `base_revision` is what stops a stale phone from overwriting newer work: a
     phone that went offline, while the match carried on from another device,
     would otherwise flush its old copy over the new one when it reconnected.
+
+    `players` are the registered players the match seats. The phone makes them
+    up at setup, offline if need be, so the server may be hearing of them for
+    the first time; see `store.resolve_players`.
     """
     base_revision: int = Field(ge=0)
     rows: MatchRows
+    players: list[Player] = []
 
 
 class Saved(Wire):
     revision: int
+    # Player ids the phone made up for someone the server already knew by
+    # name, and the id they were stored under instead.
+    player_aliases: dict[str, str] = {}
 
 
 class Conflict(Wire):
@@ -179,6 +196,9 @@ class MatchSummary(Wire):
 class MatchWithRevision(Wire):
     revision: int
     rows: MatchRows
+    # Names for the registered seats, so a device that has never seen these
+    # players can still rebuild the match (`fromRows(rows, nameOf)`).
+    players: list[Player]
 
 
 class PinIn(Wire):

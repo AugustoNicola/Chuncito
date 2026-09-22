@@ -492,6 +492,11 @@ button {
 .home__resume { display: flex; flex-direction: column; gap: 2px; }
 .home__resumemeta { font-size: 0.78rem; color: var(--text-dim); font-weight: 400; }
 .home__hint { color: var(--text-faint); font-size: 0.85rem; text-align: center; margin: 0; }
+.home__elsewhere { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.home__heading {
+  margin: 0; font-size: 0.78rem; font-weight: 600;
+  color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em;
+}
 
 /* ---------- sync ---------- */
 

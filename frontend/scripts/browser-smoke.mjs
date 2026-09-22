@@ -41,7 +41,9 @@ try {
   // A stand-in for the backend, so the run stays hermetic: it starts locked,
   // takes the PIN, and keeps what it is sent. The real server's rules are the
   // backend's own tests; this only has to be the right shape.
-  const api = { pin: '2468', unlocked: false, matches: new Map(), requests: [] };
+  const api = {
+    pin: '2468', unlocked: false, matches: new Map(), players: new Map(), requests: [],
+  };
   await page.setRequestInterception(true);
   page.on('request', async (req) => {
     const url = new URL(req.url());
@@ -62,12 +64,33 @@ try {
       return api.unlocked ? reply(204) : reply(401, { detail: 'wrong PIN' });
     }
     if (!api.unlocked) return reply(401, { detail: 'enter the PIN' });
+    if (path === '/players') return reply(200, [...api.players.values()]);
+    if (path === '/matches' && method === 'GET') {
+      const status = url.searchParams.get('status');
+      return reply(200, [...api.matches.entries()]
+        .filter(([, m]) => !status || m.rows.match.status === status)
+        .map(([id, m]) => ({
+          id, name: m.rows.match.name, players: m.rows.match.players,
+          status: m.rows.match.status, startedAt: m.rows.match.startedAt,
+          endedAt: m.rows.match.endedAt, hands: m.rows.hands.length,
+          seats: m.rows.matchPlayers.map((p) =>
+            p.guestName ?? api.players.get(p.playerId)?.displayName ?? '?'),
+          scores: m.rows.matchPlayers.map((p) => p.finalScore), revision: m.revision,
+        })));
+    }
     const id = decodeURIComponent(path.replace('/matches/', ''));
     if (method === 'DELETE') { api.matches.delete(id); return reply(204); }
     if (method === 'PUT') {
+      for (const p of body.players) if (!api.players.has(p.id)) api.players.set(p.id, p);
       const revision = (api.matches.get(id)?.revision ?? 0) + 1;
       api.matches.set(id, { revision, rows: body.rows });
-      return reply(200, { revision });
+      return reply(200, { revision, playerAliases: {} });
+    }
+    if (method === 'GET' && api.matches.has(id)) {
+      const { revision, rows } = api.matches.get(id);
+      const players = rows.matchPlayers.filter((p) => p.playerId)
+        .map((p) => api.players.get(p.playerId));
+      return reply(200, { revision, rows, players });
     }
     return reply(404, { detail: 'not in the fake' });
   });
@@ -908,6 +931,34 @@ try {
     await new Promise((r) => setTimeout(r, 100));
   }
   check(api.matches.size === before, 'a discarded match comes off the server');
+
+  // Seats are registered players now, sent along with the first match that seats them.
+  check(finished.matchPlayers.every((p) => p.playerId && p.guestName === null)
+        && finished.matchPlayers.every((p) => api.players.has(p.playerId)),
+        'seats are registered players, and the server was told who they are');
+
+  // Another phone's match in progress, offered on the home screen.
+  const other = structuredClone(finished);
+  other.match = { ...other.match, id: 'from-another-phone', status: 'in_progress',
+                  endReason: null, endedAt: null, name: '' };
+  other.matchPlayers = other.matchPlayers.map((p) => ({ ...p, placement: null, umaPoints: null }));
+  api.matches.set('from-another-phone', { revision: 3, rows: other });
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home__elsewhere', { timeout: 10_000 });
+  await shot('51-elsewhere.png');
+  await byText(other.matchPlayers
+    .map((p) => p.guestName ?? api.players.get(p.playerId).displayName).join(', '));
+  await page.waitForSelector('.table');
+  await byText('Timeline');
+  await page.waitForSelector('.timeline');
+  check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 2', 'East 1']),
+        `a match carried on from another phone arrives with its hands (got ${JSON.stringify(await timelineRounds())})`);
+  await byText('Back');
+  await page.waitForSelector('.table');
+  const revisionBefore = api.matches.get('from-another-phone').revision;
+  await new Promise((r) => setTimeout(r, 500));
+  check(api.matches.get('from-another-phone').revision === revisionBefore,
+        'carrying a match on does not re-send it unchanged');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {

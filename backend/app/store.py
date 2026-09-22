@@ -20,12 +20,14 @@ Two things keep that safe:
 """
 import hashlib
 import json
+import re
+import unicodedata
 from datetime import UTC, datetime
 
 from sqlalchemy import Connection, delete, func, insert, select
 
 from . import models as m
-from .schemas import MatchRows, MatchSummary
+from .schemas import MatchRows, MatchSummary, Player, PlayerOut
 
 
 class StaleWrite(Exception):
@@ -36,6 +38,50 @@ class StaleWrite(Exception):
 
 class DuplicateId(Exception):
     """A hand or adjustment id already belongs to a different match."""
+
+
+class UnknownPlayer(Exception):
+    """A seat names a player the server has never heard of and was not told about."""
+
+
+def slugify(name: str) -> str:
+    """"José Luis" -> "jose-luis": the name as a URL, and as the test of sameness."""
+    plain = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode()
+    return re.sub(r'[^a-z0-9]+', '-', plain.lower()).strip('-') or 'player'
+
+
+def resolve_players(conn: Connection, players: list[Player]) -> dict[str, str]:
+    """
+    Makes sure every player the phone sent exists, and returns the aliases.
+
+    The phone creates a player the moment a new name is typed at setup, with
+    an id of its own, possibly offline. So two phones can each create "Ana"
+    before either has synced. The server keeps one: whoever arrives second is
+    stored under the first one's id, and the phone is told (`player_aliases`)
+    so it uses that id from then on. Sameness is the slug, so "ana" and "Ana"
+    are one person -- the same test the phone uses when matching a typed name.
+
+    A known id keeps its stored name: renaming is not something a match save
+    should do behind anyone's back.
+    """
+    aliases: dict[str, str] = {}
+    for player in players:
+        if conn.execute(select(m.players.c.id).where(m.players.c.id == player.id)).first():
+            continue
+        slug = slugify(player.display_name)
+        existing = conn.execute(
+            select(m.players.c.id).where(m.players.c.slug == slug)).scalar()
+        if existing is not None:
+            aliases[player.id] = existing
+        else:
+            conn.execute(insert(m.players).values(
+                id=player.id, display_name=player.display_name.strip(), slug=slug))
+    return aliases
+
+
+def list_players(conn: Connection) -> list[PlayerOut]:
+    found = conn.execute(select(m.players).order_by(m.players.c.display_name)).all()
+    return [PlayerOut(id=p.id, display_name=p.display_name, slug=p.slug) for p in found]
 
 
 def _parse_time(text: str | None) -> datetime | None:
@@ -70,10 +116,24 @@ def _other_owner(conn: Connection, match_id: str, rows: MatchRows) -> bool:
     return conn.execute(clash).first() is not None
 
 
-def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
-    """Stores the match and returns its new revision. Call inside a transaction."""
+def save_match(conn: Connection, rows: MatchRows, base_revision: int,
+               players: list[Player] | None = None) -> tuple[int, dict[str, str]]:
+    """
+    Stores the match; returns its new revision and any player aliases.
+    Call inside a transaction.
+    """
     match_id = rows.match.id
     digest = content_hash(rows)
+
+    # Before the retry check, so a retried save still learns its aliases.
+    aliases = resolve_players(conn, players or [])
+    seated = {aliases.get(p.player_id, p.player_id)
+              for p in rows.match_players if p.player_id is not None}
+    if seated:
+        known = set(conn.execute(
+            select(m.players.c.id).where(m.players.c.id.in_(seated))).scalars())
+        if seated - known:
+            raise UnknownPlayer(', '.join(sorted(seated - known)))
 
     current = conn.execute(
         select(m.matches.c.revision, m.matches.c.content_hash)
@@ -83,7 +143,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
 
     if current is not None:
         if current.content_hash == digest:
-            return current.revision
+            return current.revision, aliases
         if current.revision != base_revision:
             raise StaleWrite(current.revision)
     if _other_owner(conn, match_id, rows):
@@ -108,7 +168,8 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
             conn.execute(delete(table).where(table.c.match_id == match_id))
 
     conn.execute(insert(m.match_players), [{
-        'match_id': match_id, 'seat': p.seat, 'player_id': p.player_id,
+        'match_id': match_id, 'seat': p.seat,
+        'player_id': aliases.get(p.player_id, p.player_id) if p.player_id else None,
         'guest_name': p.guest_name, 'final_score': p.final_score,
         'placement': p.placement, 'uma_points': p.uma_points,
     } for p in rows.match_players])
@@ -156,10 +217,11 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
             'seat': a.seat, 'delta': a.delta, 'note': a.note,
         } for a in rows.adjustments])
 
-    return revision
+    return revision, aliases
 
 
-def load_match(conn: Connection, match_id: str) -> tuple[int, MatchRows] | None:
+def load_match(conn: Connection, match_id: str
+               ) -> tuple[int, MatchRows, list[Player]] | None:
     t = conn.execute(select(m.matches).where(m.matches.c.id == match_id)).first()
     if t is None:
         return None
@@ -180,7 +242,8 @@ def load_match(conn: Connection, match_id: str) -> tuple[int, MatchRows] | None:
     tenpai = children(m.hand_tenpai, lambda r: (r.seat,))
     yakus = children(m.hand_yakus, lambda r: (r.winner_seat, r.position))
 
-    players = conn.execute(select(m.match_players)
+    players = conn.execute(select(m.match_players, m.players.c.display_name)
+                           .outerjoin(m.players, m.players.c.id == m.match_players.c.player_id)
                            .where(m.match_players.c.match_id == match_id)
                            .order_by(m.match_players.c.seat)).all()
     adjustments = conn.execute(select(m.adjustments)
@@ -226,20 +289,25 @@ def load_match(conn: Connection, match_id: str) -> tuple[int, MatchRows] | None:
             'delta': a.delta, 'note': a.note,
         } for a in adjustments],
     )
-    return t.revision, rows
+    named = [Player(id=p.player_id, display_name=p.display_name)
+             for p in players if p.player_id is not None]
+    return t.revision, rows, named
 
 
 def delete_match(conn: Connection, match_id: str) -> bool:
     return conn.execute(delete(m.matches).where(m.matches.c.id == match_id)).rowcount > 0
 
 
-def list_matches(conn: Connection, include_test: bool = False) -> list[MatchSummary]:
+def list_matches(conn: Connection, include_test: bool = False,
+                 status: str | None = None) -> list[MatchSummary]:
     """Newest first. Scores are the stored `final_score`, current as of the last save."""
     hand_count = (select(func.count()).where(m.hands.c.match_id == m.matches.c.id)
                   .scalar_subquery())
     query = select(m.matches, hand_count.label('hand_count')).order_by(m.matches.c.started_at.desc())
     if not include_test:
         query = query.where(m.matches.c.is_test.is_(False))
+    if status is not None:
+        query = query.where(m.matches.c.status == status)
     matches = conn.execute(query).all()
 
     seats = conn.execute(

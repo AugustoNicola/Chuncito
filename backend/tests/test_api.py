@@ -17,18 +17,29 @@ FIXTURES = {p.stem: json.loads(p.read_text())
 
 
 def fixture(name: str, match_id: str) -> dict:
-    """A fixture under a fresh id, so tests do not collide in the shared schema."""
-    rows = copy.deepcopy(FIXTURES[name])
+    """
+    A fixture's rows under a fresh id, so tests do not collide in the shared
+    schema. The players that came with it ride along in `PLAYERS[match_id]`.
+    """
+    payload = copy.deepcopy(FIXTURES[name])
+    rows = payload['rows']
     old = rows['match']['id']
     rows['match']['id'] = match_id
     for row in (*rows['hands'], *rows['adjustments']):
         row['clientUuid'] = row['clientUuid'].replace(old, match_id)
+    PLAYERS[match_id] = payload['players']
     return rows
 
 
-def put(client, rows: dict, base: int = 0):
-    return client.put(f"/api/matches/{rows['match']['id']}",
-                      json={'baseRevision': base, 'rows': rows})
+PLAYERS: dict[str, list] = {}
+
+
+def put(client, rows: dict, base: int = 0, players: list | None = None):
+    match_id = rows['match']['id']
+    return client.put(f'/api/matches/{match_id}', json={
+        'baseRevision': base, 'rows': rows,
+        'players': PLAYERS.get(match_id, []) if players is None else players,
+    })
 
 
 def test_the_fixtures_are_there():
@@ -75,28 +86,28 @@ def test_a_match_comes_back_exactly_as_it_was_sent(unlocked, name):
     rows = fixture(name, f'rt-{name}')
     saved = put(unlocked, rows)
     assert saved.status_code == 200, saved.text
-    assert saved.json() == {'revision': 1}
+    assert saved.json()['revision'] == 1
 
     got = unlocked.get(f"/api/matches/{rows['match']['id']}")
     assert got.status_code == 200
-    assert got.json() == {'revision': 1, 'rows': rows}
+    assert got.json() == {'revision': 1, 'rows': rows, 'players': PLAYERS[rows['match']['id']]}
 
 
 def test_a_retried_save_is_not_a_second_write(unlocked):
     rows = fixture('four-player-finished', 'retry')
-    assert put(unlocked, rows).json() == {'revision': 1}
+    assert put(unlocked, rows).json()['revision'] == 1
     # The phone never heard back, so it sends the same thing on the same base.
-    assert put(unlocked, rows, base=0).json() == {'revision': 1}
+    assert put(unlocked, rows, base=0).json()['revision'] == 1
 
 
 def test_undo_is_just_the_next_save(unlocked):
     rows = fixture('sanma-in-progress', 'undo')
-    assert put(unlocked, rows).json() == {'revision': 1}
+    assert put(unlocked, rows).json()['revision'] == 1
 
     undone = copy.deepcopy(rows)
     undone['hands'] = undone['hands'][:-1]
     undone['handTenpai'] = [t for t in undone['handTenpai'] if t['handSeq'] != 2]
-    assert put(unlocked, undone, base=1).json() == {'revision': 2}
+    assert put(unlocked, undone, base=1).json()['revision'] == 2
     assert unlocked.get('/api/matches/undo').json()['rows'] == undone
 
 
@@ -105,7 +116,7 @@ def test_a_stale_phone_cannot_overwrite_newer_hands(unlocked):
     put(unlocked, rows)
     newer = copy.deepcopy(rows)
     newer['match']['name'] = 'carried on elsewhere'
-    assert put(unlocked, newer, base=1).json() == {'revision': 2}
+    assert put(unlocked, newer, base=1).json()['revision'] == 2
 
     # The first phone, back online, still thinks the server is at revision 1.
     older = copy.deepcopy(rows)
@@ -146,6 +157,64 @@ def test_a_yaku_without_its_winner_is_refused(unlocked):
     assert put(unlocked, rows).status_code == 422
 
 
+# --- players ---
+
+def test_a_match_brings_its_new_players_with_it(unlocked):
+    rows = fixture('four-player-finished', 'players-new')
+    assert put(unlocked, rows).status_code == 200
+    listed = {p['id']: p for p in unlocked.get('/api/players').json()}
+    assert listed['player-ana'] == {'id': 'player-ana', 'displayName': 'Ana', 'slug': 'ana'}
+    assert 'player-beto' in listed
+
+
+def test_a_seat_naming_an_unknown_player_is_refused(unlocked):
+    rows = fixture('empty', 'players-unknown')
+    rows['matchPlayers'][0]['playerId'] = 'nobody-told-me'
+    response = put(unlocked, rows, players=[])
+    assert response.status_code == 422
+    assert 'nobody-told-me' in response.text
+
+
+def test_the_same_person_made_on_two_phones_is_one_player(unlocked):
+    put(unlocked, fixture('empty', 'players-first'))       # creates player-ana, "Ana"
+
+    # Another phone, offline, created "ANA" with an id of its own.
+    rows = fixture('empty', 'players-second')
+    rows['matchPlayers'][0]['playerId'] = 'phone-b-ana'
+    saved = put(unlocked, rows, players=[
+        {'id': 'phone-b-ana', 'displayName': 'ANA'},
+        {'id': 'player-beto', 'displayName': 'Beto'},
+    ])
+    assert saved.status_code == 200
+    assert saved.json()['playerAliases'] == {'phone-b-ana': 'player-ana'}
+
+    got = unlocked.get('/api/matches/players-second').json()
+    assert got['rows']['matchPlayers'][0]['playerId'] == 'player-ana'
+    assert got['players'][0] == {'id': 'player-ana', 'displayName': 'Ana'}
+    assert 'phone-b-ana' not in {p['id'] for p in unlocked.get('/api/players').json()}
+
+    # The phone retries, never having heard back: it still learns the alias.
+    again = put(unlocked, rows, players=[{'id': 'phone-b-ana', 'displayName': 'ANA'},
+                                         {'id': 'player-beto', 'displayName': 'Beto'}])
+    assert again.json() == {'revision': 1, 'playerAliases': {'phone-b-ana': 'player-ana'}}
+
+
+def test_a_known_player_keeps_their_name(unlocked):
+    put(unlocked, fixture('empty', 'players-keep'))
+    rows = fixture('empty', 'players-rename')
+    put(unlocked, rows, players=[{'id': 'player-ana', 'displayName': 'Anita'},
+                                 {'id': 'player-beto', 'displayName': 'Beto'}])
+    listed = {p['id']: p for p in unlocked.get('/api/players').json()}
+    assert listed['player-ana']['displayName'] == 'Ana'
+
+
+def test_slugs_ignore_case_and_accents():
+    from app.store import slugify
+    assert slugify('José Luis') == 'jose-luis'
+    assert slugify('  ANA ') == 'ana'
+    assert slugify('???') == 'player'
+
+
 # --- listing and deleting ---
 
 def test_the_list_summarises_matches_newest_first(unlocked):
@@ -168,6 +237,10 @@ def test_the_list_summarises_matches_newest_first(unlocked):
 
     with_tests = unlocked.get('/api/matches', params={'include_test': True}).json()
     assert 'list-test' in {m['id'] for m in with_tests}
+
+    playing = unlocked.get('/api/matches', params={'status': 'in_progress'}).json()
+    assert 'list-b' in {m['id'] for m in playing}
+    assert 'list-a' not in {m['id'] for m in playing}
 
 
 def test_a_discarded_match_is_deleted_with_everything_in_it(unlocked, engine):

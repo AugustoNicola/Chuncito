@@ -22,10 +22,6 @@ const STORE = 'matches';
 export const SYNC_STORE = 'sync';
 const CURRENT = 'current';
 
-/** Names typed at setup, so repeat players are one tap next time. */
-const NAMES_KEY = 'chuncito.names';
-const MAX_REMEMBERED = 12;
-
 let dbPromise: Promise<IDBDatabase | null> | undefined;
 
 function openDb(): Promise<IDBDatabase | null> {
@@ -145,30 +141,4 @@ export async function listArchived(): Promise<MatchState[]> {
       resolve([]);
     }
   });
-}
-
-// --- remembered names (localStorage: tiny, synchronous, read once at setup) ---
-
-export function recallNames(): string[] {
-  try {
-    const raw = localStorage.getItem(NAMES_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((n): n is string => typeof n === 'string') : [];
-  } catch {
-    return [];
-  }
-}
-
-/** Most recently used first, so the names in rotation stay at the front. */
-export function rememberNames(names: readonly string[]): void {
-  try {
-    const existing = recallNames();
-    const merged = [...names];
-    for (const name of existing) {
-      if (!merged.some((n) => n.toLowerCase() === name.toLowerCase())) merged.push(name);
-    }
-    localStorage.setItem(NAMES_KEY, JSON.stringify(merged.slice(0, MAX_REMEMBERED)));
-  } catch {
-    // Storage is a convenience here; failing to remember a name is not an error.
-  }
 }
