@@ -1,14 +1,25 @@
 /**
- * Which screen the app is on.
+ * The routes, and the match in progress that they share.
  *
- * Deliberately not a router: there are four screens and no URLs worth having
- * yet, and a match in progress is state you must not lose to a stray back
- * gesture. Phase 4 brings history and player pages, which will want real routes.
+ * | path          | screen |
+ * |---|---|
+ * | `/`           | home |
+ * | `/setup`      | a new match |
+ * | `/match`      | the table, for the match in progress on this phone |
+ * | `/calculator` | the hand calculator on its own |
+ * | `/players`    | adding and renaming players |
+ * | `/matches`    | finished matches; the filters are the query string |
+ * | `/matches/:id`| one finished match, read back |
+ *
+ * The match lives here rather than in a route, since home, setup and the table
+ * all need it. `/match` without one goes home. A back gesture cannot leave the
+ * table; `MatchScreen` guards that itself.
  *
  * On load the IndexedDB mirror is checked first, so a phone that died mid-hanchan
  * comes back to the table rather than to the home screen.
  */
 import { useEffect, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { HandBuilder } from './features/hand/HandBuilder';
 import { MatchScreen } from './features/match/MatchScreen';
 import { SetupScreen } from './features/match/SetupScreen';
@@ -17,30 +28,49 @@ import { clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
 import { SyncPanel } from './features/match/SyncPanel';
 import { PlayersScreen } from './features/players/PlayersScreen';
+import { MatchList } from './features/history/MatchList';
+import { MatchReview } from './features/history/MatchReview';
 import {
   type ServerMatch, matchesInProgress, resumeFromServer, startSync, sync, useSyncStatus,
 } from './features/match/syncClient';
 
-type Screen = 'home' | 'setup' | 'match' | 'calculator' | 'players';
-
 export function App() {
-  const [screen, setScreen] = useState<Screen>('home');
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [match, setMatch] = useState<MatchState | null>(null);
   const [restoring, setRestoring] = useState(true);
   const [elsewhere, setElsewhere] = useState<ServerMatch[]>([]);
   const [fetching, setFetching] = useState<string | null>(null);
   const syncState = useSyncStatus().state;
+  const atHome = pathname === '/';
+  // Where the app was opened, before any redirect: the restore below reads the
+  // mirror asynchronously, by which time `/no/such/page` has become `/`.
+  const [openedAt] = useState(() => window.location.pathname);
+
+  /**
+   * A screen's own Back button: back through the history when there is an
+   * in-app entry to go back to, so a Back tap and a back gesture agree, and
+   * its parent otherwise (a screen opened from a link has nothing behind it).
+   * `idx` is React Router's own position in the history stack.
+   */
+  const back = (parent = '/') => () => {
+    if (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0) navigate(-1);
+    else navigate(parent, { replace: true });
+  };
+  // Out of the match. Replacing the entry rather than going back, since the
+  // table must not be one back gesture away once it is left.
+  const leaveMatch = () => navigate('/', { replace: true });
 
   useEffect(() => { void startSync(); }, []);
 
   // Matches being played on other phones, offered for carrying on here. Asked
   // again whenever home is shown or the server comes unlocked.
   useEffect(() => {
-    if (screen !== 'home' || restoring) return;
+    if (!atHome || restoring) return;
     let cancelled = false;
     void matchesInProgress().then((list) => { if (!cancelled) setElsewhere(list); });
     return () => { cancelled = true; };
-  }, [screen, restoring, syncState]);
+  }, [atHome, restoring, syncState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,49 +78,14 @@ export function App() {
       if (cancelled) return;
       if (saved && saved.status === 'in_progress') {
         setMatch(saved);
-        setScreen('match');
+        // Only from home: a link to somewhere else is followed, and home
+        // offers the match back.
+        if (openedAt === '/') navigate('/match', { replace: true });
       }
       setRestoring(false);
     });
     return () => { cancelled = true; };
   }, []);
-
-  if (screen === 'setup') {
-    return (
-      <SetupScreen
-        onCancel={() => setScreen('home')}
-        onStart={(config: MatchConfig) => {
-          setMatch(createMatch(config));
-          setScreen('match');
-        }}
-      />
-    );
-  }
-
-  if (screen === 'match' && match) {
-    return (
-      <MatchScreen
-        match={match}
-        onChange={setMatch}
-        onFinished={() => { setMatch(null); setScreen('home'); }}
-        onLeave={() => setScreen('home')}
-        onDiscard={() => {
-          void clearMatch();
-          sync.discard(match.id);
-          setMatch(null);
-          setScreen('home');
-        }}
-      />
-    );
-  }
-
-  if (screen === 'calculator') {
-    return <HandBuilder onCancel={() => setScreen('home')} />;
-  }
-
-  if (screen === 'players') {
-    return <PlayersScreen onBack={() => setScreen('home')} />;
-  }
 
   const resumable = match?.status === 'in_progress' ? match : null;
   // Only when this phone has no match of its own on the go: carrying on another
@@ -103,10 +98,10 @@ export function App() {
     setFetching(null);
     if (!state) return;
     setMatch(state);
-    setScreen('match');
+    navigate('/match');
   }
 
-  return (
+  const home = (
     <div className="app">
       <header className="app__bar app__bar--home">
         <h1 className="app__title app__title--home">Chuncito</h1>
@@ -115,7 +110,7 @@ export function App() {
       <div className="home">
         {resumable && (
           <button type="button" className="btn btn--primary btn--wide home__resume"
-                  onClick={() => setScreen('match')}>
+                  onClick={() => navigate('/match')}>
             <span>Resume match</span>
             <span className="home__resumemeta">
               {roundLabel(resumable.round)} · {resumable.hands.length} hands
@@ -133,16 +128,20 @@ export function App() {
                     sync.discard(resumable.id);
                     setMatch(null);
                   }
-                  setScreen('setup');
+                  navigate('/setup');
                 }}>
           {resumable ? 'Start a different match' : 'New match'}
         </button>
 
-        <button type="button" className="btn btn--wide" onClick={() => setScreen('calculator')}>
+        <button type="button" className="btn btn--wide" onClick={() => navigate('/calculator')}>
           Hand calculator
         </button>
 
-        <button type="button" className="btn btn--wide" onClick={() => setScreen('players')}>
+        <button type="button" className="btn btn--wide" onClick={() => navigate('/matches')}>
+          History
+        </button>
+
+        <button type="button" className="btn btn--wide" onClick={() => navigate('/players')}>
           Players
         </button>
 
@@ -175,5 +174,42 @@ export function App() {
         <SyncPanel />
       </div>
     </div>
+  );
+
+  return (
+    <Routes>
+      <Route path="/" element={home} />
+      <Route path="/setup" element={
+        <SetupScreen
+          onCancel={back()}
+          onStart={(config: MatchConfig) => {
+            setMatch(createMatch(config));
+            // Setup is done with: Back from the table must not return to it.
+            navigate('/match', { replace: true });
+          }}
+        />
+      } />
+      <Route path="/match" element={
+        match ? (
+          <MatchScreen
+            match={match}
+            onChange={setMatch}
+            onFinished={() => { setMatch(null); leaveMatch(); }}
+            onLeave={leaveMatch}
+            onDiscard={() => {
+              void clearMatch();
+              sync.discard(match.id);
+              setMatch(null);
+              leaveMatch();
+            }}
+          />
+        ) : restoring ? null : <Navigate to="/" replace />
+      } />
+      <Route path="/calculator" element={<HandBuilder onCancel={back()} />} />
+      <Route path="/players" element={<PlayersScreen onBack={back()} />} />
+      <Route path="/matches" element={<MatchList onBack={back()} />} />
+      <Route path="/matches/:id" element={<MatchReview onBack={back('/matches')} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

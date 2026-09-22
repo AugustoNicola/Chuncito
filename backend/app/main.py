@@ -10,23 +10,31 @@ The API. Run with `uvicorn app.main:app` from `backend/`.
 | `GET  /api/players`         | everyone registered, by name |
 | `POST /api/players`         | `{displayName}` -> the new player; 409 if the name is taken |
 | `PATCH /api/players/{id}`   | `{displayName}` -> renamed; 409 if the name is taken |
-| `GET  /api/matches`         | summaries, newest first; `?status=in_progress` |
+| `GET  /api/matches`         | summaries, newest first; filters below |
 | `GET  /api/matches/{id}`    | `{revision, rows, players}` -- `rows` is `MatchRows` |
 | `PUT  /api/matches/{id}`    | `{baseRevision, rows}` -> `{revision}`; 409 if stale |
 | `DELETE /api/matches/{id}`  | a match thrown away at the table |
+| `GET  /anything/else`       | the built frontend; `index.html` for any route |
 
 Everything under `/api/players` and `/api/matches` needs the PIN cookie.
+
+`GET /api/matches` narrows with any of `status`, `q` (the match's name or
+anyone seated), `player` (repeatable: all of them sat), `min_level` (a rank,
+`models.LEVEL_RANKS`), `yaku` (an engine atom) and `players` (3 or 4).
 
 Nothing here is meant to be found: every response says `noindex`, and
 `/robots.txt` turns crawlers away (the frontend serves one too).
 """
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse, PlainTextResponse
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from . import auth, store
 from .db import get_engine
+from .settings import get_settings
 from .schemas import (
     MatchSummary, MatchWithRevision, PinIn, PlayerName, PlayerOut, PutMatch, Saved,
     SessionState,
@@ -109,9 +117,14 @@ def rename_player(player_id: str, body: PlayerName):
 
 @app.get('/api/matches', response_model=list[MatchSummary], response_model_by_alias=True,
          dependencies=gated)
-def list_matches(include_test: bool = False, status: str | None = None) -> list[MatchSummary]:
+def list_matches(include_test: bool = False, status: str | None = None,
+                 q: str | None = None, player: Annotated[list[str], Query()] = [],
+                 min_level: Annotated[int | None, Query(ge=0)] = None,
+                 yaku: str | None = None,
+                 players: Annotated[int | None, Query(ge=3, le=4)] = None) -> list[MatchSummary]:
     with get_engine().connect() as conn:
-        return store.list_matches(conn, include_test, status)
+        return store.list_matches(conn, include_test, status, text=q, player_ids=player,
+                                  min_level_rank=min_level, yaku=yaku, players=players)
 
 
 @app.get('/api/matches/{match_id}', response_model=MatchWithRevision,
@@ -152,3 +165,30 @@ def delete_match(match_id: str) -> None:
     # Idempotent: deleting what is already gone is what the phone wanted anyway.
     with get_engine().begin() as conn:
         store.delete_match(conn, match_id)
+
+
+@app.get('/{path:path}', include_in_schema=False)
+def frontend(path: str) -> FileResponse:
+    """
+    The built app. The frontend has real routes (`/players`, `/match`, ...), so
+    a path that is not a file gets `index.html` and the router takes it from
+    there -- a reload or a shared link must not 404. Declared last, so every
+    API route wins.
+
+    Except: an unknown `/api/...` stays a 404 rather than turning into a page,
+    and so does a missing *file* (anything with an extension), since a stale
+    script tag handed HTML fails far more confusingly than a 404.
+    """
+    dist = get_settings().chuncito_frontend_dist.resolve()
+    if path == 'api' or path.startswith('api/') or not (dist / 'index.html').is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'not found')
+    wanted = (dist / path).resolve()
+    if path and wanted.is_file() and wanted.is_relative_to(dist):
+        # Vite fingerprints everything under assets/, so it never changes.
+        immutable = wanted.is_relative_to(dist / 'assets')
+        return FileResponse(wanted, headers={
+            'Cache-Control': 'public, max-age=31536000, immutable' if immutable else 'no-cache',
+        })
+    if '.' in path.rsplit('/', 1)[-1]:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'not found')
+    return FileResponse(dist / 'index.html', headers={'Cache-Control': 'no-cache'})

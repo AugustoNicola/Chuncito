@@ -35,7 +35,7 @@ From the repo root:
 ```
 scorer/mahjonglog/           vendored Prolog (do NOT edit; changes belong upstream)
 scorer/sync-prolog.sh        re-vendor with a test gate
-frontend/src/App.tsx         which screen is showing; no router yet
+frontend/src/App.tsx         the routes, and the match in progress they share
 frontend/src/scorer/         contract layer: types, order, serialize, decode, validate,
                              dora, engine (+ .node / .browser factories)
 frontend/src/features/hand/  hand input: handState (pure) + handTiles + nukidora + components
@@ -44,6 +44,7 @@ frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
                              (saving to the server), and the table/menu/timeline
                              components
 frontend/src/features/players/ the Players screen and the cached player list
+frontend/src/features/history/ match list (filters live in the URL) and match review
 frontend/src/ui/             Tile, theme.css
 frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
 backend/app/                 FastAPI: settings (dev/main target), db, models (the
@@ -89,6 +90,11 @@ selectors. The seat wind is what tells the engine the winner is dealer, so a
 stray tap on a duplicate picker would mis-score the hand *silently* — the engine
 would happily return a valid-looking non-dealer payment. Same reasoning as
 validating before querying.
+
+**A back gesture never leaves the table.** `MatchScreen` blocks navigation
+(`useBlocker`, which is why the router is a data router) except for its own
+exits. A new screen reachable from inside a match must be one of those exits
+or an in-match menu, never a plain link.
 
 **Nothing reaches the match without a confirmation.** `ConfirmChange` shows the
 *computed next state*, not a description of it, so the two can never disagree.

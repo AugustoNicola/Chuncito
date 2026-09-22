@@ -80,16 +80,30 @@ try {
       return reply(method === 'POST' ? 201 : 200, player);
     }
     if (path === '/matches' && method === 'GET') {
-      const status = url.searchParams.get('status');
+      const q = url.searchParams;
+      const RANKS = { sinNombre: 0, mangan: 1, haneman: 2, baiman: 3, sanbaiman: 4, kazoeYakuman: 5 };
+      const rank = (level) => (level === null ? null : RANKS[level] ?? 6);
+      const seatName = (p) => p.guestName ?? api.players.get(p.playerId)?.displayName ?? '?';
       return reply(200, [...api.matches.entries()]
-        .filter(([, m]) => !status || m.rows.match.status === status)
+        .filter(([, { rows: r }]) => !q.get('status') || r.match.status === q.get('status'))
+        .filter(([, { rows: r }]) => !q.get('players') || String(r.match.players) === q.get('players'))
+        .filter(([, { rows: r }]) => !q.get('min_level')
+          || (rank(r.match.maxLevel) ?? -1) >= Number(q.get('min_level')))
+        .filter(([, { rows: r }]) => q.getAll('player')
+          .every((id) => r.matchPlayers.some((p) => p.playerId === id)))
+        .filter(([, { rows: r }]) => !q.get('yaku') || r.handYakus.some((y) => y.yaku === q.get('yaku')))
+        .filter(([, { rows: r }]) => !q.get('q') || [r.match.name, ...r.matchPlayers.map(seatName)]
+          .some((n) => n.toLowerCase().includes(q.get('q').toLowerCase())))
+        .sort(([, a], [, b]) => b.rows.match.startedAt.localeCompare(a.rows.match.startedAt))
         .map(([id, m]) => ({
           id, name: m.rows.match.name, players: m.rows.match.players,
           status: m.rows.match.status, startedAt: m.rows.match.startedAt,
           endedAt: m.rows.match.endedAt, hands: m.rows.hands.length,
-          seats: m.rows.matchPlayers.map((p) =>
-            p.guestName ?? api.players.get(p.playerId)?.displayName ?? '?'),
-          scores: m.rows.matchPlayers.map((p) => p.finalScore), revision: m.revision,
+          seats: m.rows.matchPlayers.map(seatName),
+          playerIds: m.rows.matchPlayers.map((p) => p.playerId),
+          scores: m.rows.matchPlayers.map((p) => p.finalScore),
+          placements: m.rows.matchPlayers.map((p) => p.placement),
+          maxLevel: m.rows.match.maxLevel, revision: m.revision,
         })));
     }
     const id = decodeURIComponent(path.replace('/matches/', ''));
@@ -1052,6 +1066,171 @@ try {
   await new Promise((r) => setTimeout(r, 500));
   check(api.matches.get('from-another-phone').revision === revisionBefore,
         'carrying a match on does not re-send it unchanged');
+
+  // ==================== routes ====================
+
+  const at = () => page.evaluate(() => location.pathname);
+  // Firefox fires popstate asynchronously; give the guard a moment to answer.
+  const settle = () => new Promise((r) => setTimeout(r, 300));
+  check(await at() === '/match', `the table is /match (got ${await at()})`);
+
+  // A back gesture steps out of a read-only menu, as its Back button would...
+  await byText('Timeline');
+  await page.waitForSelector('.timeline');
+  await page.goBack(); await settle();
+  check(await page.$('.table') !== null && await at() === '/match',
+        `a back gesture closes the timeline and stays on the table (at ${await at()})`);
+  // ...and at the table it does nothing at all.
+  await page.goBack(); await settle();
+  check(await page.$('.table') !== null && await at() === '/match',
+        `a back gesture at the table does not leave the match (at ${await at()})`);
+  // A half-entered hand survives one too.
+  await page.click('.seat--right .playerbox__main');
+  await page.waitForSelector('.winmenu');
+  await page.goBack(); await settle();
+  check(await page.$('.winmenu') !== null, 'a back gesture does not close the win menu');
+  await byText('Cancel');
+  await page.waitForSelector('.table');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.table');
+  check(await at() === '/match', 'reloading /match comes back to the table');
+
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Back to the home screen');
+  await page.waitForSelector('.home');
+  check(await at() === '/', `leaving the match goes to / (got ${await at()})`);
+  await page.goBack(); await settle();
+  check(await page.$('.table') === null,
+        'once left, the table is not one back gesture away');
+  // Only opening the app at / goes back to a match in progress; a link to
+  // anywhere else is followed.
+  await page.goto('http://localhost:5199/players', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.players');
+  check(await at() === '/players', `a link to /players opens it (got ${await at()})`);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.players');
+  check(true, 'reloading /players stays on the Players screen');
+  // Opened from a link, its Back has nothing behind it, and goes home.
+  await byText('Back');
+  await page.waitForSelector('.home');
+  check(await at() === '/', `Back from a linked screen goes home (got ${await at()})`);
+  check(await page.$('.home__resume') !== null, 'and home offers the match back');
+
+  await byText('Players');
+  await page.waitForSelector('.players');
+  check(await at() === '/players', `the Players button goes to /players (got ${await at()})`);
+  await page.goBack(); await settle();
+  await page.waitForSelector('.home');
+  check(await at() === '/', 'a back gesture from Players goes home');
+
+  await page.goto('http://localhost:5199/calculator', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.keyboard');
+  check(true, 'a link to /calculator opens the calculator');
+
+  await page.goto('http://localhost:5199/no/such/page', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home');
+  await settle();
+  check(await at() === '/' && await page.$('.table') === null,
+        `an unknown path goes home, not to the match (at ${await at()})`);
+
+  // ==================== history ====================
+
+  // Two finished matches with known contents, one of them with Beto registered.
+  const beto = [...api.players.values()].find((p) => p.displayName === 'Beto');
+  const seed = (id, name, maxLevel, startedAt, edit = (r) => r) => {
+    const rows = structuredClone(finished);
+    rows.match = { ...rows.match, id, name, maxLevel, startedAt };
+    api.matches.set(id, { revision: 1, rows: edit(rows) });
+  };
+  seed('hist-kita', 'the kita one', 'haneman', '2026-09-10T20:00:00.000Z');
+  seed('hist-beto', 'with Beto', 'sinNombre', '2026-09-12T20:00:00.000Z', (r) => {
+    r.matchPlayers[1] = { ...r.matchPlayers[1], playerId: beto.id, guestName: null };
+    return r;
+  });
+  const listed = () => page.$$eval('.history__name', (els) => els.map((e) => e.textContent));
+  const waitListed = (pred) => page.waitForFunction(pred, { timeout: 10_000 });
+
+  await page.goto('http://localhost:5199/matches', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.history__item', { timeout: 10_000 });
+  const all = await listed();
+  check(all.indexOf('with Beto') >= 0 && all.indexOf('with Beto') < all.indexOf('the kita one'),
+        `history lists finished matches, newest first (got ${JSON.stringify(all)})`);
+  check(!all.includes(''), 'an unnamed match is labelled as such');
+  const level = await page.$eval('.history__item[data-tier="haneman"] .history__level',
+    (el) => el.textContent).catch(() => null);
+  check(level === 'Haneman', `a match shows its best hand, themed (got ${level})`);
+  await shot('60-history.png');
+
+  // Filtering by a player puts it in the URL.
+  await page.evaluate((name) => [...document.querySelectorAll('.history__chips .chip')]
+    .find((c) => c.textContent === name).click(), 'Beto');
+  await waitListed(() => ![...document.querySelectorAll('.history__name')]
+    .some((e) => e.textContent === 'the kita one'));
+  check(JSON.stringify(await listed()) === JSON.stringify(['with Beto']),
+        `a player filter keeps only their matches (got ${JSON.stringify(await listed())})`);
+  check((await page.evaluate(() => location.search)) === `?player=${beto.id}`,
+        'the filter is in the URL');
+
+  // Into a match and back again, to the same filtered list.
+  await page.click('.history__item');
+  await page.waitForSelector('.standings');
+  check(await at() === '/matches/hist-beto', `a match has its own URL (got ${await at()})`);
+  check((await page.$eval('.app__title', (el) => el.textContent)) === 'with Beto',
+        'the review is titled with the match name');
+  check((await page.$$('.standings__row')).length === 3, 'the review shows the standings');
+  check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
+        `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
+  await shot('61-review.png');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.standings', { timeout: 10_000 });
+  check(true, 'a match review survives a reload');
+  await byText('Back');
+  await page.waitForSelector('.history__item');
+  check((await page.evaluate(() => location.search)) === `?player=${beto.id}`
+        && JSON.stringify(await listed()) === JSON.stringify(['with Beto']),
+        'Back returns to the list as it was filtered');
+
+  await byText('Clear filters');
+  await page.select('select[aria-label="Best hand"]', '2');
+  await waitListed(() => ![...document.querySelectorAll('.history__name')]
+    .some((e) => e.textContent === 'with Beto'));
+  check(JSON.stringify(await listed()) === JSON.stringify(['the kita one']),
+        `haneman or better keeps the haneman match (got ${JSON.stringify(await listed())})`);
+  await page.select('select[aria-label="Yaku"]', 'chiitoitsu');
+  await page.waitForFunction(() => document.querySelector('.home__hint')?.textContent
+    .includes('No finished match fits'), { timeout: 10_000 });
+  check(true, 'a filter with no match says so');
+  await byText('Clear filters');
+  await page.type('.history__search', 'KITA');
+  await waitListed(() => {
+    const n = [...document.querySelectorAll('.history__name')].map((e) => e.textContent);
+    return n.length === 1 && n[0] === 'the kita one';
+  });
+  check(true, 'searching finds a match by name, ignoring case');
+  await byText('Clear filters');
+  await byText('Sanma');
+  await waitListed(() => document.querySelectorAll('.history__item').length > 0);
+  check((await page.evaluate(() => location.search)) === '?players=3', 'sanma only is in the URL too');
+
+  await page.goto('http://localhost:5199/matches/no-such-match', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('.home__hint')?.textContent
+    .includes('no such match'), { timeout: 10_000 });
+  check(true, 'an unknown match says so');
+  await byText('Back');
+  await page.waitForSelector('.history__filters');
+  check(await at() === '/matches', `Back from a linked match goes to the list (got ${await at()})`);
+
+  // Locked, the history asks for the PIN rather than showing nothing.
+  api.unlocked = false;
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.sync__pin', { timeout: 10_000 });
+  check(true, 'a locked server asks for the PIN on the history');
+  await page.type('.sync__input', api.pin);
+  await byText('Unlock');
+  await page.waitForSelector('.history__item', { timeout: 10_000 });
+  check(true, 'and the list appears once it is in');
 
   console.log(failed ? '\nBROWSER TEST FAILED' : '\nBROWSER TEST PASSED');
 } catch (err) {

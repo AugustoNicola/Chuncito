@@ -1242,3 +1242,58 @@ button {
 .timeline__level[data-tier="sanbaiman"] { color: var(--limit-sanbaiman); }
 .timeline__level[data-tier="kazoe"]     { color: var(--limit-kazoe); }
 .timeline__level[data-tier="yakuman"]   { color: var(--limit-yakuman); }
+
+/* ---------- history: the match list and a match read back ---------- */
+
+.chip--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+
+.history__filters { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px; }
+.history__search, .history__select {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+}
+.history__search:focus, .history__select:focus { outline: none; border-color: var(--accent); }
+.history__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.history__selects { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.history__select { font-size: 0.9rem; }
+.history__clear { align-self: flex-start; }
+
+.history__list {
+  list-style: none; margin: 8px 0 16px; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.history__item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+.history__item[data-tier] { border-color: color-mix(in srgb, var(--tier) 45%, var(--border)); }
+.history__item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.history__top { display: flex; align-items: baseline; gap: 8px; }
+.history__name {
+  flex: 1; min-width: 0; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.history__level { flex: none; font-size: 0.8rem; font-weight: 650; color: var(--tier, var(--text-dim)); }
+.history__meta { font-size: 0.78rem; color: var(--text-dim); }
+.history__standings { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.85rem; }
+.history__seat { white-space: nowrap; color: var(--text-dim); }
+.history__seat[data-place="1"] { color: var(--text); }
+.history__place { font-weight: 650; font-size: 0.75rem; }
+.history__seat[data-place="1"] .history__place { color: var(--place-1); }
+.history__seat[data-place="2"] .history__place { color: var(--place-2); }
+.history__seat[data-place="3"] .history__place { color: var(--place-3); }
+.history__score { font-variant-numeric: tabular-nums; }
+
+.review__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review__when { margin: 10px 0 0; font-size: 0.82rem; color: var(--text-dim); text-align: center; }
+.review__heading { margin: 16px 0 4px; }

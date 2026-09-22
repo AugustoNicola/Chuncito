@@ -130,21 +130,18 @@ function HandEntry({ row, names, sanma }: {
   );
 }
 
-export function TimelineView({ state, onClose }: { state: MatchState; onClose: () => void }) {
+/**
+ * The hands, and any manual adjustments. At the table you are almost always
+ * checking the last hand, so a match in progress reads newest first. A
+ * finished one is read as a story, East 1 down to the last hand -- which is
+ * how the history shows it too.
+ */
+export function TimelineList({ state }: { state: MatchState }) {
   const names = state.config.seats.map((p) => p.name);
-  // At the table you are almost always checking the last hand, so a match in
-  // progress reads newest first. A finished one is read as a story, East 1
-  // down to the last hand -- and so should any later history view.
   const rows = state.status === 'finished' ? state.hands : [...state.hands].reverse();
 
   return (
-    <div className="app">
-      <header className="app__bar">
-        <button type="button" className="btn btn--quiet" onClick={onClose}>Back</button>
-        <h1 className="app__title">Timeline</h1>
-        <span className="app__barspacer" />
-      </header>
-
+    <>
       {rows.length === 0 ? (
         <p className="timeline__empty">No hands recorded yet.</p>
       ) : (
@@ -168,6 +165,20 @@ export function TimelineView({ state, onClose }: { state: MatchState; onClose: (
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+export function TimelineView({ state, onClose }: { state: MatchState; onClose: () => void }) {
+  return (
+    <div className="app">
+      <header className="app__bar">
+        <button type="button" className="btn btn--quiet" onClick={onClose}>Back</button>
+        <h1 className="app__title">Timeline</h1>
+        <span className="app__barspacer" />
+      </header>
+
+      <TimelineList state={state} />
     </div>
   );
 }

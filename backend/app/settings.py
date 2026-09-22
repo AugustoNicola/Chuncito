@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # Production is HTTPS; the LAN dev server is not, and a Secure cookie would
     # never be sent back over it.
     chuncito_secure_cookies: bool = False
+    # The built frontend (`npm run build`), served by the API itself so the app
+    # and `/api` share an origin, as the PIN cookie needs. Absent in development,
+    # where Vite serves the app and proxies `/api` here instead.
+    chuncito_frontend_dist: Path = REPO_ROOT / 'frontend' / 'dist'
 
     def _pick(self, direct: bool) -> str:
         if self.chuncito_target == 'main':

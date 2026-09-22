@@ -12,7 +12,8 @@ import { type Player, nameOf, setCachedPlayers } from '../players/players';
 import { type MatchRows, fromRows } from './rows';
 import { type RecordStore, type SyncRecord, type SyncStatus, SyncQueue, type Transport } from './sync';
 
-const fetchTransport: Transport = async (method, path, body) => {
+/** Same-origin `/api`, with the PIN cookie. Resolves with any response; rejects only offline. */
+export const fetchTransport: Transport = async (method, path, body) => {
   const response = await fetch(`/api${path}`, {
     method,
     credentials: 'same-origin',
@@ -101,9 +102,16 @@ export interface ServerMatch {
   players: number;
   status: string;
   startedAt: string;
+  endedAt: string | null;
   hands: number;
   seats: string[];
+  /** Per seat, as `seats`; null for a guest. */
+  playerIds: (string | null)[];
   scores: number[];
+  /** Per seat; null until the match is finished. */
+  placements: (number | null)[];
+  /** The best limit reached, as the engine's atom; null if nobody has won. */
+  maxLevel: string | null;
   revision: number;
 }
 

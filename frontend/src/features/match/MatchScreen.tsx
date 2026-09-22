@@ -9,8 +9,16 @@
  * is possible precisely because the reducer is pure: the next state is computed,
  * shown for review, and only then committed. The review screen is therefore
  * showing the real thing rather than a description of it.
+ *
+ * **A back gesture never leaves the match.** The table is one route (`/match`),
+ * and a swipe is blocked there: it steps back out of a review or a read-only
+ * menu, as the on-screen Back would, and otherwise does nothing. It does not
+ * close the win or draw menus, which would throw away what was being entered.
+ * Only the explicit exits -- Back to home, Discard, saving a finished match --
+ * leave, and they say so first (`leaving`) so the guard lets them through.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useBlocker } from 'react-router-dom';
 import type { HandInput, HandRow, MatchState, WinEntry } from './matchState';
 import {
   adjustScores, advanceRoundManually, endMatchManually, recordHand, setHonba,
@@ -66,6 +74,20 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
   const [menu, setMenu] = useState<Menu>({ at: 'table' });
   const [pending, setPending] = useState<Pending | null>(null);
   const [showSync, setShowSync] = useState(false);
+
+  const leaving = useRef(false);
+  const blocker = useBlocker(() => !leaving.current);
+  const leave = (exit: () => void) => () => { leaving.current = true; exit(); };
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    blocker.reset();
+    if (pending) {
+      setMenu(pending.back);
+      setPending(null);
+    } else if (menu.at === 'timeline' || menu.at === 'manual') {
+      setMenu({ at: 'table' });
+    }
+  }, [blocker, pending, menu]);
 
   // The mirror and the server both follow the state rather than each action, so
   // no caller can forget to save -- including the reducer paths that end the
@@ -128,7 +150,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
           queueMatch(named);
           await archiveMatch(named);
           await clearMatch();
-          onFinished();
+          leave(onFinished)();
         }}
       />
     );
@@ -187,8 +209,8 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
             'Placements are worked out from the scores as they stand. Any riichi sticks on the table are lost, as they would be at a real table.',
             'End it now',
           )}
-          onLeave={onLeave}
-          onDiscard={onDiscard}
+          onLeave={leave(onLeave)}
+          onDiscard={leave(onDiscard)}
           onClose={() => setMenu({ at: 'table' })}
         />
       );

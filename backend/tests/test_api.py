@@ -247,6 +247,51 @@ def test_the_list_summarises_matches_newest_first(unlocked):
     assert 'list-a' not in {m['id'] for m in playing}
 
 
+def test_the_list_filters_for_history(unlocked):
+    four = fixture('four-player-finished', 'filter-4p')   # Ana, Beto; mangan; riichi, pinfu
+    sanma = fixture('sanma-in-progress', 'filter-3p')
+    sanma['match']['name'] = '100%_sanma'
+    for rows in (four, sanma):
+        assert put(unlocked, rows).status_code == 200
+
+    def ids(**params) -> set[str]:
+        r = unlocked.get('/api/matches', params=params)
+        assert r.status_code == 200, r.text
+        return {m['id'] for m in r.json()} & {'filter-4p', 'filter-3p'}
+
+    assert ids() == {'filter-4p', 'filter-3p'}
+    assert ids(players=4) == {'filter-4p'}
+    assert ids(players=3) == {'filter-3p'}
+    assert ids(status='finished') == {'filter-4p'}
+
+    # By name, and by who sat: a registered player or a guest.
+    assert ids(q='DOUBLE ron') == {'filter-4p'}
+    assert ids(q='cami') >= {'filter-4p'}
+    # Wildcards in the search are taken literally.
+    assert ids(q='100%_') == {'filter-3p'}
+    assert ids(q='%') == {'filter-3p'}
+
+    # Every named player must have sat.
+    both = {m['id'] for m in unlocked.get(
+        '/api/matches', params=[('player', 'player-ana'), ('player', 'player-beto')]).json()}
+    assert 'filter-4p' in both
+    assert 'filter-4p' not in {m['id'] for m in unlocked.get(
+        '/api/matches', params=[('player', 'player-ana'), ('player', 'nobody')]).json()}
+
+    assert 'filter-4p' in ids(min_level=1)          # mangan
+    assert 'filter-4p' not in ids(min_level=2)      # nothing reached haneman
+    assert 'filter-4p' in ids(yaku='pinfu')
+    assert 'filter-4p' not in ids(yaku='chiitoitsu')
+    assert unlocked.get('/api/matches', params={'players': 5}).status_code == 422
+
+    listed = {m['id']: m for m in unlocked.get('/api/matches').json()}
+    a = listed['filter-4p']
+    assert a['maxLevel'] == 'mangan'
+    assert a['playerIds'] == [p['playerId'] for p in four['matchPlayers']]
+    assert a['placements'] == [p['placement'] for p in four['matchPlayers']]
+    assert listed['filter-3p']['placements'] == [None, None, None]
+
+
 def test_a_discarded_match_is_deleted_with_everything_in_it(unlocked, engine):
     rows = fixture('four-player-finished', 'gone')
     put(unlocked, rows)

@@ -188,7 +188,14 @@ class MatchSummary(Wire):
     ended_at: str | None
     hands: int
     seats: list[str]
+    # Per seat, as `seats`: null for a guest.
+    player_ids: list[str | None]
     scores: list[int]
+    # Null until the match is finished.
+    placements: list[int | None]
+    # The best limit reached in the match, as the engine's atom; null if nobody
+    # has won a hand.
+    max_level: str | None
     revision: int
 
 

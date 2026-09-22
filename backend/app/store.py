@@ -23,9 +23,10 @@ import json
 import re
 import unicodedata
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from sqlalchemy import Connection, delete, func, insert, select
+from sqlalchemy import Connection, delete, exists, func, insert, or_, select
 
 from . import models as m
 from .schemas import MatchRows, MatchSummary, Player, PlayerOut
@@ -318,23 +319,66 @@ def delete_match(conn: Connection, match_id: str) -> bool:
     return conn.execute(delete(m.matches).where(m.matches.c.id == match_id)).rowcount > 0
 
 
-def list_matches(conn: Connection, include_test: bool = False,
-                 status: str | None = None) -> list[MatchSummary]:
-    """Newest first. Scores are the stored `final_score`, current as of the last save."""
-    hand_count = (select(func.count()).where(m.hands.c.match_id == m.matches.c.id)
+def _like(text: str) -> str:
+    """A substring pattern for ILIKE, with its own wildcards taken literally."""
+    escaped = text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return f'%{escaped}%'
+
+
+def list_matches(conn: Connection, include_test: bool = False, status: str | None = None, *,
+                 text: str | None = None, player_ids: Sequence[str] = (),
+                 min_level_rank: int | None = None, yaku: str | None = None,
+                 players: int | None = None) -> list[MatchSummary]:
+    """
+    Newest first. Scores are the stored `final_score`, current as of the last save.
+
+    The filters combine with AND, which is what narrowing a list means:
+
+    - `text` matches the match's name or anyone seated, guests included
+      (a case-insensitive substring).
+    - `player_ids`: every one of them sat in the match.
+    - `min_level_rank`: some winner reached at least this rank (`LEVEL_RANKS`),
+      read off the denormalised `max_level_rank`.
+    - `yaku`: some winner's hand had it. A join through `hand_yakus`, which is
+      why the filters are here and not on the phone.
+    - `players`: 4, or 3 for sanma.
+    """
+    c = m.matches.c
+    mp = m.match_players.c
+    hand_count = (select(func.count()).where(m.hands.c.match_id == c.id)
                   .scalar_subquery())
-    query = select(m.matches, hand_count.label('hand_count')).order_by(m.matches.c.started_at.desc())
+    query = select(m.matches, hand_count.label('hand_count')).order_by(c.started_at.desc())
     if not include_test:
-        query = query.where(m.matches.c.is_test.is_(False))
+        query = query.where(c.is_test.is_(False))
     if status is not None:
-        query = query.where(m.matches.c.status == status)
+        query = query.where(c.status == status)
+    if players is not None:
+        query = query.where(c.players == players)
+    if min_level_rank is not None:
+        query = query.where(c.max_level_rank >= min_level_rank)
+    for player_id in dict.fromkeys(player_ids):
+        query = query.where(exists().where(mp.match_id == c.id, mp.player_id == player_id))
+    if yaku:
+        query = query.where(exists().where(
+            m.hands.c.match_id == c.id, m.hand_yakus.c.hand_id == m.hands.c.id,
+            m.hand_yakus.c.yaku == yaku))
+    if text and text.strip():
+        pattern = _like(text.strip())
+        seated = (select(mp.match_id)
+                  .outerjoin(m.players, m.players.c.id == mp.player_id)
+                  .where(mp.match_id == c.id)
+                  .where(or_(mp.guest_name.ilike(pattern, escape='\\'),
+                             m.players.c.display_name.ilike(pattern, escape='\\'))))
+        query = query.where(or_(c.name.ilike(pattern, escape='\\'), seated.exists()))
     matches = conn.execute(query).all()
 
+    wanted = [t.id for t in matches]
     seats = conn.execute(
         select(m.match_players, m.players.c.display_name)
-        .outerjoin(m.players, m.players.c.id == m.match_players.c.player_id)
-        .order_by(m.match_players.c.match_id, m.match_players.c.seat)
-    ).all()
+        .outerjoin(m.players, m.players.c.id == mp.player_id)
+        .where(mp.match_id.in_(wanted))
+        .order_by(mp.match_id, mp.seat)
+    ).all() if wanted else []
     by_match: dict[str, list] = {}
     for s in seats:
         by_match.setdefault(s.match_id, []).append(s)
@@ -344,6 +388,9 @@ def list_matches(conn: Connection, include_test: bool = False,
         started_at=_format_time(t.started_at), ended_at=_format_time(t.ended_at),
         hands=t.hand_count,
         seats=[s.guest_name or s.display_name or '' for s in by_match.get(t.id, [])],
+        player_ids=[s.player_id for s in by_match.get(t.id, [])],
         scores=[s.final_score for s in by_match.get(t.id, [])],
+        placements=[s.placement for s in by_match.get(t.id, [])],
+        max_level=t.max_level,
         revision=t.revision,
     ) for t in matches]

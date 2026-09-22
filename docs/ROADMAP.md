@@ -347,13 +347,53 @@ Order: real routes first (history and profiles need URLs, and the back
 button must work), then the match list and match review, then profiles and
 their stats endpoints, then the desktop layout.
 
-- [ ] Routing (React Router; the server must fall back to `index.html`). The
-      match in progress keeps guarding against a stray back gesture.
-- [ ] Match list: filter by name, players, hand level ≥ X, yaku achieved
-- [ ] **Hand order is chronological for any finished match** — East 1 at the top,
-      the last hand at the bottom. Only a match *in progress* reads newest
-      first, because at the table you are checking the last hand. The tracker's
-      `TimelineView` already does this off `status`; a history view must too.
+- [x] **Routing** (2026-09-21). `react-router-dom` **6** — v7 needs Node 20.
+      A data router (`createBrowserRouter`, in `main.tsx`), because only a data
+      router can block navigation; one catch-all route renders `App`, which holds
+      the match and the `<Routes>`: `/`, `/setup`, `/match`, `/calculator`,
+      `/players`, anything else → `/`.
+      - **A back gesture never leaves the table.** `MatchScreen` blocks every
+        navigation (`useBlocker`) except its own exits, which set `leaving`
+        first. A blocked gesture steps out of a review, the timeline or Manual,
+        as their Back would; in the win or draw menu it does nothing, since
+        closing them would lose what was being entered.
+      - Exits from the match *replace* the history entry, and so does starting
+        one from setup: the table is never one back gesture away once left,
+        and Back from the table never returns to setup.
+      - A screen's Back goes back through the history when there is an in-app
+        entry behind it (`history.state.idx`), home otherwise — so a tap and a
+        gesture agree, and a screen opened from a link still has a way out.
+      - Only opening the app **at `/`** jumps to a match in progress; a link
+        anywhere else is followed, and home offers the match back. It checks
+        the path the app was *opened* at, since the mirror is read
+        asynchronously and an unknown path has become `/` by then.
+      - FastAPI serves `frontend/dist` (`CHUNCITO_FRONTEND_DIST`) with an
+        `index.html` fallback for any path that is not `/api/...` or a missing
+        file; `assets/` is cached as immutable, everything else `no-cache`.
+        `test_frontend.py` needs no database.
+      - 15 browser checks: gestures on the table and in menus, reloads, links,
+        unknown paths.
+- [x] **Match list** (`/matches`, `features/history/`), finished matches newest
+      first. Filters: text (the match's name *or* anyone seated, guests
+      included), players (chips; every one chosen must have sat), All / Four /
+      Sanma, best hand ≥ a level, a yaku achieved (dora of any kind are not
+      offered). **Filtered on the server** — `GET /api/matches` takes `q`,
+      `player` (repeatable), `min_level` (a `LEVEL_RANKS` rank), `yaku`,
+      `players` — since the yaku filter is a join through `hand_yakus`. The
+      summary now carries `playerIds`, `placements` and `maxLevel`.
+      **The filters are the URL's query string** (`history.ts`: `filtersFrom` /
+      `paramsOf`, short names in the URL, the API's in `apiPath`), so Back from
+      a review returns to the same list; typing replaces the entry rather than
+      pushing one per keystroke, and is debounced.
+- [x] **Match review** (`/matches/:id`): rebuilt with `fromRows` like a carried-
+      on match, shown with the end screen's `MatchOutcome` and the timeline's
+      `TimelineList`, both factored out so the night and the review cannot
+      drift apart. Offline says so; locked asks for the PIN in place.
+- [x] **Hand order is chronological for any finished match** — `TimelineList`
+      orders off `status`, and the review uses it.
+- History reads the server only. The phone's own archive is not merged in:
+  every finished match is uploaded anyway, and a second source would need
+  de-duplicating for no gain.
 - [ ] Player directory + per-player page (placement line, best hand, win-method
       pie, placement pie, avg rank, tsumo/deal-in/riichi rates, yaku frequency)
 - [ ] Desktop layout
@@ -375,13 +415,13 @@ was learned building Phases 1 to 3 and the sanma round:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 219 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 224 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 125 checks, including a four-player match played end to end,
+  UI in Firefox — 160 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review,
   a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
   screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught
@@ -418,8 +458,6 @@ Still open, none of it blocking:
   phone's owner sits at the bottom rather than seat 1.
 - The centre-box logo is the chun glyph used as a CSS mask, standing in for a
   real red dragon mark.
-- `frontend/tsconfig.tsbuildinfo` is tracked and churns on every commit; it
-  wants a `.gitignore` line and a `git rm --cached`.
 - Upstream: `riichi` is still granted on an open hand, and there is no
   nukidora input (kita han are added after the engine, which can misprice a
   hand whose best reading changes once they are added). Both guarded or
