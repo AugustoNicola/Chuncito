@@ -16,11 +16,12 @@ import { createMatch, type MatchConfig, type MatchState } from './features/match
 import { clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
 import { SyncPanel } from './features/match/SyncPanel';
+import { PlayersScreen } from './features/players/PlayersScreen';
 import {
   type ServerMatch, matchesInProgress, resumeFromServer, startSync, sync, useSyncStatus,
 } from './features/match/syncClient';
 
-type Screen = 'home' | 'setup' | 'match' | 'calculator';
+type Screen = 'home' | 'setup' | 'match' | 'calculator' | 'players';
 
 export function App() {
   const [screen, setScreen] = useState<Screen>('home');
@@ -87,6 +88,10 @@ export function App() {
     return <HandBuilder onCancel={() => setScreen('home')} />;
   }
 
+  if (screen === 'players') {
+    return <PlayersScreen onBack={() => setScreen('home')} />;
+  }
+
   const resumable = match?.status === 'in_progress' ? match : null;
   // Only when this phone has no match of its own on the go: carrying on another
   // one would replace it, and that choice deserves more than a list item.
@@ -135,6 +140,10 @@ export function App() {
 
         <button type="button" className="btn btn--wide" onClick={() => setScreen('calculator')}>
           Hand calculator
+        </button>
+
+        <button type="button" className="btn btn--wide" onClick={() => setScreen('players')}>
+          Players
         </button>
 
         {restoring && <p className="home__hint">Looking for a match in progress…</p>}

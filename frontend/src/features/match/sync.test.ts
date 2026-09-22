@@ -15,9 +15,7 @@ class FakeServer {
   pin = '1234';
   unlocked = false;
   down = false;
-  /** What the server will say it stored players under. */
-  aliases: Record<string, string> = {};
-  lastPlayers: { id: string }[] = [];
+  lastBody: unknown = null;
   /** Holds the next request until released, to test what happens mid-flight. */
   hold: (() => void) | null = null;
 
@@ -36,22 +34,17 @@ class FakeServer {
       this.matches.delete(id);
       return { status: 204, body: null };
     }
-    const { baseRevision, rows, players } = body as {
-      baseRevision: number; rows: MatchRows; players: { id: string }[];
-    };
-    this.lastPlayers = players;
+    const { baseRevision, rows } = body as { baseRevision: number; rows: MatchRows };
+    this.lastBody = body;
     const json = JSON.stringify(rows);
     const current = this.matches.get(id);
-    const playerAliases = this.aliases;
-    if (current?.json === json) {
-      return { status: 200, body: { revision: current.revision, playerAliases } };
-    }
+    if (current?.json === json) return { status: 200, body: { revision: current.revision } };
     if (current && current.revision !== baseRevision) {
       return { status: 409, body: { revision: current.revision } };
     }
     const revision = (current?.revision ?? 0) + 1;
     this.matches.set(id, { revision, json });
-    return { status: 200, body: { revision, playerAliases } };
+    return { status: 200, body: { revision } };
   };
 
   rowsOf(id: string): MatchRows {
@@ -80,7 +73,6 @@ let server: FakeServer;
 let store: MemoryStore;
 let timers: ManualTimers;
 let queue: SyncQueue;
-let heardAliases: Record<string, string>[];
 
 const start = () => createMatch(fourPlayerConfig, new Date('2026-09-21T10:00:00.000Z'), 'm1');
 const ron = (state: ReturnType<typeof start>) => recordHand(state, {
@@ -92,8 +84,7 @@ beforeEach(async () => {
   server.unlocked = true;
   store = new MemoryStore();
   timers = new ManualTimers();
-  heardAliases = [];
-  queue = new SyncQueue(server.transport, store, timers, (a) => heardAliases.push(a));
+  queue = new SyncQueue(server.transport, store, timers);
   await queue.load();
 });
 
@@ -137,20 +128,11 @@ describe('saving', () => {
   });
 });
 
-describe('players', () => {
-  it('sends the registered players a match seats, and not the guests', async () => {
+describe('what a save sends', () => {
+  it('is the revision and the rows, and nothing that could create a player', async () => {
     queue.enqueue(start());
     await settle();
-    expect(server.lastPlayers).toEqual([
-      { id: 'player-ana', displayName: 'Ana' }, { id: 'player-beto', displayName: 'Beto' },
-    ]);
-  });
-
-  it('passes on what the server says about players it already had', async () => {
-    server.aliases = { 'player-ana': 'srv-ana' };
-    queue.enqueue(start());
-    await settle();
-    expect(heardAliases).toEqual([{ 'player-ana': 'srv-ana' }]);
+    expect(Object.keys(server.lastBody as object).sort()).toEqual(['baseRevision', 'rows']);
   });
 });
 

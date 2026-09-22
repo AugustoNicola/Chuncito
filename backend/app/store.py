@@ -22,6 +22,7 @@ import hashlib
 import json
 import re
 import unicodedata
+import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import Connection, delete, func, insert, select
@@ -41,7 +42,7 @@ class DuplicateId(Exception):
 
 
 class UnknownPlayer(Exception):
-    """A seat names a player the server has never heard of and was not told about."""
+    """A seat names a player the server has never heard of."""
 
 
 def slugify(name: str) -> str:
@@ -50,33 +51,60 @@ def slugify(name: str) -> str:
     return re.sub(r'[^a-z0-9]+', '-', plain.lower()).strip('-') or 'player'
 
 
-def resolve_players(conn: Connection, players: list[Player]) -> dict[str, str]:
-    """
-    Makes sure every player the phone sent exists, and returns the aliases.
+class PlayerExists(Exception):
+    def __init__(self, existing: PlayerOut):
+        super().__init__(f'{existing.display_name} already exists')
+        self.existing = existing
 
-    The phone creates a player the moment a new name is typed at setup, with
-    an id of its own, possibly offline. So two phones can each create "Ana"
-    before either has synced. The server keeps one: whoever arrives second is
-    stored under the first one's id, and the phone is told (`player_aliases`)
-    so it uses that id from then on. Sameness is the slug, so "ana" and "Ana"
-    are one person -- the same test the phone uses when matching a typed name.
 
-    A known id keeps its stored name: renaming is not something a match save
-    should do behind anyone's back.
+class NoSuchPlayer(Exception):
+    pass
+
+
+def _player_out(row) -> PlayerOut:
+    return PlayerOut(id=row.id, display_name=row.display_name, slug=row.slug)
+
+
+def _clean(name: str) -> str:
+    return ' '.join(name.split())
+
+
+def _taken(conn: Connection, slug: str, other_than: str | None = None):
+    query = select(m.players).where(m.players.c.slug == slug)
+    if other_than is not None:
+        query = query.where(m.players.c.id != other_than)
+    return conn.execute(query).first()
+
+
+def create_player(conn: Connection, display_name: str) -> PlayerOut:
     """
-    aliases: dict[str, str] = {}
-    for player in players:
-        if conn.execute(select(m.players.c.id).where(m.players.c.id == player.id)).first():
-            continue
-        slug = slugify(player.display_name)
-        existing = conn.execute(
-            select(m.players.c.id).where(m.players.c.slug == slug)).scalar()
-        if existing is not None:
-            aliases[player.id] = existing
-        else:
-            conn.execute(insert(m.players).values(
-                id=player.id, display_name=player.display_name.strip(), slug=slug))
-    return aliases
+    Players are made on purpose, on the Players screen -- never as a side effect
+    of saving a match -- so a typo at the table cannot invent a person. The
+    same test of sameness as everywhere: a name whose slug is taken is refused,
+    so "ana" cannot be added next to "Ana".
+    """
+    name = _clean(display_name)
+    slug = slugify(name)
+    if (existing := _taken(conn, slug)) is not None:
+        raise PlayerExists(_player_out(existing))
+    row = conn.execute(insert(m.players).values(
+        id=str(uuid.uuid4()), display_name=name, slug=slug,
+    ).returning(m.players)).one()
+    return _player_out(row)
+
+
+def rename_player(conn: Connection, player_id: str, display_name: str) -> PlayerOut:
+    """For fixing a typo. Matches store the id, so every one of them follows."""
+    name = _clean(display_name)
+    slug = slugify(name)
+    if (existing := _taken(conn, slug, other_than=player_id)) is not None:
+        raise PlayerExists(_player_out(existing))
+    row = conn.execute(m.players.update().where(m.players.c.id == player_id)
+                       .values(display_name=name, slug=slug)
+                       .returning(m.players)).first()
+    if row is None:
+        raise NoSuchPlayer(player_id)
+    return _player_out(row)
 
 
 def list_players(conn: Connection) -> list[PlayerOut]:
@@ -116,19 +144,12 @@ def _other_owner(conn: Connection, match_id: str, rows: MatchRows) -> bool:
     return conn.execute(clash).first() is not None
 
 
-def save_match(conn: Connection, rows: MatchRows, base_revision: int,
-               players: list[Player] | None = None) -> tuple[int, dict[str, str]]:
-    """
-    Stores the match; returns its new revision and any player aliases.
-    Call inside a transaction.
-    """
+def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
+    """Stores the match and returns its new revision. Call inside a transaction."""
     match_id = rows.match.id
     digest = content_hash(rows)
 
-    # Before the retry check, so a retried save still learns its aliases.
-    aliases = resolve_players(conn, players or [])
-    seated = {aliases.get(p.player_id, p.player_id)
-              for p in rows.match_players if p.player_id is not None}
+    seated = {p.player_id for p in rows.match_players if p.player_id is not None}
     if seated:
         known = set(conn.execute(
             select(m.players.c.id).where(m.players.c.id.in_(seated))).scalars())
@@ -143,7 +164,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int,
 
     if current is not None:
         if current.content_hash == digest:
-            return current.revision, aliases
+            return current.revision
         if current.revision != base_revision:
             raise StaleWrite(current.revision)
     if _other_owner(conn, match_id, rows):
@@ -168,8 +189,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int,
             conn.execute(delete(table).where(table.c.match_id == match_id))
 
     conn.execute(insert(m.match_players), [{
-        'match_id': match_id, 'seat': p.seat,
-        'player_id': aliases.get(p.player_id, p.player_id) if p.player_id else None,
+        'match_id': match_id, 'seat': p.seat, 'player_id': p.player_id,
         'guest_name': p.guest_name, 'final_score': p.final_score,
         'placement': p.placement, 'uma_points': p.uma_points,
     } for p in rows.match_players])
@@ -217,7 +237,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int,
             'seat': a.seat, 'delta': a.delta, 'note': a.note,
         } for a in rows.adjustments])
 
-    return revision, aliases
+    return revision
 
 
 def load_match(conn: Connection, match_id: str

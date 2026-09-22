@@ -498,6 +498,36 @@ button {
   color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em;
 }
 
+/* ---------- players ---------- */
+
+.players { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; }
+.players__add, .players__edit { display: flex; gap: 8px; }
+.players__edit { flex: 1; min-width: 0; }
+.players__input {
+  flex: 1; min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+}
+.players__input:focus { outline: none; border-color: var(--accent); }
+.players__message { margin: 0; font-size: 0.85rem; color: var(--text-dim); }
+.players__message--bad { color: var(--danger); }
+.players__list {
+  list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+.players__row {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--border);
+}
+.players__name { flex: 1; min-width: 0; font-weight: 550; overflow: hidden; text-overflow: ellipsis; }
+.players__rename { padding: 8px 10px; }
+
 /* ---------- sync ---------- */
 
 .sync {
@@ -554,7 +584,7 @@ button {
   font-size: 0.78rem; color: var(--text-dim);
 }
 /* Seat 1 deals East 1, so it is worth marking before the shuffle. */
-.setup__seat:first-of-type .setup__seatno {
+.setup__seatblock:first-of-type .setup__seatno {
   border-color: var(--seat-dealer); color: var(--seat-dealer);
 }
 .setup__name, .setup__number {
@@ -572,7 +602,43 @@ button {
 .setup__numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .setup__numbers .field { min-width: 0; }
 .setup__number { width: 100%; min-width: 0; }
-.setup__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.setup__seatblock { display: flex; flex-direction: column; gap: 6px; }
+.setup__chosen {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font: inherit; text-align: left;
+  cursor: pointer;
+}
+.setup__chosenname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setup__guest {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim);
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.setup__clear { color: var(--text-faint); font-size: 1.1rem; line-height: 1; }
+/* The open seat's choices, indented under its name box. */
+.setup__options {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-left: 32px;
+}
+.setup__option {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit; font-size: 0.9rem;
+  cursor: pointer;
+}
+.setup__option--guest { border-style: dashed; color: var(--text-dim); }
+.setup__hint { color: var(--text-faint); font-size: 0.82rem; }
 .setup__warn { color: var(--danger); font-size: 0.82rem; }
 
 .chip {

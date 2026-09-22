@@ -1,9 +1,10 @@
 /**
  * The fixtures the backend tests PUT and GET, generated from real matches.
  *
- * `backend/tests/fixtures/*.json` is what the sync sends for each match in
- * `testMatches.ts` -- `payloadOf()`: the rows and the players they seat -- with
- * the random ids swapped for stable ones. The backend
+ * `backend/tests/fixtures/*.json` holds what the sync sends for each match in
+ * `testMatches.ts` (`rows`, from `payloadOf`), with the random ids swapped for
+ * stable ones -- and, as test data rather than wire, the registered `players`
+ * those rows seat, which the backend tests create first. The backend
  * checks that it hands each fixture back unchanged; this checks that the
  * fixtures are still what the client actually sends. Between the two, a field
  * added to `rows.ts` cannot quietly fail to reach the database.
@@ -17,14 +18,23 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { createMatch } from './matchState';
 import { type MatchRows, fromRows, toRows } from './rows';
-import { type SyncPayload, payloadOf } from './sync';
+import { type MatchState } from './matchState';
+import { payloadOf } from './sync';
 import { fourPlayerConfig, nameOfTest, playEverything, playSanmaInProgress } from './testMatches';
+
+interface Fixture {
+  rows: MatchRows;
+  players: { id: string; displayName: string }[];
+}
 
 const FIXTURES = resolve(dirname(fileURLToPath(import.meta.url)),
   '../../../../backend/tests/fixtures');
 
 /** Stable ids, so the fixture only changes when the shape does. */
-function stable({ rows, players }: SyncPayload, id: string): SyncPayload {
+function stable(state: MatchState, id: string): Fixture {
+  const { rows } = payloadOf(state);
+  const players = state.config.seats.flatMap((s) =>
+    (s.playerId ? [{ id: s.playerId, displayName: s.name }] : []));
   return {
     rows: {
       ...rows,
@@ -36,10 +46,10 @@ function stable({ rows, players }: SyncPayload, id: string): SyncPayload {
   };
 }
 
-const cases: Record<string, SyncPayload> = {
-  'four-player-finished': stable(payloadOf(playEverything()), 'fixture-4p'),
-  'sanma-in-progress': stable(payloadOf(playSanmaInProgress()), 'fixture-3p'),
-  'empty': stable(payloadOf(createMatch(fourPlayerConfig, new Date('2026-09-23T00:00:00.000Z'))),
+const cases: Record<string, Fixture> = {
+  'four-player-finished': stable(playEverything(), 'fixture-4p'),
+  'sanma-in-progress': stable(playSanmaInProgress(), 'fixture-3p'),
+  'empty': stable(createMatch(fourPlayerConfig, new Date('2026-09-23T00:00:00.000Z')),
     'fixture-empty'),
 };
 

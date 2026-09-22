@@ -1,23 +1,30 @@
 /**
  * Match setup: who is playing, where they sit, and the rules.
  *
- * A name typed here is a player (`players.ts`): a name seen before seats the
- * same player, a new one creates one, and both work offline. The chips offer
- * whoever played most recently.
+ * Each seat is chosen from the group's players (`players.ts`), who are created
+ * on purpose on the Players screen -- typing here only searches, so a typo
+ * cannot invent a person. Someone who is not a player sits as a guest: a name
+ * on this match only, marked as such. Works offline from the cached list.
  */
-import { useState } from 'react';
-import type { MatchConfig } from './matchState';
+import { useEffect, useRef, useState } from 'react';
+import type { MatchConfig, SeatPlayer } from './matchState';
 import { DEFAULTS } from './matchState';
 import type { MatchLength, PlayerCount, Seat } from './seats';
 import { roundKanji, roundName, seatsOf } from './seats';
 import { SITUATION_WINDS } from '../../scorer/types';
-import { recentNames, seatPlayers, slugOf } from './players';
+import {
+  type Player, byRecent, cachedPlayers, findByName, markSeated, search, slugOf,
+} from '../players/players';
+import { refreshPlayers } from './syncClient';
 import { placeLabel } from './scoring';
 
 const umaFields = (players: PlayerCount): string[] => DEFAULTS[players].uma.map(String);
 
+/** How many matching players the picker lists at once. */
+const MAX_OPTIONS = 8;
+
 /** Fisher-Yates, so every seating is equally likely. */
-function shuffled(names: readonly string[]): string[] {
+function shuffled<T>(names: readonly T[]): T[] {
   const out = [...names];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -32,22 +39,58 @@ export function SetupScreen({ onStart, onCancel }: {
 }) {
   const [players, setPlayers] = useState<PlayerCount>(4);
   /**
-   * Always four slots, so switching to sanma and back does not lose the name
-   * typed for the fourth seat. Only the first `players` are used.
+   * Always four slots, so switching to sanma and back does not lose whoever
+   * was seated fourth. Only the first `players` are used.
    */
-  const [allNames, setAllNames] = useState<string[]>(['', '', '', '']);
+  const [allSeats, setAllSeats] = useState<(SeatPlayer | null)[]>([null, null, null, null]);
+  /** What is typed in each seat's search box. */
+  const [queries, setQueries] = useState<string[]>(['', '', '', '']);
+  const [open, setOpen] = useState<Seat | null>(null);
+  const [roster, setRoster] = useState<Player[]>(() => byRecent(cachedPlayers()));
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const [length, setLength] = useState<MatchLength>('south');
   const [redFives, setRedFives] = useState(true);
   const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
   const [returnScore, setReturnScore] = useState(DEFAULTS[4].returnScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
-  const [remembered] = useState<string[]>(() => recentNames());
+
+  // The cache is enough to start with; the server's list replaces it if it answers.
+  useEffect(() => {
+    let cancelled = false;
+    void refreshPlayers().then((list) => { if (list && !cancelled) setRoster(byRecent(list)); });
+    return () => { cancelled = true; };
+  }, []);
 
   const seats = seatsOf(players);
-  const names = allNames.slice(0, players);
+  const seated = allSeats.slice(0, players);
 
-  const setName = (seat: Seat, value: string) =>
-    setAllNames((n) => n.map((v, i) => (i === seat ? value : v)));
+  const setQuery = (seat: Seat, value: string) =>
+    setQueries((q) => q.map((v, i) => (i === seat ? value : v)));
+
+  function choose(seat: Seat, choice: SeatPlayer | null) {
+    const next = allSeats.map((v, i) => (i === seat ? choice : v));
+    setAllSeats(next);
+    setQuery(seat, '');
+    if (choice === null) {
+      setOpen(seat);
+      setTimeout(() => inputs.current[seat]?.focus(), 0);
+      return;
+    }
+    // On to the next empty seat, so four taps seat the table.
+    const nextEmpty = seats.find((s) => next[s] === null);
+    setOpen(nextEmpty ?? null);
+    if (nextEmpty !== undefined) setTimeout(() => inputs.current[nextEmpty]?.focus(), 0);
+  }
+
+  /** What the open seat's list offers: matching players not already seated. */
+  function optionsFor(seat: Seat): { players: Player[]; guest: string | null } {
+    const query = queries[seat]!.trim();
+    const taken = new Set(seated.map((c) => c?.playerId).filter(Boolean));
+    const players = search(roster, query).filter((p) => !taken.has(p.id)).slice(0, MAX_OPTIONS);
+    // A guest by a player's own name would be that player seated twice over.
+    const guest = query && !findByName(roster, query) ? query : null;
+    return { players, guest };
+  }
 
   /**
    * The point defaults and uma differ between the two, so changing the player
@@ -62,9 +105,10 @@ export function SetupScreen({ onStart, onCancel }: {
     setReturnScore(DEFAULTS[count].returnScore);
   };
 
-  const filled = names.every((n) => n.trim().length > 0);
+  const filled = seated.every((c) => c !== null);
   // The same test as "is this the same player": case and accents do not count.
-  const duplicate = new Set(names.map((n) => slugOf(n.trim()))).size < players;
+  const duplicate = new Set(seated.filter((c) => c !== null).map((c) => slugOf(c!.name))).size
+    < seated.filter((c) => c !== null).length;
   const umaValues = uma.map((v) => Number(v.trim()));
   const umaValid = umaValues.every((n) => Number.isFinite(n) && Number.isInteger(n));
   // Uma that does not sum to zero would invent or destroy points across the
@@ -72,14 +116,10 @@ export function SetupScreen({ onStart, onCancel }: {
   const umaBalanced = umaValid && umaValues.reduce((a, b) => a + b, 0) === 0;
   const ready = filled && !duplicate && umaBalanced;
 
-  /** Free names, for the quick-fill chips: those not already seated. */
-  const unused = remembered.filter(
-    (n) => !names.some((v) => v.trim() !== '' && slugOf(v.trim()) === slugOf(n)),
-  );
-  const firstEmpty = names.findIndex((n) => n.trim() === '');
-
   function start() {
     if (!ready) return;
+    const chosen = seated as SeatPlayer[];
+    markSeated(chosen.flatMap((c) => (c.playerId ? [c.playerId] : [])));
     onStart({
       players,
       redFives,
@@ -87,7 +127,7 @@ export function SetupScreen({ onStart, onCancel }: {
       startingPoints,
       returnScore,
       uma: umaValues,
-      seats: seatPlayers(names),
+      seats: chosen,
     });
   }
 
@@ -99,7 +139,7 @@ export function SetupScreen({ onStart, onCancel }: {
         )}
         <h1 className="app__title">New match</h1>
         <button type="button" className="btn btn--quiet"
-                onClick={() => setAllNames([...shuffled(names), ...allNames.slice(players)])}
+                onClick={() => setAllSeats([...shuffled(seated), ...allSeats.slice(players)])}
                 disabled={!filled}
                 title="Shuffle the seating">
           Shuffle
@@ -123,38 +163,72 @@ export function SetupScreen({ onStart, onCancel }: {
 
         <div className="field">
           <span className="field__label">Players</span>
-          {seats.map((seat) => (
-            <div className="setup__seat" key={seat}>
-              <span className="setup__seatno"
-                    title={`Starts as ${roundName(SITUATION_WINDS[seat]!)}`}>
-                {roundKanji(SITUATION_WINDS[seat]!)}
-              </span>
-              <input className="setup__name"
-                     value={allNames[seat]}
-                     placeholder={roundName(SITUATION_WINDS[seat]!)}
-                     onChange={(e) => setName(seat, e.target.value)}
-                     aria-label={`${roundName(SITUATION_WINDS[seat]!)} seat name`} />
-            </div>
-          ))}
-          {duplicate && filled && (
+          {seats.map((seat) => {
+            const wind = roundName(SITUATION_WINDS[seat]!);
+            const choice = seated[seat];
+            const options = open === seat && !choice ? optionsFor(seat) : null;
+            return (
+              <div className="setup__seatblock" key={seat}>
+                <div className="setup__seat">
+                  <span className="setup__seatno" title={`Starts as ${wind}`}>
+                    {roundKanji(SITUATION_WINDS[seat]!)}
+                  </span>
+                  {choice ? (
+                    <button type="button" className="setup__chosen"
+                            aria-label={`${wind}: ${choice.name}. Tap to change.`}
+                            onClick={() => choose(seat, null)}>
+                      <span className="setup__chosenname">{choice.name}</span>
+                      {choice.playerId === null && <span className="setup__guest">guest</span>}
+                      <span className="setup__clear" aria-hidden="true">×</span>
+                    </button>
+                  ) : (
+                    <input className="setup__name"
+                           ref={(el) => { inputs.current[seat] = el; }}
+                           value={queries[seat]}
+                           placeholder={`${wind}: choose a player`}
+                           onFocus={() => setOpen(seat)}
+                           onChange={(e) => { setQuery(seat, e.target.value); setOpen(seat); }}
+                           onKeyDown={(e) => {
+                             if (e.key !== 'Enter' || !options) return;
+                             e.preventDefault();
+                             const first = options.players[0];
+                             if (first) choose(seat, { playerId: first.id, name: first.displayName });
+                             else if (options.guest) choose(seat, { playerId: null, name: options.guest });
+                           }}
+                           aria-label={`${wind} seat`} />
+                  )}
+                </div>
+                {options && (
+                  // mousedown would blur the input before the click lands.
+                  <div className="setup__options" onMouseDown={(e) => e.preventDefault()}>
+                    {options.players.map((p) => (
+                      <button key={p.id} type="button" className="setup__option"
+                              onClick={() => choose(seat, { playerId: p.id, name: p.displayName })}>
+                        {p.displayName}
+                      </button>
+                    ))}
+                    {options.guest && (
+                      <button type="button" className="setup__option setup__option--guest"
+                              onClick={() => choose(seat, { playerId: null, name: options.guest! })}>
+                        Seat “{options.guest}” as a guest
+                      </button>
+                    )}
+                    {options.players.length === 0 && !options.guest && (
+                      <span className="setup__hint">
+                        {roster.length === 0
+                          ? 'No players yet. Add them on the Players screen, or type a name to seat a guest.'
+                          : 'Everyone is seated. Type a name to seat a guest.'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {duplicate && (
             <span className="setup__warn">Two seats have the same name.</span>
           )}
         </div>
-
-        {unused.length > 0 && (
-          <div className="field">
-            <span className="field__label">Played before</span>
-            <div className="setup__chips">
-              {unused.map((name) => (
-                <button key={name} type="button" className="chip"
-                        disabled={firstEmpty < 0}
-                        onClick={() => firstEmpty >= 0 && setName(firstEmpty as Seat, name)}>
-                  {name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="field">
           <span className="field__label">Length</span>

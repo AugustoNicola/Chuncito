@@ -297,18 +297,18 @@ wakes itself.
       are on it: install the client, make `db-migrate` depend on
       `db-backup` again, and consider a scheduled dump, since Neon's free
       restore window is short.
-- [x] **Registered players, created on the fly** (`players.ts`). A name typed
-      at setup is a player: the same name (ignoring case and accents — the
-      server's `slugify`) seats the same player, a new one creates one with a
-      phone-made id, offline or not. Each save carries the players it seats and
-      the server creates the ones it has not seen; if two phones created the
-      same person offline, the second is stored under the first's id and the
-      phone is told (`playerAliases`). The roster lives in localStorage, is
-      refreshed from `GET /api/players` at start-up and on unlock, and
-      replaced the old remembered-names list (migrated on first read). No
-      guests are created by the UI any more; the schema still allows them, and
-      matches recorded before this have them. A directory screen, and merging
-      or renaming players, belong to Phase 4.
+- [x] **Players are created on purpose** (revised 2026-09-21, after a first
+      version made them on the fly from typed names). The Players screen
+      (`features/players/`) is the only place a player is added or renamed —
+      `POST /api/players`, `PATCH /api/players/{id}`, both online-only, both
+      refusing a name another player already has (ignoring case and accents:
+      the server's `slugify`, mirrored by `slugOf`). Saving a match never
+      creates anyone; a seat naming an unknown player is refused (422). Setup
+      chooses each seat from the cached list, recent first: typing only
+      searches, and anyone not in the list can be seated as a **guest**
+      (marked as such; a name on that match only). The Players screen is where
+      profile extras will go — a tile avatar (`players.avatar` exists), an
+      accent colour (a migration away).
 - [x] Carry on a match from another device: the home screen lists matches in
       progress on the server (when this phone has none of its own), and taking
       one fetches it, rebuilds it with `fromRows`, and adopts it at the
@@ -359,15 +359,15 @@ was learned building Phases 1 to 3 and the sanma round:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 221 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 219 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 120 checks, including a four-player match played end to end,
-  a sanma match with a tile-scored kita hand, and the PIN, upload, players and
-  carrying a match on against a fake API (request interception; the run never
+  UI in Firefox — 125 checks, including a four-player match played end to end,
+  a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
+  screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught
   only there: a ron reaching the reducer with no discarder, a CSS specificity
   bug that made a change apply to nothing, and place badges clipped to "1S" on
@@ -389,7 +389,9 @@ was learned building Phases 1 to 3 and the sanma round:
   another. Vite proxies `/api` to `:8000`, so the phone on the LAN gets both.
   Without the backend the app works exactly as before and says so on the
   home screen.
-- Screenshots: `SHOT_DIR=/some/dir npm run test:browser`. The one-off probe
+- Screenshots: `SHOT_DIR=/some/dir npm run test:browser`. When it errors it
+  saves `99-errored.png` too, which usually shows the answer. Firefox ignores
+  a triple-click select-all there; clear inputs with Ctrl+A. The one-off probe
   scripts used during development created Firefox profiles under
   `~/snap/firefox/common/` and did **not** clean up; the committed smoke test
   does. If you write another probe, delete its profile.

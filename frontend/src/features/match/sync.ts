@@ -25,23 +25,14 @@ import type { MatchState } from './matchState';
 import { type MatchRows, toRows } from './rows';
 
 /**
- * What a save sends: the rows, and the registered players they seat. The
- * server may be hearing of a player for the first time -- they are made on the
- * phone at setup -- so a match brings its players with it.
+ * What a save sends besides the revision. Registered seats name players the
+ * server already has -- they are created on the Players screen, never here.
  */
 export interface SyncPayload {
   rows: MatchRows;
-  players: { id: string; displayName: string }[];
 }
 
-export function payloadOf(state: MatchState): SyncPayload {
-  return {
-    rows: toRows(state),
-    players: state.config.seats
-      .filter((s): s is { playerId: string; name: string } => s.playerId !== null)
-      .map((s) => ({ id: s.playerId, displayName: s.name })),
-  };
-}
+export const payloadOf = (state: MatchState): SyncPayload => ({ rows: toRows(state) });
 
 type Pending =
   | { kind: 'put'; payload: SyncPayload; json: string }
@@ -129,17 +120,14 @@ export class SyncQueue {
     private readonly transport: Transport,
     private readonly store: RecordStore,
     private readonly timers: Timers = realTimers,
-    /** Told when the server stored a new player under an id it already had. */
-    private readonly onAliases: (aliases: Record<string, string>) => void = () => {},
   ) {}
 
   async load(): Promise<void> {
     for (const record of await this.store.all()) {
-      // Written before saves carried players, when every seat was a guest. The
-      // server recognises the rows, so re-sending costs one request at most.
+      // Written by the first version, which kept the rows at the top level.
       const old = record.pending as { kind: 'put'; rows?: MatchRows } | null;
       if (old?.kind === 'put' && old.rows) {
-        record.pending = { kind: 'put', payload: { rows: old.rows, players: [] }, json: '' };
+        record.pending = { kind: 'put', payload: { rows: old.rows }, json: '' };
       }
       this.records.set(record.id, record);
     }
@@ -329,7 +317,7 @@ export class SyncQueue {
     try {
       response = pending.kind === 'put'
         ? await this.transport('PUT', `/matches/${encodeURIComponent(record.id)}`,
-          { baseRevision: record.revision, ...pending.payload })
+          { baseRevision: record.revision, rows: pending.payload.rows })
         : await this.transport('DELETE', `/matches/${encodeURIComponent(record.id)}`);
     } catch {
       this.backOff();
@@ -353,11 +341,7 @@ export class SyncQueue {
     }
 
     if (response.status === 200) {
-      const body = response.body as { revision: number; playerAliases?: Record<string, string> };
-      record.revision = body.revision;
-      if (body.playerAliases && Object.keys(body.playerAliases).length > 0) {
-        this.onAliases(body.playerAliases);
-      }
+      record.revision = (response.body as { revision: number }).revision;
       record.sentJson = pending.json;
       if (!this.records.has(record.id)) {
         // Discarded while its first save was in flight: it did land, so it has
@@ -373,6 +357,8 @@ export class SyncQueue {
       record.problem = 'conflict';
       if (typeof body?.revision === 'number') record.serverRevision = body.revision;
     } else {
+      // Includes a seat naming a player this server has never had -- say, one
+      // created against a different database. Nothing to retry until it changes.
       record.problem = 'rejected';
       console.error('the server refused match', record.id, response.body);
     }

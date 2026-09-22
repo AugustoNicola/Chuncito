@@ -67,9 +67,10 @@ adjustments(id, match_id, after_seq, seat, delta, note)
 - Ids (`matches.id`, `client_uuid`s, `players.id`) are text: they are made on
   the phone.
 - `players.slug` is unique and is the test of sameness: "Ana", "ana" and "Aná"
-  are one player. A phone that invents a second id for a known slug has it
-  mapped to the first on save (`store.resolve_players`). A save never renames
-  a known player.
+  are one player, and a second one by that name is refused. Players are only
+  created and renamed through `/api/players`; a match save never creates one,
+  and refuses a seat naming a player the server does not have. Guests
+  (`player_id` NULL, `guest_name` set) are seated on purpose at setup.
 
 Notes:
 

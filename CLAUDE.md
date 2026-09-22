@@ -40,9 +40,10 @@ frontend/src/scorer/         contract layer: types, order, serialize, decode, va
                              dora, engine (+ .node / .browser factories)
 frontend/src/features/hand/  hand input: handState (pure) + handTiles + nukidora + components
 frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
-                             rows (DB mapping), persistence, players (the roster),
-                             sync + syncClient (saving to the server), and the
-                             table/menu/timeline components
+                             rows (DB mapping), persistence, sync + syncClient
+                             (saving to the server), and the table/menu/timeline
+                             components
+frontend/src/features/players/ the Players screen and the cached player list
 frontend/src/ui/             Tile, theme.css
 frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
 backend/app/                 FastAPI: settings (dev/main target), db, models (the
@@ -124,6 +125,11 @@ branches; `backend/app/settings.py` uses `dev` unless `CHUNCITO_TARGET=main`.
 Never run anything against `main` without the user asking; the tests refuse to.
 Backups are deferred for now (`main` is empty); once it holds real matches,
 `make db-backup` before any migration on it.
+
+**Players are created on purpose, never as a side effect.** Only the Players
+screen adds or renames one; setup chooses from the list or seats a guest, and
+the server refuses a match seating a player it does not have. A typo at the
+table must not be able to invent a person.
 
 **The tracker never waits on the server.** Saves are queued (`sync.ts`) and
 the table plays from local state; a missing, locked or failing server must

@@ -8,7 +8,7 @@
 import { useSyncExternalStore } from 'react';
 import type { MatchState } from './matchState';
 import { SYNC_STORE, listArchived, loadMatch, withStore } from './persistence';
-import { applyAliases, mergeServerPlayers, nameOf } from './players';
+import { type Player, nameOf, setCachedPlayers } from '../players/players';
 import { type MatchRows, fromRows } from './rows';
 import { type RecordStore, type SyncRecord, type SyncStatus, SyncQueue, type Transport } from './sync';
 
@@ -33,19 +33,67 @@ const idbRecords: RecordStore = {
   delete: async (id) => { await withStore('readwrite', (s) => s.delete(id), SYNC_STORE); },
 };
 
-export const sync = new SyncQueue(fetchTransport, idbRecords, undefined, applyAliases);
+export const sync = new SyncQueue(fetchTransport, idbRecords);
 
-/** Everyone the server knows, into this phone's roster. Quietly does nothing offline. */
-export async function refreshPlayers(): Promise<void> {
+/**
+ * Everyone the server knows, into the phone's cache. Resolves with the list,
+ * or null when the server could not say (offline, locked), in which case the
+ * cache stands.
+ */
+export async function refreshPlayers(): Promise<Player[] | null> {
   try {
     const response = await fetchTransport('GET', '/players');
-    if (response.status === 200) {
-      mergeServerPlayers(response.body as { id: string; displayName: string }[]);
-    }
+    if (response.status !== 200) return null;
+    const list = (response.body as (Player & { slug?: string })[])
+      .map(({ id, displayName }) => ({ id, displayName }));
+    setCachedPlayers(list);
+    return list;
   } catch {
-    // Offline; the roster on the phone is enough to set up a match.
+    return null;
   }
 }
+
+/** True when the server answered and wants the PIN; false if unlocked or unreachable. */
+export async function sessionLocked(): Promise<boolean> {
+  try {
+    const response = await fetchTransport('GET', '/session');
+    return response.status === 200 && !(response.body as { unlocked: boolean }).unlocked;
+  } catch {
+    return false;
+  }
+}
+
+export type PlayerResult =
+  | { ok: true; player: Player }
+  | { ok: false; message: string; locked?: boolean };
+
+async function playerRequest(method: string, path: string, name: string): Promise<PlayerResult> {
+  let response;
+  try {
+    response = await fetchTransport(method, path, { displayName: name });
+  } catch {
+    return { ok: false, message: 'Could not reach the server. Players are added online.' };
+  }
+  if (response.status === 200 || response.status === 201) {
+    const { id, displayName } = response.body as Player;
+    await refreshPlayers();
+    return { ok: true, player: { id, displayName } };
+  }
+  if (response.status === 409) {
+    const existing = (response.body as { existing?: Player }).existing;
+    return { ok: false, message: `${existing?.displayName ?? 'Someone'} already exists.` };
+  }
+  if (response.status === 401) {
+    return { ok: false, message: 'The server needs the PIN first.', locked: true };
+  }
+  if (response.status === 422) return { ok: false, message: 'That is not a usable name.' };
+  return { ok: false, message: `The server said ${response.status}.` };
+}
+
+export const createPlayer = (name: string) => playerRequest('POST', '/players', name);
+
+export const renamePlayer = (id: string, name: string) =>
+  playerRequest('PATCH', `/players/${encodeURIComponent(id)}`, name);
 
 export interface ServerMatch {
   id: string;
@@ -85,7 +133,6 @@ export async function resumeFromServer(id: string): Promise<MatchState | null> {
     const body = response.body as {
       revision: number; rows: MatchRows; players: { id: string; displayName: string }[];
     };
-    mergeServerPlayers(body.players);
     const names = new Map(body.players.map((p) => [p.id, p.displayName]));
     const state = fromRows(body.rows, (pid) => names.get(pid) ?? nameOf(pid) ?? pid);
     sync.adopt(state, body.revision);

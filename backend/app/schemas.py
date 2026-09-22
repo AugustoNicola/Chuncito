@@ -159,20 +159,19 @@ class PutMatch(Wire):
     phone that went offline, while the match carried on from another device,
     would otherwise flush its old copy over the new one when it reconnected.
 
-    `players` are the registered players the match seats. The phone makes them
-    up at setup, offline if need be, so the server may be hearing of them for
-    the first time; see `store.resolve_players`.
+    Registered seats must name players the server already has: players are
+    created on purpose, on their own screen (`POST /api/players`).
     """
     base_revision: int = Field(ge=0)
     rows: MatchRows
-    players: list[Player] = []
 
 
 class Saved(Wire):
     revision: int
-    # Player ids the phone made up for someone the server already knew by
-    # name, and the id they were stored under instead.
-    player_aliases: dict[str, str] = {}
+
+
+class PlayerName(Wire):
+    display_name: str = Field(min_length=1, max_length=60, pattern=r'\S')
 
 
 class Conflict(Wire):

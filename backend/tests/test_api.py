@@ -17,29 +17,36 @@ FIXTURES = {p.stem: json.loads(p.read_text())
 
 
 def fixture(name: str, match_id: str) -> dict:
-    """
-    A fixture's rows under a fresh id, so tests do not collide in the shared
-    schema. The players that came with it ride along in `PLAYERS[match_id]`.
-    """
-    payload = copy.deepcopy(FIXTURES[name])
-    rows = payload['rows']
+    """A fixture's rows under a fresh id, so tests do not collide in the shared schema."""
+    rows = copy.deepcopy(FIXTURES[name]['rows'])
     old = rows['match']['id']
     rows['match']['id'] = match_id
     for row in (*rows['hands'], *rows['adjustments']):
         row['clientUuid'] = row['clientUuid'].replace(old, match_id)
-    PLAYERS[match_id] = payload['players']
     return rows
 
 
-PLAYERS: dict[str, list] = {}
+def players_of(name: str) -> list[dict]:
+    return FIXTURES[name]['players']
 
 
-def put(client, rows: dict, base: int = 0, players: list | None = None):
-    match_id = rows['match']['id']
-    return client.put(f'/api/matches/{match_id}', json={
-        'baseRevision': base, 'rows': rows,
-        'players': PLAYERS.get(match_id, []) if players is None else players,
-    })
+@pytest.fixture(scope='module', autouse=True)
+def seeded(engine):
+    """
+    The fixtures' registered players, under the ids the fixtures use. Inserted
+    directly: the API makes up its own ids, as it should.
+    """
+    with engine.begin() as conn:
+        for p in {p['id']: p for f in FIXTURES.values() for p in f['players']}.values():
+            conn.execute(text(
+                'insert into players (id, display_name, slug) values (:id, :name, :slug) '
+                'on conflict (id) do nothing'),
+                {'id': p['id'], 'name': p['displayName'], 'slug': p['displayName'].lower()})
+
+
+def put(client, rows: dict, base: int = 0):
+    return client.put(f"/api/matches/{rows['match']['id']}",
+                      json={'baseRevision': base, 'rows': rows})
 
 
 def test_the_fixtures_are_there():
@@ -90,7 +97,7 @@ def test_a_match_comes_back_exactly_as_it_was_sent(unlocked, name):
 
     got = unlocked.get(f"/api/matches/{rows['match']['id']}")
     assert got.status_code == 200
-    assert got.json() == {'revision': 1, 'rows': rows, 'players': PLAYERS[rows['match']['id']]}
+    assert got.json() == {'revision': 1, 'rows': rows, 'players': players_of(name)}
 
 
 def test_a_retried_save_is_not_a_second_write(unlocked):
@@ -159,53 +166,50 @@ def test_a_yaku_without_its_winner_is_refused(unlocked):
 
 # --- players ---
 
-def test_a_match_brings_its_new_players_with_it(unlocked):
-    rows = fixture('four-player-finished', 'players-new')
-    assert put(unlocked, rows).status_code == 200
-    listed = {p['id']: p for p in unlocked.get('/api/players').json()}
-    assert listed['player-ana'] == {'id': 'player-ana', 'displayName': 'Ana', 'slug': 'ana'}
-    assert 'player-beto' in listed
+def test_a_player_is_created_on_purpose(unlocked):
+    made = unlocked.post('/api/players', json={'displayName': '  Emi   Sato '})
+    assert made.status_code == 201
+    emi = made.json()
+    assert emi['displayName'] == 'Emi Sato' and emi['slug'] == 'emi-sato'
+    assert emi in unlocked.get('/api/players').json()
 
 
-def test_a_seat_naming_an_unknown_player_is_refused(unlocked):
+def test_a_name_already_taken_is_refused_with_whoever_has_it(unlocked):
+    unlocked.post('/api/players', json={'displayName': 'Fede'})
+    again = unlocked.post('/api/players', json={'displayName': 'FEDÉ'})
+    assert again.status_code == 409
+    assert again.json()['existing']['displayName'] == 'Fede'
+
+
+def test_a_blank_name_is_refused(unlocked):
+    assert unlocked.post('/api/players', json={'displayName': '   '}).status_code == 422
+
+
+def test_a_typo_is_fixed_by_renaming(unlocked):
+    gabi = unlocked.post('/api/players', json={'displayName': 'Gaib'}).json()
+    fixed = unlocked.patch(f"/api/players/{gabi['id']}", json={'displayName': 'Gabi'})
+    assert fixed.json() == {'id': gabi['id'], 'displayName': 'Gabi', 'slug': 'gabi'}
+    # Renaming to your own name in a different case is not a clash with yourself.
+    assert unlocked.patch(f"/api/players/{gabi['id']}",
+                          json={'displayName': 'GABI'}).status_code == 200
+    unlocked.post('/api/players', json={'displayName': 'Hana'})
+    assert unlocked.patch(f"/api/players/{gabi['id']}",
+                          json={'displayName': 'hana'}).status_code == 409
+    assert unlocked.patch('/api/players/nobody', json={'displayName': 'X'}).status_code == 404
+
+
+def test_saving_a_match_never_creates_players(unlocked):
     rows = fixture('empty', 'players-unknown')
-    rows['matchPlayers'][0]['playerId'] = 'nobody-told-me'
-    response = put(unlocked, rows, players=[])
+    rows['matchPlayers'][0]['playerId'] = 'nobody-made-me'
+    response = put(unlocked, rows)
     assert response.status_code == 422
-    assert 'nobody-told-me' in response.text
+    assert 'nobody-made-me' in response.text
+    assert 'nobody-made-me' not in {p['id'] for p in unlocked.get('/api/players').json()}
 
 
-def test_the_same_person_made_on_two_phones_is_one_player(unlocked):
-    put(unlocked, fixture('empty', 'players-first'))       # creates player-ana, "Ana"
-
-    # Another phone, offline, created "ANA" with an id of its own.
-    rows = fixture('empty', 'players-second')
-    rows['matchPlayers'][0]['playerId'] = 'phone-b-ana'
-    saved = put(unlocked, rows, players=[
-        {'id': 'phone-b-ana', 'displayName': 'ANA'},
-        {'id': 'player-beto', 'displayName': 'Beto'},
-    ])
-    assert saved.status_code == 200
-    assert saved.json()['playerAliases'] == {'phone-b-ana': 'player-ana'}
-
-    got = unlocked.get('/api/matches/players-second').json()
-    assert got['rows']['matchPlayers'][0]['playerId'] == 'player-ana'
-    assert got['players'][0] == {'id': 'player-ana', 'displayName': 'Ana'}
-    assert 'phone-b-ana' not in {p['id'] for p in unlocked.get('/api/players').json()}
-
-    # The phone retries, never having heard back: it still learns the alias.
-    again = put(unlocked, rows, players=[{'id': 'phone-b-ana', 'displayName': 'ANA'},
-                                         {'id': 'player-beto', 'displayName': 'Beto'}])
-    assert again.json() == {'revision': 1, 'playerAliases': {'phone-b-ana': 'player-ana'}}
-
-
-def test_a_known_player_keeps_their_name(unlocked):
-    put(unlocked, fixture('empty', 'players-keep'))
-    rows = fixture('empty', 'players-rename')
-    put(unlocked, rows, players=[{'id': 'player-ana', 'displayName': 'Anita'},
-                                 {'id': 'player-beto', 'displayName': 'Beto'}])
-    listed = {p['id']: p for p in unlocked.get('/api/players').json()}
-    assert listed['player-ana']['displayName'] == 'Ana'
+def test_players_need_the_pin(client):
+    assert client.get('/api/players').status_code == 401
+    assert client.post('/api/players', json={'displayName': 'Sneaky'}).status_code == 401
 
 
 def test_slugs_ignore_case_and_accents():

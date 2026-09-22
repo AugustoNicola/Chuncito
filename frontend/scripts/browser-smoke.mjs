@@ -25,6 +25,7 @@ const server = await createServer({ server: { port: 5199, strictPort: true } });
 await server.listen();
 
 let browser, profileDir, failed = false;
+let lastPage = null;
 const check = (ok, msg) => { if (ok) { console.log(`  ok   ${msg}`); } else { failed = true; console.error(`  FAIL ${msg}`); } };
 
 try {
@@ -34,6 +35,7 @@ try {
     headless: true, userDataDir: profileDir,
   });
   const page = await browser.newPage();
+  lastPage = page;
   await page.setViewport({ width: 390, height: 844 });
   page.on('pageerror', (e) => { failed = true; console.error('  [pageerror]', e.message); });
   page.on('console', (m) => { if (m.type() === 'error') console.error('  [console]', m.text()); });
@@ -64,7 +66,19 @@ try {
       return api.unlocked ? reply(204) : reply(401, { detail: 'wrong PIN' });
     }
     if (!api.unlocked) return reply(401, { detail: 'enter the PIN' });
-    if (path === '/players') return reply(200, [...api.players.values()]);
+    const slug = (n) => n.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (path === '/players' && method === 'GET') return reply(200, [...api.players.values()]);
+    if (path.startsWith('/players')) {
+      const name = body.displayName.trim();
+      const id = method === 'POST' ? `p-${api.players.size + 1}` : path.split('/')[2];
+      const taken = [...api.players.values()]
+        .find((p) => p.slug === slug(name) && p.id !== id);
+      if (taken) return reply(409, { detail: 'exists', existing: taken });
+      const player = { id, displayName: name, slug: slug(name) };
+      api.players.set(id, player);
+      return reply(method === 'POST' ? 201 : 200, player);
+    }
     if (path === '/matches' && method === 'GET') {
       const status = url.searchParams.get('status');
       return reply(200, [...api.matches.entries()]
@@ -81,15 +95,18 @@ try {
     const id = decodeURIComponent(path.replace('/matches/', ''));
     if (method === 'DELETE') { api.matches.delete(id); return reply(204); }
     if (method === 'PUT') {
-      for (const p of body.players) if (!api.players.has(p.id)) api.players.set(p.id, p);
+      if (body.players !== undefined) return reply(422, { detail: 'players are not sent' });
+      if (body.rows.matchPlayers.some((p) => p.playerId && !api.players.has(p.playerId))) {
+        return reply(422, { detail: 'unknown player' });
+      }
       const revision = (api.matches.get(id)?.revision ?? 0) + 1;
       api.matches.set(id, { revision, rows: body.rows });
-      return reply(200, { revision, playerAliases: {} });
+      return reply(200, { revision });
     }
     if (method === 'GET' && api.matches.has(id)) {
       const { revision, rows } = api.matches.get(id);
       const players = rows.matchPlayers.filter((p) => p.playerId)
-        .map((p) => api.players.get(p.playerId));
+        .map((p) => ({ id: p.playerId, displayName: api.players.get(p.playerId).displayName }));
       return reply(200, { revision, rows, players });
     }
     return reply(404, { detail: 'not in the fake' });
@@ -103,6 +120,16 @@ try {
     if (!button) throw new Error(`no button labelled ${t}`);
     button.click();
   }, text);
+
+  // Seats the table with guests, through the seat picker: type, then take the
+  // guest option. (Registered players are covered in the server section.)
+  const seatGuests = async (list) => {
+    for (const name of list) {
+      const input = await page.$('.setup__name');
+      await input.type(name);
+      await byText(`Seat “${name}”`);
+    }
+  };
 
   // The tracker owns the root now; the calculator is one tap in.
   await page.waitForSelector('.home');
@@ -276,8 +303,7 @@ try {
   await page.waitForSelector('.setup');
 
   const names = ['Ana', 'Beto', 'Cami', 'Dani'];
-  const inputs = await page.$$('.setup__name');
-  for (let i = 0; i < names.length; i++) await inputs[i].type(names[i]);
+  await seatGuests(names);
   const umaFields = await page.$$eval('.setup__uma input', (els) => els.map((e) => e.value));
   check(JSON.stringify(umaFields) === JSON.stringify(['20', '10', '-10', '-20']),
         `uma is four editable fields, preloaded (got ${JSON.stringify(umaFields)})`);
@@ -731,8 +757,7 @@ try {
   // --- ending the match shows placements ---
   await byText('New match');
   await page.waitForSelector('.setup');
-  const again = await page.$$('.setup__name');
-  for (let i = 0; i < names.length; i++) await again[i].type(names[i]);
+  await seatGuests(names);
   await byText('Start match');
   await page.waitForSelector('.table');
   await byText('Manual');
@@ -761,7 +786,7 @@ try {
 
   const sanmaInputs = await page.$$('.setup__name');
   check(sanmaInputs.length === 3, `sanma setup asks for three names (got ${sanmaInputs.length})`);
-  for (let i = 0; i < 3; i++) await sanmaInputs[i].type(names[i]);
+  await seatGuests(names.slice(0, 3));
   const sanmaUma = await page.$$eval('.setup__uma input', (els) => els.map((e) => e.value));
   check(JSON.stringify(sanmaUma) === JSON.stringify(['15', '0', '-15']),
         `sanma uma is three fields (got ${JSON.stringify(sanmaUma)})`);
@@ -913,8 +938,7 @@ try {
   const before = api.matches.size;
   await byText('New match');
   await page.waitForSelector('.setup');
-  const syncInputs = await page.$$('.setup__name');
-  for (let i = 0; i < names.length; i++) await syncInputs[i].type(names[i]);
+  await seatGuests(names);
   await byText('Start match');
   await page.waitForSelector('.table');
   await page.waitForSelector('.syncdot[data-state="synced"]', { timeout: 10_000 });
@@ -932,10 +956,79 @@ try {
   }
   check(api.matches.size === before, 'a discarded match comes off the server');
 
-  // Seats are registered players now, sent along with the first match that seats them.
-  check(finished.matchPlayers.every((p) => p.playerId && p.guestName === null)
-        && finished.matchPlayers.every((p) => api.players.has(p.playerId)),
-        'seats are registered players, and the server was told who they are');
+  // ==================== players ====================
+
+  await byText('Players');
+  await page.waitForSelector('.players');
+  // Firefox ignores a triple-click's select-all here, so clear with the keyboard.
+  const replaceText = async (selector, text) => {
+    await page.click(selector);
+    await page.keyboard.down('Control'); await page.keyboard.press('a'); await page.keyboard.up('Control');
+    await page.keyboard.press('Backspace');
+    await page.type(selector, text);
+  };
+  const addPlayer = async (name) => {
+    await replaceText('.players__add .players__input', name);
+    await byText('Add');
+  };
+  for (const name of ['Ana', 'Beto', 'Cami', 'Dain']) {
+    await addPlayer(name);
+    await page.waitForFunction((n) => [...document.querySelectorAll('.players__name')]
+      .some((e) => e.textContent === n), {}, name);
+  }
+  check(api.players.size === 4, 'players are added on the Players screen, on the server');
+
+  await addPlayer('ANA');
+  await page.waitForSelector('.players__message--bad');
+  check((await page.$eval('.players__message--bad', (el) => el.textContent)).includes('Ana already exists'),
+        'a second player by the same name is refused');
+
+  // A typo is fixed by renaming, not by making someone new.
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll('.players__row')]
+      .find((r) => r.querySelector('.players__name')?.textContent === 'Dain');
+    row.querySelector('.players__rename').click();
+  });
+  await page.waitForSelector('.players__edit');
+  await replaceText('.players__edit .players__input', 'Dani');
+  await byText('Save');
+  await page.waitForFunction(() => [...document.querySelectorAll('.players__name')]
+    .some((e) => e.textContent === 'Dani'));
+  check([...api.players.values()].some((p) => p.displayName === 'Dani') && api.players.size === 4,
+        'renaming fixes the name without adding anyone');
+  await shot('52-players.png');
+  await byText('Back');
+  await page.waitForSelector('.home');
+
+  // Setup chooses from the players; typing only searches.
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  await page.type('.setup__name', 'be');
+  const offered = await page.$$eval('.setup__option', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(offered) === JSON.stringify(['Beto', 'Seat “be” as a guest']),
+        `typing searches the players and offers a guest (got ${JSON.stringify(offered)})`);
+  await byText('Beto');
+  for (const name of ['Ana', 'Cami']) {
+    await page.type('.setup__name', name.slice(0, 2));
+    await byText(name);
+  }
+  await seatGuests(['Visitor']);
+  await shot('53-setup-picker.png');
+  const chosen = await page.$$eval('.setup__chosen', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(chosen) === JSON.stringify(['Beto×', 'Ana×', 'Cami×', 'Visitorguest×']),
+        `seats show who sits there, guests marked (got ${JSON.stringify(chosen)})`);
+  await byText('Start match');
+  await page.waitForSelector('.syncdot[data-state="synced"]', { timeout: 10_000 });
+  const seatedRows = [...api.matches.values()].map((m) => m.rows)
+    .find((r) => r.matchPlayers.some((p) => p.guestName === 'Visitor'));
+  check(seatedRows?.matchPlayers.filter((p) => p.playerId).length === 3
+        && seatedRows.matchPlayers[3].playerId === null,
+        'three registered players and a guest reach the server as such');
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Discard this match');
+  await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
 
   // Another phone's match in progress, offered on the home screen.
   const other = structuredClone(finished);
@@ -964,6 +1057,10 @@ try {
 } catch (err) {
   failed = true;
   console.error('\nBROWSER TEST ERRORED:', err.message);
+  // What the screen looked like when it gave up, which is usually the answer.
+  if (SHOT_DIR && lastPage) {
+    await lastPage.screenshot({ path: join(SHOT_DIR, '99-errored.png') }).catch(() => {});
+  }
 } finally {
   await browser?.close();
   await server.close();

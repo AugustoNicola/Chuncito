@@ -8,9 +8,11 @@ The API. Run with `uvicorn app.main:app` from `backend/`.
 | `POST /api/session`         | `{pin}` -> sets the session cookie |
 | `DELETE /api/session`       | forget the cookie |
 | `GET  /api/players`         | everyone registered, by name |
+| `POST /api/players`         | `{displayName}` -> the new player; 409 if the name is taken |
+| `PATCH /api/players/{id}`   | `{displayName}` -> renamed; 409 if the name is taken |
 | `GET  /api/matches`         | summaries, newest first; `?status=in_progress` |
 | `GET  /api/matches/{id}`    | `{revision, rows, players}` -- `rows` is `MatchRows` |
-| `PUT  /api/matches/{id}`    | `{baseRevision, rows, players}` -> `{revision, playerAliases}`; 409 if stale |
+| `PUT  /api/matches/{id}`    | `{baseRevision, rows}` -> `{revision}`; 409 if stale |
 | `DELETE /api/matches/{id}`  | a match thrown away at the table |
 
 Everything under `/api/players` and `/api/matches` needs the PIN cookie.
@@ -26,7 +28,8 @@ from sqlalchemy.exc import IntegrityError
 from . import auth, store
 from .db import get_engine
 from .schemas import (
-    MatchSummary, MatchWithRevision, PinIn, PlayerOut, PutMatch, Saved, SessionState,
+    MatchSummary, MatchWithRevision, PinIn, PlayerName, PlayerOut, PutMatch, Saved,
+    SessionState,
 )
 
 app = FastAPI(title='Chuncito', docs_url=None, redoc_url=None, openapi_url=None)
@@ -76,6 +79,34 @@ def list_players() -> list[PlayerOut]:
         return store.list_players(conn)
 
 
+def _exists(taken: store.PlayerExists) -> JSONResponse:
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={
+        'detail': str(taken), 'existing': taken.existing.model_dump(by_alias=True),
+    })
+
+
+@app.post('/api/players', response_model=PlayerOut, response_model_by_alias=True,
+          status_code=status.HTTP_201_CREATED, dependencies=gated)
+def create_player(body: PlayerName):
+    try:
+        with get_engine().begin() as conn:
+            return store.create_player(conn, body.display_name)
+    except store.PlayerExists as taken:
+        return _exists(taken)
+
+
+@app.patch('/api/players/{player_id}', response_model=PlayerOut, response_model_by_alias=True,
+           dependencies=gated)
+def rename_player(player_id: str, body: PlayerName):
+    try:
+        with get_engine().begin() as conn:
+            return store.rename_player(conn, player_id, body.display_name)
+    except store.PlayerExists as taken:
+        return _exists(taken)
+    except store.NoSuchPlayer:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'no such player') from None
+
+
 @app.get('/api/matches', response_model=list[MatchSummary], response_model_by_alias=True,
          dependencies=gated)
 def list_matches(include_test: bool = False, status: str | None = None) -> list[MatchSummary]:
@@ -101,8 +132,7 @@ def put_match(match_id: str, body: PutMatch):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, 'the id in the path and body differ')
     try:
         with get_engine().begin() as conn:
-            revision, aliases = store.save_match(
-                conn, body.rows, body.base_revision, body.players)
+            revision = store.save_match(conn, body.rows, body.base_revision)
     except store.StaleWrite as stale:
         return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={
             'detail': 'this match was changed from another device', 'revision': stale.revision,
@@ -113,7 +143,7 @@ def put_match(match_id: str, body: PutMatch):
     except (store.DuplicateId, IntegrityError):
         raise HTTPException(status.HTTP_409_CONFLICT,
                             'a hand in this match already belongs to another match')
-    return Saved(revision=revision, player_aliases=aliases)
+    return Saved(revision=revision)
 
 
 @app.delete('/api/matches/{match_id}', status_code=status.HTTP_204_NO_CONTENT,
