@@ -37,6 +37,7 @@ import { archiveMatch, clearMatch, saveMatch } from './persistence';
 import { SyncDot, SyncPanel } from './SyncPanel';
 import { queueMatch } from './syncClient';
 import type { WinMode } from '../../scorer/types';
+import { warmScorer } from '../../scorer/useScorer';
 
 type Menu =
   | { at: 'table' }
@@ -96,6 +97,14 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     void saveMatch(match);
     queueMatch(match);
   }, [match]);
+
+  // Most wins at the table can be scored by tiles, so the scorer is fetched in
+  // the background once the table is up rather than when somebody first opens
+  // the builder mid-hand. A moment's delay lets the table draw first.
+  useEffect(() => {
+    const timer = setTimeout(warmScorer, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const nameOf = (seat: Seat) => match.config.seats[seat]!.name;
 

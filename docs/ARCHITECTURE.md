@@ -23,8 +23,19 @@ run anywhere. Running it on the phone means:
   alternative would have forced container deploys.
 - Queries are ~1 ms, so no server round-trip beats it anyway.
 
-Cost: 4.1 MB of wasm assets (2.28 MB wasm + 1.66 MB data + 194 KB js), fetched
-once and cached. Measured 146 ms cold boot in Firefox including that fetch.
+Cost: 4.1 MB of wasm assets (2.28 MB wasm + 1.66 MB data + 194 KB js), about
+2 MB gzipped, fetched once and cached. Measured 146 ms cold boot in Firefox
+including that fetch (on localhost).
+
+"Once" took doing on purpose. Until 2026-09-23 the files sat at a fixed
+`/swipl/` path, served `no-cache`, and the server never answered a
+conditional request, so every fresh open re-downloaded all 4.1 MB,
+uncompressed; a friend noticed first. Now `engine.browser.ts` imports them as
+`?url`, Vite fingerprints them into `assets/`, and those are cached for a
+year as immutable; the backend gzips responses and answers `304` for what is
+still revalidated (`index.html`, tiles). The table also starts the download
+in the background (`warmScorer`), so a first night's first tile hand is not
+the one that waits. A failed load is forgotten, not cached, so it is retried.
 
 Inputs *and* outputs are stored, so history can be re-scored if the engine is
 later fixed or extended.

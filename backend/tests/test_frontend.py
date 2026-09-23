@@ -52,3 +52,22 @@ def test_nothing_outside_dist_is_reachable(site):
 
 def test_robots_still_wins(site):
     assert site.get('/robots.txt').text.startswith('User-agent: *')
+
+
+def test_a_file_the_browser_holds_is_not_sent_again(site):
+    first = site.get('/players')
+    again = site.get('/players', headers={'If-None-Match': first.headers['etag']})
+    assert again.status_code == 304 and again.content == b''
+    assert again.headers['cache-control'] == 'no-cache'
+    # Any other version is sent in full.
+    assert site.get('/players', headers={'If-None-Match': '"stale"'}).status_code == 200
+
+
+def test_the_scorer_is_compressed_and_kept(site, tmp_path):
+    # Vite's name for it, fingerprinted; the payload stands in for a wasm file.
+    (tmp_path / 'assets' / 'swipl-web-Ce5N68zE.wasm').write_bytes(b'\0asm' + b'\1' * 50_000)
+    r = site.get('/assets/swipl-web-Ce5N68zE.wasm', headers={'Accept-Encoding': 'gzip'})
+    assert r.status_code == 200 and r.headers['content-encoding'] == 'gzip'
+    assert 'immutable' in r.headers['cache-control']
+    assert r.headers['content-type'] == 'application/wasm'
+    assert r.content.startswith(b'\0asm')  # the client decompressed it

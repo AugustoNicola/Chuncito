@@ -477,7 +477,15 @@ their stats endpoints, then the desktop layout.
             Neon), the page and its immutable assets, the wasm, HTTP → HTTPS
             308, 401 without the PIN and on a wrong one, `noindex`.
       - [ ] The user's first real use on the phone.
-- [ ] PWA install, service-worker caching of the wasm assets (4.1 MB)
+- [x] **The scorer is downloaded once** (2026-09-23, after a friend found it
+      slow). It was re-sent in full, uncompressed, on every fresh open: a fixed
+      `/swipl/` path served `no-cache`, and no `304`s. Now fingerprinted into
+      `assets/` via `?url` imports (cached a year, immutable), gzip on every
+      response (4.1 → ~2 MB), `304` for revalidated files, and the table warms
+      the scorer in the background. A failed load is retried rather than kept.
+      Probed in Firefox against a local production build: a reload and a new
+      visit request none of the scorer files. `stage:swipl` is gone.
+- [ ] PWA install, and a service worker for working offline
 - [ ] Limit-hand theming pass, empty/error states
 - [ ] **Home screen verdict.** The card home (`dc6b7ce`, `e195bd3`) is
       experimental; the user may still scrap it — `git revert e195bd3 dc6b7ce`

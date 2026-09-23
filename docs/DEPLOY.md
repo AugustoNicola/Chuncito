@@ -25,7 +25,8 @@ integration. Committing locally does not; pushing does.
      runs `heroku-postbuild`: `npm ci --include=dev` in `frontend/` (Heroku sets
      `NODE_ENV=production`, which would skip Vite and TypeScript), `npm run
      build`, then deletes `frontend/node_modules` so it is not in the slug.
-     The `postinstall` stages the swipl-wasm files into `public/swipl/`.
+     The scorer's files come straight from `node_modules/swipl-wasm` into
+     `assets/`, fingerprinted (`engine.browser.ts`).
    - `heroku/python` reads the root `requirements.txt` (which is just
      `-r backend/requirements.txt`) and `.python-version` (**3.12**, as local).
 2. **Release** (`Procfile`): `scripts/check_migrations.py` compares the `main`

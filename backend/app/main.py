@@ -26,9 +26,11 @@ anyone seated), `player` (repeatable: all of them sat), `min_level` (a rank,
 Nothing here is meant to be found: every response says `noindex`, and
 `/robots.txt` turns crawlers away (the frontend serves one too).
 """
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -42,6 +44,10 @@ from .schemas import (
 )
 
 app = FastAPI(title='Chuncito', docs_url=None, redoc_url=None, openapi_url=None)
+# Nothing in front of the app compresses (Heroku's router passes bodies through),
+# and the scorer alone is 4 MB that gzip halves. Level 6: nearly all of level 9's
+# saving for a fraction of the CPU, on a small dyno.
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 
 @app.middleware('http')
@@ -188,8 +194,23 @@ def delete_match(match_id: str) -> None:
         store.delete_match(conn, match_id)
 
 
+def _file(request: Request, path: Path, cache: str) -> Response:
+    """
+    A file, or `304 Not Modified` when the browser already holds this version.
+    Starlette's `FileResponse` sends an ETag but never answers a conditional
+    request, so a `no-cache` file was re-sent in full on every check.
+    """
+    response = FileResponse(path, stat_result=path.stat(), headers={'Cache-Control': cache})
+    held = request.headers.get('if-none-match', '')
+    if response.headers['etag'] in {tag.strip() for tag in held.split(',')}:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers={
+            'ETag': response.headers['etag'], 'Cache-Control': cache,
+        })
+    return response
+
+
 @app.get('/{path:path}', include_in_schema=False)
-def frontend(path: str) -> FileResponse:
+def frontend(path: str, request: Request) -> Response:
     """
     The built app. The frontend has real routes (`/players`, `/match`, ...), so
     a path that is not a file gets `index.html` and the router takes it from
@@ -206,10 +227,10 @@ def frontend(path: str) -> FileResponse:
     wanted = (dist / path).resolve()
     if path and wanted.is_file() and wanted.is_relative_to(dist):
         # Vite fingerprints everything under assets/, so it never changes.
+        # That includes the scorer's 4 MB (`engine.browser.ts`).
         immutable = wanted.is_relative_to(dist / 'assets')
-        return FileResponse(wanted, headers={
-            'Cache-Control': 'public, max-age=31536000, immutable' if immutable else 'no-cache',
-        })
+        return _file(request, wanted,
+                     'public, max-age=31536000, immutable' if immutable else 'no-cache')
     if '.' in path.rsplit('/', 1)[-1]:
         raise HTTPException(status.HTTP_404_NOT_FOUND, 'not found')
-    return FileResponse(dist / 'index.html', headers={'Cache-Control': 'no-cache'})
+    return _file(request, dist / 'index.html', 'no-cache')

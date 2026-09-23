@@ -10,8 +10,6 @@ __pycache__/
 *.swp
 backups/
 
-# staged from node_modules by `npm run stage:swipl` (postinstall)
-frontend/public/swipl/
 
 # rewritten by every `tsc -b`
 *.tsbuildinfo
