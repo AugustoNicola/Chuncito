@@ -253,7 +253,8 @@ of the backend: that is Phase 5's Heroku item, and `main` has not been migrated
 until it happens.
 
 **Database: Neon, Postgres 18,** region `aws-us-east-2`. Two branches: `main`
-(real matches) and `dev` (development and tests). The repo-root `.env`
+(real matches; Neon's console names it `production`) and `dev` (development
+and tests). The repo-root `.env`
 (gitignored) holds four URLs; `backend/app/settings.py` picks between them by
 **target**, which defaults to `dev` — the real data is only reachable with
 `CHUNCITO_TARGET=main` (`make db-migrate TARGET=main`), and the tests refuse to

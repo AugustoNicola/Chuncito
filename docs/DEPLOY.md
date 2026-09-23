@@ -3,7 +3,13 @@
 One Heroku app, **`chuncito`** (<https://chuncito.herokuapp.com>), on an **Eco**
 dyno in the US region. It serves the built frontend and the API from one
 origin, which the PIN cookie needs. The database is not on Heroku: it is the
-Neon `main` branch (`aws-us-east-2`, Ohio; Heroku's US region is Virginia).
+Neon project's default branch (`aws-us-east-2`, Ohio; Heroku's US region is
+Virginia).
+
+**Naming:** our code calls the real database's target `main`
+(`CHUNCITO_TARGET=main`); Neon's console calls that branch **`production`**,
+endpoint `ep-odd-poetry-…`. The `dev` target is Neon's `dev` branch,
+`ep-crimson-lake-…`. Only the URLs decide which branch is reached.
 
 **Every push to `main` on GitHub deploys**, through Heroku's GitHub
 integration. Committing locally does not; pushing does.
