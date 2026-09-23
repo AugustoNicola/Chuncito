@@ -29,6 +29,7 @@ From the repo root:
 | `make backend-test` | pytest against a throwaway schema on the Neon **dev** branch |
 | `make db-backup` | `pg_dump` into `backups/` (needs `postgresql-client-18`) |
 | `make db-migrate` | `alembic upgrade head`. Add `TARGET=main` for real data |
+| `make db-check` | Is the target at the code's migration? (Heroku's release phase) |
 
 ## Layout
 
@@ -52,7 +53,10 @@ backend/app/                 FastAPI: settings (dev/main target), db, models (th
                              (save/load a whole match), auth (the PIN), main (routes)
 backend/migrations/          Alembic; 0001 is the whole schema
 backend/tests/               pytest on real Postgres; fixtures/ written by wire.test.ts
-docs/                        contract, gaps, architecture, data model, roadmap
+backend/scripts/             db_backup, check_migrations (the release phase)
+docs/                        contract, gaps, architecture, data model, deploy, roadmap
+package.json, requirements.txt, .python-version, Procfile
+                             Heroku's build entry points only; see DEPLOY.md
 ```
 
 The two pure cores — `handState.ts` and `matchState.ts` (+ `seats.ts`,
@@ -129,8 +133,13 @@ in seat order.
 **The dev branch unless told otherwise.** `.env` holds URLs for both Neon
 branches; `backend/app/settings.py` uses `dev` unless `CHUNCITO_TARGET=main`.
 Never run anything against `main` without the user asking; the tests refuse to.
-Backups are deferred for now (`main` is empty); once it holds real matches,
-`make db-backup` before any migration on it.
+Backups are deferred for now; once `main` holds real matches, `make db-backup`
+before any migration on it.
+
+**A push to `main` is a deploy.** Heroku builds every push to GitHub's `main`
+(`docs/DEPLOY.md`). Commit freely; push only when the user asks. A change that
+needs a migration needs `main` migrated (by hand, backup first) before the push,
+or the release phase refuses it.
 
 **Players are created on purpose, never as a side effect.** Only the Players
 screen adds or renames one; setup chooses from the list or seats a guest, and

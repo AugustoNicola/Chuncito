@@ -4,7 +4,7 @@ TARGET ?= dev
 PY := backend/.venv/bin/python
 export CHUNCITO_TARGET := $(TARGET)
 
-.PHONY: backend-setup backend-dev backend-test db-backup db-migrate db-status
+.PHONY: backend-setup backend-dev backend-test db-backup db-migrate db-status db-check
 
 backend-setup:          ## Python venv with runtime + test dependencies
 	python3 -m venv backend/.venv
@@ -27,3 +27,6 @@ db-migrate:             ## bring the target to the latest migration
 
 db-status:              ## which migration the target is at
 	cd backend && .venv/bin/alembic current
+
+db-check:               ## fails unless the target is at the code's migration (Heroku's release phase)
+	cd backend && .venv/bin/python -m scripts.check_migrations

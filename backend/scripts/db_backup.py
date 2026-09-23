@@ -2,8 +2,9 @@
 `make db-backup`: a `pg_dump` of the chosen target into `backups/` (gitignored).
 
 Neon's free plan can only restore within a short window, so these dumps are
-the long-term copy. Run before every migration -- `make db-migrate` does it
-first -- and whenever else you like; the whole database is a few MB.
+the long-term copy. Run before every migration of `main` that holds real
+matches (by hand: `make db-migrate` does not do it for you), and whenever else
+you like; the whole database is a few MB.
 
 Uses the direct connection: `pg_dump` needs a real session, which PgBouncer's
 transaction pooling does not give. Refuses a `pg_dump` older than the server,

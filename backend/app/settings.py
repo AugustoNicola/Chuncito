@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     # and `/api` share an origin, as the PIN cookie needs. Absent in development,
     # where Vite serves the app and proxies `/api` here instead.
     chuncito_frontend_dist: Path = REPO_ROOT / 'frontend' / 'dist'
+    # Set by Heroku on every dyno (`web.1`). Read rather than configured, so a
+    # deploy cannot forget it: behind Heroku's router, the connection is the
+    # router's, and who is calling and over what is only in its headers.
+    dyno: str | None = None
+
+    @property
+    def behind_router(self) -> bool:
+        return bool(self.dyno)
 
     def _pick(self, direct: bool) -> str:
         if self.chuncito_target == 'main':

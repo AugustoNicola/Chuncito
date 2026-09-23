@@ -29,7 +29,7 @@ Nothing here is meant to be found: every response says `noindex`, and
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
@@ -49,6 +49,16 @@ async def no_index(request: Request, call_next):
     response = await call_next(request)
     response.headers['X-Robots-Tag'] = 'noindex, nofollow'
     return response
+
+
+@app.middleware('http')
+async def https_only(request: Request, call_next):
+    # The session cookie is Secure, so over plain HTTP it is never sent back and
+    # the PIN would seem not to stick. Heroku answers both schemes and says which
+    # in X-Forwarded-Proto; 308 rather than 301 so a PUT stays a PUT.
+    if get_settings().behind_router and request.headers.get('x-forwarded-proto') == 'http':
+        return RedirectResponse(str(request.url.replace(scheme='https')), status_code=308)
+    return await call_next(request)
 
 
 @app.get('/robots.txt', response_class=PlainTextResponse)

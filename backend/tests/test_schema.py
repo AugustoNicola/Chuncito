@@ -5,6 +5,7 @@ from alembic.migration import MigrationContext
 from sqlalchemy import text
 
 from app.models import metadata
+from scripts.check_migrations import revisions
 from tests.conftest import alembic_config
 
 
@@ -38,3 +39,13 @@ def test_level_rank_is_derived_from_the_level(engine):
         """)).all()
         conn.rollback()
     assert dict(ranks) == {'r0': None, 'r1': 1, 'r2': 7, 'r3': 6}
+
+
+def test_the_release_refuses_a_database_behind_the_code(engine):
+    with engine.begin() as conn:
+        current, expected = revisions(conn)
+        assert current == expected and expected
+        command.downgrade(alembic_config(conn), 'base')
+        current, expected = revisions(conn)
+        assert current == set() and expected
+        command.upgrade(alembic_config(conn), 'head')

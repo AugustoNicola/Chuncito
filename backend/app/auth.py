@@ -58,6 +58,18 @@ def require_session(request: Request) -> None:
 
 
 def _client(request: Request) -> str:
+    """
+    Who is guessing. Behind Heroku's router every connection comes from the
+    router, so the caller is the **last** `X-Forwarded-For` entry: the one the
+    router appended. Anything before it is whatever the client sent. Trusting
+    that (as uvicorn's `--forwarded-allow-ips '*'` would, taking the first)
+    lets a guesser claim a fresh address on every try.
+    """
+    if get_settings().behind_router:
+        forwarded = ','.join(request.headers.getlist('x-forwarded-for'))
+        last = forwarded.rsplit(',', 1)[-1].strip()
+        if last:
+            return last
     return request.client.host if request.client else 'unknown'
 
 

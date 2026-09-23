@@ -452,17 +452,26 @@ their stats endpoints, then the desktop layout.
 
 ## Phase 5 — Polish, deploy, harden — NEXT
 
-- [ ] **Heroku deploy.** Already in place: FastAPI serves `frontend/dist` with
-      an `index.html` fallback (`CHUNCITO_FRONTEND_DIST`, `test_frontend.py`),
-      so one dyno serves app and API on one origin, as the PIN cookie needs.
-      Still to do: a build that runs `npm run build` and installs
-      `backend/requirements.txt` (Node + Python buildpacks, or a Procfile with
-      a release phase), `CHUNCITO_TARGET=main`, `CHUNCITO_PIN`,
-      `CHUNCITO_SECRET` (set, or sessions die on every restart),
-      `CHUNCITO_SECURE_COOKIES=true`. **`main` has never been migrated**: the
-      first deploy needs `make db-migrate TARGET=main` — ask the user first,
-      it is the real branch. `main` is empty, so no backup is needed for that
-      one; from then on it is (see Phase 3's backups item).
+- [ ] **Heroku deploy** — repo side done (2026-09-23); the Heroku side is
+      the user's to set up. `docs/DEPLOY.md` is the runbook. Decided with the
+      user: app `chuncito` (chuncito.herokuapp.com), Eco dyno, US region,
+      **automatic deploys on every push to GitHub `main`**.
+      - [x] Root `package.json` (Node **22.x** for the build only; the
+            `heroku-postbuild` builds `frontend/` and drops its
+            `node_modules`), root `requirements.txt` → the backend's,
+            `.python-version` 3.12, `Procfile`. Built and served from a clean
+            copy with Node 22 and `NODE_ENV=production`, against `dev`.
+      - [x] Behind the router (`DYNO` set, `Settings.behind_router`): HTTP →
+            HTTPS 308, and the wrong-PIN limit keyed on the router's
+            `X-Forwarded-For` entry — before, every caller was the router, so
+            ten wrong PINs from anyone locked everyone out. `test_router.py`.
+      - [x] Release phase **checks** the migration (`scripts/check_migrations.py`,
+            `make db-check`) and never runs one: `main` is migrated by hand,
+            backup first, before the push that needs it.
+      - [x] **`main` migrated to `0001`** (2026-09-23, with the user's go-ahead;
+            it was empty).
+      - [ ] Heroku side: app, buildpacks (nodejs then python), config vars,
+            GitHub auto-deploy; then the first push, and a check on the phone.
 - [ ] PWA install, service-worker caching of the wasm assets (4.1 MB)
 - [ ] Limit-hand theming pass, empty/error states
 - [ ] **Home screen verdict.** The card home (`dc6b7ce`, `e195bd3`) is
@@ -543,7 +552,9 @@ Still open, none of it blocking:
   needs Node 20. esbuild via Vite 5 (a page in the same browser can read the
   *dev* server's responses; dev only, but `--host` puts it on the LAN): fixed
   in a Vite past the pin. Moving to Node 20 would clear both; it is the
-  user's call.
+  user's call. The full audit also lists a critical (vitest's UI
+  server) and a high (Vite's dev server): dev tools only, not in the deployed
+  build — `npm audit --omit=dev` shows just the two react-router ones.
 
 - Agari-yame; landscape/tablet layout for the table; a "who am I" seat so the
   phone's owner sits at the bottom rather than seat 1.
