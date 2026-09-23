@@ -1,7 +1,10 @@
 # Deploy
 
-One Heroku app, **`chuncito`** (<https://chuncito.herokuapp.com>), on an **Eco**
-dyno in the US region. It serves the built frontend and the API from one
+One Heroku app, **`chuncito`**, at **<https://chuncito-04cb54b392c2.herokuapp.com/>**, on an **Eco**
+dyno in the US region. The suffix is Heroku's: apps made since June 2023 get a
+random one, and the bare `chuncito.herokuapp.com` is not available (its "No
+such app" page says nothing about whether a name is free). A custom domain
+can be added at any time; ACM gives it a certificate on Eco too. It serves the built frontend and the API from one
 origin, which the PIN cookie needs. The database is not on Heroku: it is the
 Neon project's default branch (`aws-us-east-2`, Ohio; Heroku's US region is
 Virginia).
@@ -88,7 +91,7 @@ no new features, no end date announced. Nothing here is Heroku-specific beyond
 these files and `DYNO`: moving elsewhere is the same build, the same command,
 the same config vars, and a replacement for `behind_router`.
 
-## One-time setup
+## One-time setup (done 2026-09-23, from the dashboard)
 
 In the dashboard: create `chuncito` (US, personal), confirm the web dyno is
 Eco, then **Deploy → GitHub**: connect `AugustoNicola/Chuncito`, enable
@@ -105,5 +108,5 @@ heroku config:set -a chuncito CHUNCITO_TARGET=main CHUNCITO_SECURE_COOKIES=true 
 - `heroku logs -a chuncito --tail` — build, release and request logs.
 - `heroku releases -a chuncito`; `heroku rollback -a chuncito` goes back to the
   previous release (code and config, not the database).
-- `curl https://chuncito.herokuapp.com/api/health` answers `{"ok":true}` only
+- `curl https://chuncito-04cb54b392c2.herokuapp.com/api/health` answers `{"ok":true}` only
   if the database does too.

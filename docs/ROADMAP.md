@@ -453,9 +453,9 @@ their stats endpoints, then the desktop layout.
 
 ## Phase 5 — Polish, deploy, harden — NEXT
 
-- [ ] **Heroku deploy** — repo side done (2026-09-23); the Heroku side is
-      the user's to set up. `docs/DEPLOY.md` is the runbook. Decided with the
-      user: app `chuncito` (chuncito.herokuapp.com), Eco dyno, US region,
+- [x] **Heroku deploy** — live since 2026-09-23 at
+      <https://chuncito-04cb54b392c2.herokuapp.com/>. `docs/DEPLOY.md` is the runbook. Decided with the
+      user: app `chuncito`, Eco dyno, US region,
       **automatic deploys on every push to GitHub `main`**.
       - [x] Root `package.json` (Node **22.x** for the build only; the
             `heroku-postbuild` builds `frontend/` and drops its
@@ -471,8 +471,12 @@ their stats endpoints, then the desktop layout.
             backup first, before the push that needs it.
       - [x] **`main` migrated to `0001`** (2026-09-23, with the user's go-ahead;
             it was empty).
-      - [ ] Heroku side: app, buildpacks (nodejs then python), config vars,
-            GitHub auto-deploy; then the first push, and a check on the phone.
+      - [x] Heroku side, set up by the user in the dashboard: app,
+            buildpacks (nodejs then python), config vars, GitHub auto-deploy.
+            First push `fd04e3a`; checked from outside: health (reaches
+            Neon), the page and its immutable assets, the wasm, HTTP → HTTPS
+            308, 401 without the PIN and on a wrong one, `noindex`.
+      - [ ] The user's first real use on the phone.
 - [ ] PWA install, service-worker caching of the wasm assets (4.1 MB)
 - [ ] Limit-hand theming pass, empty/error states
 - [ ] **Home screen verdict.** The card home (`dc6b7ce`, `e195bd3`) is
