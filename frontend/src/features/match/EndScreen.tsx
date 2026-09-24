@@ -96,30 +96,33 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
 
       <div className="app__spacer" />
 
-      {confirmDiscard ? (
-        <div className="endscreen__actions">
-          <button type="button" className="btn btn--danger btn--wide" onClick={onDiscard}>
-            Yes, throw it away
-          </button>
-          <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(false)}>
-            Keep it
-          </button>
-        </div>
-      ) : (
-        <div className="endscreen__actions">
-          <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(true)}>
-            Discard
-          </button>
-          <button type="button" className="btn btn--primary btn--wide" onClick={() => onSave(name.trim(), ranked)}>
-            Save and finish
-          </button>
-        </div>
-      )}
-      {confirmDiscard && (
-        <span className="field__hint endscreen__warn">
-          The match is deleted from this phone and from the history. It cannot be undone.
-        </span>
-      )}
+      {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
+      <div className="app__footer">
+        {confirmDiscard ? (
+          <div className="endscreen__actions">
+            <button type="button" className="btn btn--danger btn--wide" onClick={onDiscard}>
+              Yes, throw it away
+            </button>
+            <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(false)}>
+              Keep it
+            </button>
+          </div>
+        ) : (
+          <div className="endscreen__actions">
+            <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(true)}>
+              Discard
+            </button>
+            <button type="button" className="btn btn--primary btn--wide" onClick={() => onSave(name.trim(), ranked)}>
+              Save and finish
+            </button>
+          </div>
+        )}
+        {confirmDiscard && (
+          <span className="field__hint endscreen__warn">
+            The match is deleted from this phone and from the history. It cannot be undone.
+          </span>
+        )}
+      </div>
     </div>
   );
 }

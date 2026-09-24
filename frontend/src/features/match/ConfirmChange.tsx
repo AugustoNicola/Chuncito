@@ -239,11 +239,14 @@ export function ConfirmChange({
 
       <div className="app__spacer" />
 
-      <div className="confirm__actions">
-        <button type="button" className="btn btn--wide" onClick={onCancel}>Go back</button>
-        <button type="button" className="btn btn--primary btn--wide" onClick={onConfirm}>
-          {confirmLabel ?? 'Confirm'}
-        </button>
+      {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
+      <div className="app__footer">
+        <div className="confirm__actions">
+          <button type="button" className="btn btn--wide" onClick={onCancel}>Go back</button>
+          <button type="button" className="btn btn--primary btn--wide" onClick={onConfirm}>
+            {confirmLabel ?? 'Confirm'}
+          </button>
+        </div>
       </div>
     </div>
   );

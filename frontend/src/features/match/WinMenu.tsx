@@ -433,27 +433,30 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
 
       <div className="app__spacer" />
 
-      <div className="status">
-        {current === null
-          ? (staged.length > 0
-              ? `${staged.length} hand${staged.length === 1 ? '' : 's'} entered — add another winner, or review.`
-              : 'Pick the winner.')
-          : preview !== null
-            ? `${preview.toLocaleString()} points${state.honba > 0 ? ` + ${state.honba} honba` : ''}`
-            : 'Pick han and fu, or a limit — or enter the tiles above.'}
-      </div>
+      {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
+      <div className="app__footer">
+        <div className="status">
+          {current === null
+            ? (staged.length > 0
+                ? `${staged.length} hand${staged.length === 1 ? '' : 's'} entered — add another winner, or review.`
+                : 'Pick the winner.')
+            : preview !== null
+              ? `${preview.toLocaleString()} points${state.honba > 0 ? ` + ${state.honba} honba` : ''}`
+              : 'Pick han and fu, or a limit — or enter the tiles above.'}
+        </div>
 
-      {canAddWinner && (
-        <button type="button" className="btn btn--wide"
-                onClick={() => stage(currentEntry!)}>
-          Add another winner on this discard
+        {canAddWinner && (
+          <button type="button" className="btn btn--wide"
+                  onClick={() => stage(currentEntry!)}>
+            Add another winner on this discard
+          </button>
+        )}
+
+        <button type="button" className="btn btn--primary btn--wide"
+                disabled={!canRecord} onClick={() => record(currentEntry ?? undefined)}>
+          {pending.length > 1 ? `Review ${pending.length} hands` : 'Review'}
         </button>
-      )}
-
-      <button type="button" className="btn btn--primary btn--wide"
-              disabled={!canRecord} onClick={() => record(currentEntry ?? undefined)}>
-        {pending.length > 1 ? `Review ${pending.length} hands` : 'Review'}
-      </button>
+      </div>
     </div>
   );
 }

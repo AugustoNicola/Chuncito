@@ -370,10 +370,13 @@ export function SetupScreen({ onStart, onCancel }: {
 
       <div className="app__spacer" />
 
-      <button type="button" className="btn btn--primary btn--wide"
-              disabled={!ready} onClick={start}>
-        Start match
-      </button>
+      {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
+      <div className="app__footer">
+        <button type="button" className="btn btn--primary btn--wide"
+                disabled={!ready} onClick={start}>
+          Start match
+        </button>
+      </div>
     </div>
   );
 }

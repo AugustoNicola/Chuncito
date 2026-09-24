@@ -708,6 +708,12 @@ per item.** Ticked here as they land, with what was decided.
       something in it blocks Start. **Kept outside it: the table (four /
       sanma)** as well as the length — it decides how many seats are asked
       for, so it belongs above them. Dropped the stale "no oka" hint.
+- [x] **Advance buttons remain visible** — `.app__footer` pins a screen's
+      status line and bottom buttons to the viewport's bottom edge, on the
+      page background under a rule, so Start / Review / Record / Save are in
+      sight (disabled or not) without scrolling: setup, the win and draw
+      menus, the review screen, the end screen; the tile scorer's result
+      pins its Edit / Record the same way (`.score__actions`).
 
 ## Picking this up cold
 
