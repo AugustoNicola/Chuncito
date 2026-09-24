@@ -121,7 +121,8 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     const { state: after, row } = recordHand(match, input);
     const winners = winnersOf(input);
     const title = input.kind === 'win'
-      ? `${winners.map(nameOf).join(' and ')} ${input.mode === 'tsumo' ? 'tsumo' : 'ron'}`
+      ? `${winners.map(nameOf).join(' and ')} ${input.mode === 'tsumo' ? 'tsumo'
+        : `ron${input.dealIn !== null ? ` off ${nameOf(input.dealIn)}` : ''}`}`
       : DRAW_TITLE[input.kind] ?? 'No winner';
     stage({ after, row, title, confirmLabel: 'Record this hand', back });
   }

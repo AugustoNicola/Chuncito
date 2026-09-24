@@ -130,6 +130,10 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
     return (
       <HandBuilder
         title={nameOf(current)}
+        attribution={{
+          winner: nameOf(current),
+          ...(mode === 'ron' && dealIn !== null ? { dealIn: nameOf(dealIn) } : {}),
+        }}
         winds={{
           roundWind: state.round.wind,
           seatWind: seatWindOf(current, state.round, players),

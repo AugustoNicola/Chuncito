@@ -413,6 +413,10 @@ button {
   color: var(--text-dim);
   font-size: 0.9rem;
 }
+/* The win menu's colours: green for who won, red for who paid. */
+.score__who { color: var(--text-dim); font-size: 1rem; margin-bottom: 4px; text-align: center; }
+.score__winner { color: var(--gain); font-weight: 600; }
+.score__dealin { color: var(--loss); font-weight: 600; }
 .score__breakdown { color: var(--text-faint); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .score__breakdown--note { font-size: 0.78rem; font-style: italic; }
 

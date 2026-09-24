@@ -38,12 +38,23 @@ function tsumoLoss(payment: Payment): string | null {
   }
 }
 
+/**
+ * Who won, and on a ron who paid. The tracker knows both, so the score names
+ * them; the plain calculator has nobody to name.
+ */
+export interface ScoreAttribution {
+  winner: string;
+  /** Absent on a tsumo. */
+  dealIn?: string;
+}
+
 export function ScoreResultView({
-  result, hand, onBack, onConfirm, confirmLabel, onAddAnother,
+  result, hand, attribution, onBack, onConfirm, confirmLabel, onAddAnother,
 }: {
   result: ScoreResult;
   /** Omitted by the limit-theming preview; the score stands on its own. */
   hand?: HandState;
+  attribution?: ScoreAttribution;
   onBack: () => void;
   /** Set when the score is about to be recorded against a match. */
   onConfirm?: () => void;
@@ -91,6 +102,14 @@ export function ScoreResultView({
       )}
 
       <div className="score__totals">
+        {attribution && (
+          <span className="score__who">
+            <span className="score__winner">{attribution.winner}</span>
+            {attribution.dealIn !== undefined
+              ? <> off <span className="score__dealin">{attribution.dealIn}</span>’s discard</>
+              : ', self-drawn'}
+          </span>
+        )}
         <span className="score__hanfu">
           {result.han} han
           {/* Fu is 0 whenever a yakuman applies, so showing it would be noise. */}

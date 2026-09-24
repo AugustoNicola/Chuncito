@@ -507,6 +507,12 @@ per item.** Ticked here as they land, with what was decided.
       every unfurler expects, though the backlog said "portrait". `og:image`
       names the Heroku host (see `DEPLOY.md`); `robots.txt` still refuses
       crawlers, so X/LinkedIn will not unfurl, WhatsApp/Telegram will.
+- [x] **Scoring attribution** — the tile scorer's result screen, reached from
+      the win menu, names the winner in green and on a ron the discarder in
+      red ("Dani off Ana's discard" / "Cami, self-drawn"), above the han/fu.
+      `HandBuilder` takes an `attribution` for it; the plain calculator has
+      none and shows none. The confirmation's title says it too ("Dani ron
+      off Ana"), for the typed-value route.
 
 ## Picking this up cold
 

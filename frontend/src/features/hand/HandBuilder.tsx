@@ -12,7 +12,7 @@ import { TileKeyboard } from './TileKeyboard';
 import { CallModeBar } from './CallModeBar';
 import { HandDisplay } from './HandDisplay';
 import { HandContextPanel } from './HandContextPanel';
-import { ScoreResultView } from './ScoreResultView';
+import { ScoreResultView, type ScoreAttribution } from './ScoreResultView';
 import {
   clearHand, currentSize, initialHandState, isComplete, pressTile, reconcile,
   removeConcealed, removeDora, removeKita, removeMeld, setRedFives, setSanma, targetSize,
@@ -76,6 +76,8 @@ export interface HandBuilderProps {
   onCancel?: () => void;
   /** Replaces the "Hand" header, e.g. with the winner's name. */
   title?: string;
+  /** Names the winner, and on a ron the discarder, on the score screen. */
+  attribution?: ScoreAttribution;
 }
 
 function buildQuery(state: HandState): ScoreQuery | null {
@@ -91,6 +93,7 @@ function buildQuery(state: HandState): ScoreQuery | null {
 
 export function HandBuilder({
   winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
+  attribution,
 }: HandBuilderProps = {}) {
   const [state, setState] = useState<HandState>(() => ({
     ...initialHandState,
@@ -132,7 +135,8 @@ export function HandBuilder({
   if (result) {
     return (
       <div className="app">
-        <ScoreResultView result={result} hand={state} onBack={() => setResult(null)}
+        <ScoreResultView result={result} hand={state} attribution={attribution}
+                         onBack={() => setResult(null)}
                          onConfirm={onConfirm ? () => onConfirm(result, state) : undefined}
                          onAddAnother={onAddAnother ? () => onAddAnother(result, state) : undefined} />
       </div>

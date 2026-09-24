@@ -272,6 +272,7 @@ try {
 
   const seat = await page.$eval('.score__seat', (e) => e.textContent);
   check(seat === 'Non-dealer ron', `seat/win line reads "Non-dealer ron" (got "${seat}")`);
+  check(await page.$('.score__who') === null, 'the plain calculator names nobody');
   const tier = await page.$eval('.score', (e) => e.dataset.tier);
   check(tier === 'none', `a 4 han hand uses the plain tier (got "${tier}")`);
   const hanLabels = await page.$$eval('.score__han', (els) => els.map((e) => e.textContent));
@@ -606,12 +607,16 @@ try {
   const embeddedSeat = await page.$eval('.score__seat', (el) => el.textContent);
   check(embeddedSeat === 'Non-dealer ron',
         `the seat wind came from the seat, not a picker (got ${embeddedSeat})`);
+  const who = await page.$eval('.score__who', (el) => el.textContent);
+  check(who === 'Dani off Ana’s discard', `the score names the winner and the discarder (got "${who}")`);
   await shot('18-scored.png');
 
   await byText('Record this hand');
   await page.waitForSelector('.confirm');
   const scoredValue = await page.$eval('.confirm__points', (el) => el.textContent);
   check(scoredValue === '7,700', `the confirmation shows the scored value (got ${scoredValue})`);
+  const confirmTitle = await page.$eval('.app__title', (el) => el.textContent);
+  check(confirmTitle === 'Dani ron off Ana', `the confirmation names the discarder (got "${confirmTitle}")`);
   await byText('Record this hand');
   await page.waitForSelector('.table');
   const afterScored = await scores();
@@ -917,6 +922,8 @@ try {
   const note = await page.$eval('.score__breakdown--note', (el) => el.textContent);
   check(note.includes('Sanma') && note.includes('7,900'),
         `the score notes the tsumo loss (got "${note}")`);
+  const tsumoWho = await page.$eval('.score__who', (el) => el.textContent);
+  check(tsumoWho === 'Cami, self-drawn', `a tsumo names only the winner (got "${tsumoWho}")`);
   await shot('33-sanma-score.png');
   await byText('Record this hand');
   await page.waitForSelector('.confirm');
