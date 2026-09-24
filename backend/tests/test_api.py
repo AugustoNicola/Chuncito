@@ -316,6 +316,8 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     assert b['hands'] == 6
     # Two rons (one after riichi); the nagashi mangan pays but is not a won hand.
     assert (b['wins'], b['tsumoWins'], b['dealIns'], b['riichis']) == (2, 0, 0, 1)
+    # Two non-dealer mangan rons; the nagashi's payment is not a win's.
+    assert b['pointsWonTotal'] == 16000
     assert b['winMethods'] == {'riichi': 1, 'dama': 1, 'open': 0, 'unknown': 0}
     assert b['bestHand']['level'] == 'mangan' and b['bestHand']['matchId'] == 'stats-4p'
     # Yaku are counted off the hands' yaku rows. (The fixture's hand 5 lists a

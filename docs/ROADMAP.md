@@ -633,6 +633,11 @@ per item.** Ticked here as they land, with what was decided.
 - [x] **Scrap a match on match end** — the end screen has Discard beside
       Save and finish; two taps, like Manual's, and it is the same discard
       (the mirror cleared, the server's copy deleted), landing on home.
+- [x] **New stat: average point score** — "Average win" on the profile:
+      `points_won` summed over wins (`pointsWonTotal`, a count like the
+      others) divided by wins. That is each hand's value as paid — dealer
+      bonus included, honba and riichi sticks not; a nagashi is not a win.
+      The desktop tile row now holds any number of tiles in one row.
 
 ## Picking this up cold
 

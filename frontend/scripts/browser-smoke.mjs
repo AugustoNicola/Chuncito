@@ -90,7 +90,7 @@ try {
         placementCounts: Array.from({ length: kind }, (_, i) =>
           mine.filter(([, { rows: r }]) => seatOf(r).placement === i + 1).length),
         umaTotal: mine.reduce((a, [, { rows: r }]) => a + (seatOf(r).umaPoints ?? 0), 0),
-        hands: 20, wins: 4, tsumoWins: 1, dealIns: 3, riichis: 5,
+        hands: 20, wins: 4, tsumoWins: 1, pointsWonTotal: 25800, dealIns: 3, riichis: 5,
         winMethods: { riichi: 2, dama: 1, open: 1, unknown: 0 },
         bestHand: mine.length && tiles ? {
           matchId: mine[0][0], matchName: mine[0][1].rows.match.name, roundWind: 'este', roundNumber: 2,
@@ -1470,8 +1470,12 @@ try {
         'a player with only sanma behind them opens on sanma');
   check((await page.$eval('.app__title', (el) => el.textContent)) === 'Beto', 'the page is titled with the name');
   const tiles = await page.$$eval('.stat__label', (els) => els.map((e) => e.textContent));
-  check(tiles.length === 6 && ['Win rate', 'Tsumo rate', 'Deal-in rate', 'Riichi rate', 'Average place'].every((t) => tiles.includes(t)),
-        `the rates are there, as an even grid (got ${JSON.stringify(tiles)})`);
+  check(['Win rate', 'Tsumo rate', 'Deal-in rate', 'Riichi rate', 'Average place', 'Average win']
+    .every((t) => tiles.includes(t)), `the rates are there (got ${JSON.stringify(tiles)})`);
+  const avgWin = await page.evaluate(() => [...document.querySelectorAll('.stat')]
+    .find((s) => s.querySelector('.stat__label').textContent === 'Average win')
+    .querySelector('.stat__value').textContent);
+  check(avgWin === '6,450', `25,800 over 4 wins averages 6,450 (got ${avgWin})`);
   const winRate = await page.evaluate(() => [...document.querySelectorAll('.stat')]
     .find((s) => s.querySelector('.stat__label').textContent === 'Win rate')
     .querySelector('.stat__value').textContent);

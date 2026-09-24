@@ -33,6 +33,11 @@ export interface PlayerStats {
   hands: number;
   wins: number;
   tsumoWins: number;
+  /**
+   * What the wins paid, summed: each hand's value as paid, the dealer's bonus
+   * included, honba and riichi sticks not -- the average is "a typical win".
+   */
+  pointsWonTotal: number;
   dealIns: number;
   riichis: number;
   winMethods: { riichi: number; dama: number; open: number; unknown: number };

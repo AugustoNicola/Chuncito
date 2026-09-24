@@ -105,7 +105,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
 
   return (
     <>
-      {/* The match count is on the toggle above, so the tiles make an even 3 x 2. */}
+      {/* The match count is on the toggle above. */}
       <div className="stats">
         <Stat label="Average place" value={avg === null ? '–' : avg.toFixed(2)} />
         <Stat label="Uma" value={`${stats.umaTotal > 0 ? '+' : ''}${stats.umaTotal}`} />
@@ -117,6 +117,9 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
               detail={`${stats.dealIns} of ${stats.hands} hands`} />
         <Stat label="Riichi rate" value={percent(stats.riichis, stats.hands)}
               detail={`${stats.riichis} of ${stats.hands} hands`} />
+        <Stat label="Average win"
+              value={stats.wins === 0 ? '–' : Math.round(stats.pointsWonTotal / stats.wins).toLocaleString()}
+              detail={`over ${stats.wins} win${stats.wins === 1 ? '' : 's'}`} />
       </div>
 
       <div className="profile__grid">

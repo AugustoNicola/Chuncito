@@ -456,6 +456,8 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         func.count().filter(~riichi_won & w.winner_open.is_(False)),
         func.count().filter(~riichi_won & w.winner_open.is_(True)),
         func.count().filter(~riichi_won & w.winner_open.is_(None)),
+        # What the hands paid, dealer bonus included, honba and sticks not.
+        func.coalesce(func.sum(w.points_won), 0),
     ).select_from(my_wins).where(won)).one()
 
     best = conn.execute(
@@ -490,7 +492,7 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         placement_counts=counts,
         uma_total=sum(p.uma_points or 0 for p in placed),
         hands=hand_totals[0], deal_ins=hand_totals[1], riichis=hand_totals[2],
-        wins=win_totals[0], tsumo_wins=win_totals[1],
+        wins=win_totals[0], tsumo_wins=win_totals[1], points_won_total=win_totals[6],
         win_methods=WinMethods(riichi=win_totals[2], dama=win_totals[3],
                                open=win_totals[4], unknown=win_totals[5]),
         best_hand=None if best is None else BestHand(

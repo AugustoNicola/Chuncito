@@ -279,6 +279,8 @@ class PlayerStats(Wire):
     hands: int
     wins: int
     tsumo_wins: int
+    # Summed over `wins`, for the average win; see `hand_wins.points_won`.
+    points_won_total: int
     deal_ins: int
     riichis: int
     win_methods: WinMethods

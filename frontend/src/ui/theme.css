@@ -1571,7 +1571,8 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   .review__outcome { position: sticky; top: 12px; }
   .review__heading { margin-top: 12px; }
 
-  .stats { grid-template-columns: repeat(6, 1fr); }
+  /* One row, however many tiles there are. */
+  .stats { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
   .profile__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; align-items: start; }
   .linechart__point, .profile__match { cursor: pointer; }
   .profile__match:hover .profile__matchname { color: var(--accent); }
