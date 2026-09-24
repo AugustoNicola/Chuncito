@@ -21,7 +21,7 @@ export const fourPlayerConfig: MatchConfig = {
   rules: ['riichiAbiertoRonYakuman'],
   length: 'south',
   startingPoints: 25000,
-  returnScore: 30000,
+  goalScore: 30000,
   uma: [20, 10, -10, -20],
   seats: [
     { playerId: 'player-ana', name: 'Ana' }, { playerId: 'player-beto', name: 'Beto' },
@@ -100,7 +100,7 @@ export function playSanmaInProgress(): MatchState {
     rules: [],
     length: 'east',
     startingPoints: DEFAULTS[3].startingPoints,
-    returnScore: DEFAULTS[3].returnScore,
+    goalScore: DEFAULTS[3].goalScore,
     uma: DEFAULTS[3].uma,
     seats: [
       { playerId: null, name: 'Ana' }, { playerId: null, name: 'Beto' },

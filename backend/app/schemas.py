@@ -34,7 +34,7 @@ class MatchTable(Wire):
     rules: list[Literal['riichiAbiertoRonYakuman']]
     length: Literal['east', 'south']
     starting_points: int
-    return_score: int
+    goal_score: int
     uma_json: str
     status: Literal['in_progress', 'finished', 'abandoned']
     end_reason: Literal['final_round', 'bust', 'manual'] | None

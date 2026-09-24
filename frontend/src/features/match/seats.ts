@@ -79,9 +79,12 @@ export function nextRound(round: Round, players: PlayerCount): Round {
 export const finalRound = (length: MatchLength, players: PlayerCount): Round =>
   ({ wind: length === 'east' ? 'este' : 'sur', number: players });
 
-/** The hard stop: the last hand of the last wind, where sudden death runs out. */
-export const isLastRound = (round: Round, players: PlayerCount): boolean =>
-  round.wind === lastWind(players) && round.number === players;
+/**
+ * The hard stop: the last round of the one extra wind that sudden death plays
+ * -- South for an East match, West for a South one.
+ */
+export const isExtensionEnd = (round: Round, length: MatchLength, players: PlayerCount): boolean =>
+  round.wind === (length === 'east' ? 'sur' : 'oeste') && round.number === players;
 
 /** True once `round` is past the nominal end of the match, i.e. in sudden death. */
 export function isSuddenDeath(round: Round, length: MatchLength): boolean {

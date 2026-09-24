@@ -18,7 +18,7 @@ const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   rules: [],
   length: 'south',
   startingPoints: 25000,
-  returnScore: 30000,
+  goalScore: 30000,
   uma: DEFAULT_UMA,
   seats: [
     { playerId: null, name: 'A' }, { playerId: null, name: 'B' },
@@ -297,6 +297,18 @@ describe('ending the match', () => {
     for (let i = 0; i < 4; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
     expect(s.status).toBe('in_progress');
     expect(s.round).toEqual({ wind: 'sur', number: 1 });
+  });
+
+  it('plays one more wind at most: an East match stops at South 4', () => {
+    let s = start({ length: 'east' });
+    // Flat draws with every dealer noten: nobody ever gets near the goal.
+    for (let i = 0; i < 7; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.status).toBe('in_progress');
+    expect(s.round).toEqual({ wind: 'sur', number: 4 });
+    s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.status).toBe('finished');
+    expect(s.endReason).toBe('final_round');
+    expect(s.round).toEqual({ wind: 'sur', number: 4 });
   });
 
   it('ends sudden death the moment a hand puts someone over the target', () => {

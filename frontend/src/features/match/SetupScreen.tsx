@@ -53,7 +53,7 @@ export function SetupScreen({ onStart, onCancel }: {
   /** Off by default: an open riichi ron is worth its 2 han like any other. */
   const [openRiichiYakuman, setOpenRiichiYakuman] = useState(false);
   const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
-  const [returnScore, setReturnScore] = useState(DEFAULTS[4].returnScore);
+  const [goalScore, setGoalScore] = useState(DEFAULTS[4].goalScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
 
   // The cache is enough to start with; the server's list replaces it if it answers.
@@ -104,7 +104,7 @@ export function SetupScreen({ onStart, onCancel }: {
     setPlayers(count);
     setUma(umaFields(count));
     setStartingPoints(DEFAULTS[count].startingPoints);
-    setReturnScore(DEFAULTS[count].returnScore);
+    setGoalScore(DEFAULTS[count].goalScore);
   };
 
   const filled = seated.every((c) => c !== null);
@@ -128,7 +128,7 @@ export function SetupScreen({ onStart, onCancel }: {
       rules: openRiichiYakuman ? ['riichiAbiertoRonYakuman'] : [],
       length,
       startingPoints,
-      returnScore,
+      goalScore,
       uma: umaValues,
       seats: chosen,
     });
@@ -317,15 +317,16 @@ export function SetupScreen({ onStart, onCancel }: {
                    onChange={(e) => setStartingPoints(Number(e.target.value))} />
           </label>
           <label className="field">
-            <span className="field__label">Target score</span>
+            <span className="field__label">Goal score</span>
             <input className="setup__number" type="number" step={1000} min={0}
-                   value={returnScore}
-                   onChange={(e) => setReturnScore(Number(e.target.value))} />
+                   value={goalScore}
+                   onChange={(e) => setGoalScore(Number(e.target.value))} />
           </label>
         </div>
         <span className="field__hint">
-          The target only decides when the match ends: reach it by the final round
-          or play on into sudden death.
+          The goal decides when the match ends: if nobody has reached it by the
+          end of the last round, play goes on for one more wind, until somebody
+          does or that wind is over.
         </span>
       </div>
 

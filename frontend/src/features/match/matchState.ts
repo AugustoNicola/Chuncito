@@ -22,7 +22,7 @@ import type {
 } from '../../scorer/types';
 import type { Seat, MatchLength, PlayerCount, Round } from './seats';
 import {
-  dealerOf, finalRound, isLastRound, isSuddenDeath, nextRound, seatsOf, windIndex,
+  dealerOf, finalRound, isExtensionEnd, isSuddenDeath, nextRound, seatsOf, windIndex,
 } from './seats';
 import {
   LIMIT_BASE, RIICHI_STICK, type Delta, type WinPayment, baseFromResult, deltaOf, drawDelta,
@@ -64,11 +64,11 @@ export interface MatchConfig {
   length: MatchLength;
   startingPoints: number;
   /**
-   * The score a player must reach for sudden death to end. Placement points are
-   * uma only -- there is no oka -- so this drives the end condition and nothing
-   * else.
+   * The score somebody must reach for the match to end at its final round;
+   * short of it, play goes on for one more wind (see `endCheck`). Only the
+   * end condition -- not the score placements are measured against.
    */
-  returnScore: number;
+  goalScore: number;
   /** By placement, 1st to last; one entry per player. */
   uma: readonly number[];
   /** Indexed by seat; one entry per player. */
@@ -230,10 +230,10 @@ export function uuid(): string {
 
 /** Setup defaults, per player count. Every one of them is editable at setup. */
 export const DEFAULTS: Readonly<Record<PlayerCount, {
-  uma: readonly number[]; startingPoints: number; returnScore: number;
+  uma: readonly number[]; startingPoints: number; goalScore: number;
 }>> = {
-  4: { uma: [20, 10, -10, -20], startingPoints: 25000, returnScore: 30000 },
-  3: { uma: [15, 0, -15], startingPoints: 35000, returnScore: 40000 },
+  4: { uma: [20, 10, -10, -20], startingPoints: 25000, goalScore: 30000 },
+  3: { uma: [15, 0, -15], startingPoints: 35000, goalScore: 40000 },
 };
 
 export const DEFAULT_UMA: readonly number[] = DEFAULTS[4].uma;
@@ -381,23 +381,24 @@ function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: 
  * Whether the match is over, and why.
  *
  * Busting is checked first: it ends the match immediately whatever the round.
- * Otherwise the match runs to the end of its final round, and then into sudden
- * death if nobody has reached the return score -- which ends the moment someone
- * does, at the end of any hand, not only at the end of a round.
+ * Otherwise the match runs to the end of its final round, and then -- if nobody
+ * has reached the goal score -- on into one more wind, as sudden death: it ends
+ * the moment a hand puts somebody at the goal, or when that wind runs out
+ * (South 4 for an East match, West 4 for a South one; round 3 in sanma).
  */
 function endCheck(
   scores: Delta, round: Round, config: MatchConfig, dealerPassed: boolean,
 ): EndReason | null {
   if (scores.some((score) => score < 0)) return 'bust';
 
-  const reached = scores.some((score) => score >= config.returnScore);
+  const reached = scores.some((score) => score >= config.goalScore);
   const final = finalRound(config.length, config.players);
 
   if (isSuddenDeath(round, config.length)) {
     // Already past the nominal end: any hand that puts somebody over finishes it.
     if (reached) return 'final_round';
-    // North 4 (West 3 in sanma) is the hard stop -- there is no wind after it.
-    if (isLastRound(round, config.players) && dealerPassed) return 'final_round';
+    // The extra wind is the only one: its last round is the hard stop.
+    if (isExtensionEnd(round, config.length, config.players) && dealerPassed) return 'final_round';
     return null;
   }
 

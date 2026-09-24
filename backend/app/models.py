@@ -86,7 +86,7 @@ matches = Table(
     Column('rules', ARRAY(Text), nullable=False, server_default='{}'),
     Column('length', Text, nullable=False),
     Column('starting_points', Integer, nullable=False),
-    Column('return_score', Integer, nullable=False),
+    Column('goal_score', Integer, nullable=False),
     Column('uma', JSONB, nullable=False),
     Column('status', Text, nullable=False),
     Column('end_reason', Text),

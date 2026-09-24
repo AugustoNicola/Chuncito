@@ -32,7 +32,7 @@ CREATE TABLE players (
 
 CREATE TABLE matches (
   id INTEGER PRIMARY KEY, name TEXT, length TEXT NOT NULL, starting_points INTEGER NOT NULL,
-  uma_json TEXT NOT NULL, return_score INTEGER NOT NULL, status TEXT NOT NULL,
+  uma_json TEXT NOT NULL, goal_score INTEGER NOT NULL, status TEXT NOT NULL,
   end_reason TEXT, started_at TEXT NOT NULL, ended_at TEXT,
   max_level TEXT, is_test INTEGER NOT NULL);
 
@@ -78,11 +78,11 @@ def load(db, matches):
 
     for m in matches:
         cur = db.execute(
-            "INSERT INTO matches (name, length, starting_points, uma_json, return_score,"
+            "INSERT INTO matches (name, length, starting_points, uma_json, goal_score,"
             " status, end_reason, started_at, ended_at, max_level, is_test)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             [m["match"][k] for k in ("name", "length", "starting_points", "uma_json",
-                                     "return_score", "status", "end_reason", "started_at",
+                                     "goal_score", "status", "end_reason", "started_at",
                                      "ended_at", "max_level", "is_test")])
         match_id = cur.lastrowid
         bump("matches")

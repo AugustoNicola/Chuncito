@@ -13,7 +13,7 @@
  * blocked site data). Losing the mirror must never break the tracker: the
  * authority is the in-memory state, and from Phase 3 the server.
  */
-import { type MatchState, uuid } from './matchState';
+import { DEFAULTS, type MatchState, uuid } from './matchState';
 
 const DB_NAME = 'chuncito';
 const DB_VERSION = 2;
@@ -80,15 +80,19 @@ export const saveMatch = (state: MatchState): Promise<unknown> =>
  * and the caller writes an upgraded mirror back, because an id made up afresh
  * on every load would upload the same match under a new name each time.
  */
-function upgrade(state: MatchState): { state: MatchState; changed: boolean } {
+export function upgrade(state: MatchState): { state: MatchState; changed: boolean } {
   const { players = 4, redFives = true, rules = [] } = state.config as Partial<MatchState['config']>;
+  // Called `returnScore` before the goal and target scores were told apart.
+  const legacy = state.config as Partial<MatchState['config']> & { returnScore?: number };
+  const goalScore = legacy.goalScore ?? legacy.returnScore ?? DEFAULTS[players].goalScore;
   const id = (state as Partial<MatchState>).id ?? uuid();
   if (state.config.players === players && state.config.redFives === redFives
-      && state.config.rules === rules && state.id === id) {
+      && state.config.rules === rules && state.config.goalScore === goalScore && state.id === id) {
     return { state, changed: false };
   }
+  const { returnScore: _dropped, ...config } = legacy as MatchState['config'] & { returnScore?: number };
   return {
-    state: { ...state, id, config: { ...state.config, players, redFives, rules } },
+    state: { ...state, id, config: { ...config, players, redFives, rules, goalScore } },
     changed: true,
   };
 }

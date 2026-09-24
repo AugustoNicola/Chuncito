@@ -210,7 +210,7 @@ const config = (): MatchConfig => ({
   rules: [],
   length: 'south',
   startingPoints: 25000,
-  returnScore: 30000,
+  goalScore: 30000,
   uma: [20, 10, -10, -20],
   seats: [
     { playerId: 'p1', name: 'Augusto' }, { playerId: 'p2', name: 'Beto' },
@@ -241,7 +241,7 @@ function toRows(state: MatchState, s: Scenario) {
       length: state.config.length,
       starting_points: state.config.startingPoints,
       uma_json: JSON.stringify(state.config.uma),
-      return_score: state.config.returnScore,
+      goal_score: state.config.goalScore,
       status: state.status,
       end_reason: state.endReason,
       started_at: state.startedAt,

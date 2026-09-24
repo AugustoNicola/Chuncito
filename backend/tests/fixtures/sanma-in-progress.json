@@ -8,7 +8,7 @@
       "rules": [],
       "length": "east",
       "startingPoints": 35000,
-      "returnScore": 40000,
+      "goalScore": 40000,
       "umaJson": "[15,0,-15]",
       "status": "in_progress",
       "endReason": null,

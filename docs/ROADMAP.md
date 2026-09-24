@@ -79,8 +79,11 @@ Hand-scorer integration:
 Rules settled with the user this session:
 - Uma ±10/±20, **no oka**; placement points are uma alone.
 - The target score (default 30,000) therefore only decides when the match ends.
+  *(Superseded 2026-09-24: that is the **goal** score; a separate target score
+  now sets the oka. See the Backlog section.)*
 - Sudden death: past the final round, the match ends the moment a hand puts
-  somebody over the target. North 4 is the hard stop.
+  somebody over the target. North 4 is the hard stop. *(Superseded 2026-09-24:
+  one extra wind, then stop.)*
 - Outcomes recorded: tsumo, ron, exhaustive draw, nagashi mangan, abortive draw.
   **Chombo is deliberately not in the UI** (the enum value stays in the data
   model); a chombo is handled as a manual adjustment with a note.
@@ -652,6 +655,15 @@ per item.** Ticked here as they land, with what was decided.
       the in-match timeline (the table blocks navigation), and not inside the
       history cards, which are already links as a whole. Styled as the text
       colour with a dotted underline, accent on hover.
+- [x] **Goal score and sudden death** — `returnScore` / `return_score` is
+      now `goalScore` / `goal_score` (**migration `0003`**, a rename; old
+      phone mirrors are upgraded on load), labelled "Goal score" at setup:
+      it only decides when the match ends. **Sudden death is one extra wind**
+      (was: until North 4): short of the goal at the end of the final round,
+      an East match plays on through South, a South match through West
+      (round 3 in sanma); it ends the moment a hand puts somebody at the
+      goal, or at the end of that wind. The *target* score — what placements
+      are measured against, for oka — is a separate field, next item.
 
 ## Picking this up cold
 
