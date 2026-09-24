@@ -280,6 +280,8 @@ describe('ending the match', () => {
     for (let i = 0; i < 4; i++) s = play(s, win(((i + 1) % 4) as Seat, i as Seat, { dealIn: 0 }));
     expect(s.status).toBe('finished');
     expect(s.endReason).toBe('final_round');
+    // Ended in East 4: there is no South 1 to have moved on to.
+    expect(s.round).toEqual({ wind: 'este', number: 4 });
   });
 
   it('goes to sudden death when nobody has reached the target', () => {

@@ -104,7 +104,8 @@ export function ConfirmChange({
     ? [...seats].sort((a, b) => placesAfter[a]! - placesAfter[b]!)
     : seats;
 
-  const roundChanged = roundLabel(before.round) !== roundLabel(after.round)
+  const ends = before.status === 'in_progress' && after.status === 'finished';
+  const roundChanged = ends || roundLabel(before.round) !== roundLabel(after.round)
     || before.honba !== after.honba;
 
   /**
@@ -201,19 +202,21 @@ export function ConfirmChange({
               </span>
               <span className="confirm__arrow" aria-label="becomes">→</span>
               <span className="confirm__to">
-                {roundPhrase(roundLabel(after.round), after.honba)}
+                {ends ? 'End of the match' : roundPhrase(roundLabel(after.round), after.honba)}
               </span>
             </div>
           </div>
         )}
 
-        <div className="field">
-          <span className="field__label">On the table next hand</span>
-          <div className="confirm__sticks">
-            <span>Riichi <strong>{potOnTable(after)}</strong></span>
-            <span>Honba <strong>{after.honba}</strong></span>
+        {!ends && (
+          <div className="field">
+            <span className="field__label">On the table next hand</span>
+            <div className="confirm__sticks">
+              <span>Riichi <strong>{potOnTable(after)}</strong></span>
+              <span>Honba <strong>{after.honba}</strong></span>
+            </div>
           </div>
-        </div>
+        )}
 
         {after.status === 'finished' && (
           <p className="confirm__ends">

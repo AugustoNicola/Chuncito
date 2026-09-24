@@ -480,8 +480,11 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
   const scores = applyDelta(state.scores, deltaOf(players, (s) => delta[s] - paid[s]));
 
   const repeats = dealerRepeats(input, dealer);
-  const round = repeats ? state.round : nextRound(state.round, players);
   const endReason = endCheck(scores, state.round, state.config, !repeats);
+  // A hand that ends the match leaves the round where it was: there is no
+  // next round, and advancing would name one that was never played ("East 4
+  // -> South 1" on an East match's last hand).
+  const round = repeats || endReason ? state.round : nextRound(state.round, players);
 
   return {
     state: {

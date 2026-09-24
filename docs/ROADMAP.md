@@ -601,6 +601,11 @@ per item.** Ticked here as they land, with what was decided.
       keep `byRecent`, which is what `markSeated` still feeds.
 - [x] **Gap between wind and dragon tiles** — the keyboard's honour row is
       winds in columns 1–4, dragons in 7–9 (`.keyboard__row--honours`).
+- [x] **Round advance displays ghost round** — the reducer advanced the
+      round even on the hand that ended the match, so the review said "East
+      4 → South 1" and a finished match's state sat in a round never played.
+      A match-ending hand now leaves the round alone; the review says "East
+      4 → End of the match" and drops "On the table next hand".
 
 ## Picking this up cold
 
