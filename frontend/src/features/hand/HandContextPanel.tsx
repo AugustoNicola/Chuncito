@@ -183,16 +183,18 @@ export function HandContextPanel({
           <Check label="Ippatsu" checked={state.ippatsu} disabled={issue('ippatsu') !== null}
                  hint={issue('ippatsu') ?? 'One-shot'}
                  onChange={(v) => update({ ippatsu: v })} />
+          {/* The two kan circumstances side by side: they are two halves of one
+              situation, robbing a kan and drawing after one. */}
+          <Check label="Last draw" checked={state.lastDraw} disabled={issue('lastDraw') !== null}
+                 hint={issue('lastDraw')
+                   ?? (state.winMode === 'tsumo' ? 'Haitei — last tile drawn' : 'Houtei — last discard')}
+                 onChange={(v) => update({ lastDraw: v })} />
           <Check label="Chankan" checked={state.chankan} disabled={issue('chankan') !== null}
                  hint={issue('chankan') ?? 'Robbing a kan'}
                  onChange={(v) => update({ chankan: v })} />
           <Check label="Rinshan" checked={state.rinshan} disabled={issue('rinshan') !== null}
                  hint={issue('rinshan') ?? 'After a kan'}
                  onChange={(v) => update({ rinshan: v })} />
-          <Check label="Last draw" checked={state.lastDraw} disabled={issue('lastDraw') !== null}
-                 hint={issue('lastDraw')
-                   ?? (state.winMode === 'tsumo' ? 'Haitei — last tile drawn' : 'Houtei — last discard')}
-                 onChange={(v) => update({ lastDraw: v })} />
         </div>
       </div>
 

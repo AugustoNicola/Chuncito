@@ -594,10 +594,8 @@ per item.** Ticked here as they land, with what was decided.
       a match review, the wind **of the hand being recorded** on the review
       screen. The review table's number columns were narrowed to make room.
 
-Still open from `backlog.md` (stopped here at the user's request,
-2026-09-24): **Player list should look better** (MAKApoints, metal top
-three), **More links to player profiles**, **Better hovers in player
-profile**.
+- [x] **Rearrange Rinshan and Chankan** — Ippatsu, Last draw, Chankan,
+      Rinshan: the two kan circumstances side by side.
 
 ## Picking this up cold
 
