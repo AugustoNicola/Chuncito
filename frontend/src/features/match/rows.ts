@@ -207,7 +207,8 @@ const parseDelta = (text: string): Delta =>
  * outcome says whether the dealership moved. That is the same property that
  * makes undo exact.
  */
-function advance(players: PlayerCount, row: HandTableRow, wins: HandWinRow[], tenpai: Seat[]): {
+function advance(players: PlayerCount, row: HandTableRow, wins: HandWinRow[], tenpai: Seat[],
+                 ended: boolean): {
   round: Round; honba: number; pot: number;
 } {
   const played: Round = { wind: row.roundWind, number: row.roundNumber };
@@ -219,7 +220,9 @@ function advance(players: PlayerCount, row: HandTableRow, wins: HandWinRow[], te
     : row.outcome === 'abortive_draw' || tenpai.includes(dealer);
 
   return {
-    round: repeats ? played : nextRound(played, players),
+    // The hand that ended the match leaves the round where it was, as in
+    // `recordHand`: there is no next round to name.
+    round: repeats || ended ? played : nextRound(played, players),
     honba: isWin ? (repeats ? row.honba + 1 : 0) : row.honba + 1,
     // Only a win clears the table; every kind of draw leaves the sticks on it.
     pot: isWin ? 0 : row.riichiPotBefore,
@@ -301,7 +304,8 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
   const last = ordered.at(-1);
   const after = last
     ? advance(config.players, last, bySeq(rows.handWins, last.seq),
-              bySeq(rows.handTenpai, last.seq).map((r) => r.seat))
+              bySeq(rows.handTenpai, last.seq).map((r) => r.seat),
+              rows.match.status === 'finished' && rows.match.endReason !== 'manual')
     : { round: { wind: 'este' as const, number: 1 }, honba: 0, pot: 0 };
 
   return {

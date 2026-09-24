@@ -7,7 +7,7 @@
  * difference rather than as an oversight nobody noticed until Phase 3.
  */
 import { describe, expect, it } from 'vitest';
-import { createMatch, recordHand } from './matchState';
+import { adjustScore, createMatch, recordHand } from './matchState';
 import { placements } from './scoring';
 import { fromRows, toRows } from './rows';
 import { fourPlayerConfig as config, manual, nameOfTest, playEverything } from './testMatches';
@@ -132,5 +132,22 @@ describe('a match survives the database', () => {
   it('stores a double ron in seat order, however it was entered', () => {
     const double = original.hands.find((h) => h.wins.length > 1)!;
     expect(double.wins.map((w) => w.winnerSeat)).toEqual([1, 3]);
+  });
+});
+
+describe('a match that ended on its last hand', () => {
+  it('is rebuilt in the round it ended in, not the one after', () => {
+    // Beto goes well ahead, then four non-dealer rons pass the deal round East.
+    let s = adjustScore(createMatch({ ...config, length: 'east' }), 1, 10000, '');
+    for (let dealer = 0; dealer < 4; dealer++) {
+      const winner = ((dealer + 1) % 4) as 0 | 1 | 2 | 3;
+      s = recordHand(s, {
+        kind: 'win', mode: 'ron', dealIn: ((dealer + 2) % 4) as 0 | 1 | 2 | 3,
+        wins: [{ winner, value: manual(winner, dealer as 0 | 1 | 2 | 3, 'ron', 4, 40).value }],
+      }).state;
+    }
+    expect(s.status).toBe('finished');
+    expect(s.round).toEqual({ wind: 'este', number: 4 });
+    expect(fromRows(toRows(s), nameOfTest).round).toEqual(s.round);
   });
 });

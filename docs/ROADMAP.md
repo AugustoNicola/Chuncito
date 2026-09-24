@@ -605,7 +605,9 @@ per item.** Ticked here as they land, with what was decided.
       round even on the hand that ended the match, so the review said "East
       4 → South 1" and a finished match's state sat in a round never played.
       A match-ending hand now leaves the round alone; the review says "East
-      4 → End of the match" and drops "On the table next hand".
+      4 → End of the match" and drops "On the table next hand". `fromRows`
+      has its own copy of the rule (`advance`), fixed in a follow-up commit
+      so a match review does not show the ghost round either.
 - [x] **Back on History undoes filters** — every filter change (chips,
       selects, Clear filters; typing already did) now *replaces* the history
       entry, so Back — button or gesture — leaves the list, while Back from a
