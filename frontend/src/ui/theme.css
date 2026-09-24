@@ -680,6 +680,24 @@ button {
 
 .setup { display: flex; flex-direction: column; gap: 16px; padding: 6px 0; }
 .setup__seat { display: flex; align-items: center; gap: 8px; }
+/* The defaulted options, folded like the profile's lists. */
+.setup__rules {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-raised);
+  padding: 0 12px;
+}
+.setup__rules[open] { padding-bottom: 12px; }
+.setup__rules > summary {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 0; cursor: pointer; list-style: none;
+}
+.setup__rules > summary::-webkit-details-marker { display: none; }
+.setup__rulestitle { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+.setup__rulestitle::before { content: '▸ '; }
+.setup__rules[open] .setup__rulestitle::before { content: '▾ '; }
+.setup__rulessummary { font-size: 0.85rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.setup__rules > .field + .field, .setup__rules > .setup__numbers, .setup__rules > label.field { margin-top: 12px; }
+
 .setup__seatno {
   width: 24px; height: 24px; flex: none;
   display: grid; place-items: center;

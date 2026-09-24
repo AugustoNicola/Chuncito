@@ -11,7 +11,7 @@ import type { MatchConfig, SeatPlayer } from './matchState';
 import { DEFAULTS } from './matchState';
 import type { MatchLength, PlayerCount, Seat } from './seats';
 import { roundKanji, roundName, seatsOf } from './seats';
-import { SITUATION_WINDS } from '../../scorer/types';
+import { SITUATION_WINDS, type Rule } from '../../scorer/types';
 import {
   type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
 } from '../players/players';
@@ -121,7 +121,9 @@ export function SetupScreen({ onStart, onCancel }: {
   const oka = okaOf({ players, startingPoints, targetScore });
   // Below the start, the oka would be *taken from* 1st -- nobody plays that.
   const targetValid = targetScore >= startingPoints;
-  const ready = filled && !duplicate && umaBalanced && targetValid;
+  const rulesValid = umaBalanced && targetValid;
+  const rules: Rule[] = openRiichiYakuman ? ['riichiAbiertoRonYakuman'] : [];
+  const ready = filled && !duplicate && rulesValid;
 
   function start() {
     if (!ready) return;
@@ -130,7 +132,7 @@ export function SetupScreen({ onStart, onCancel }: {
     onStart({
       players,
       redFives,
-      rules: openRiichiYakuman ? ['riichiAbiertoRonYakuman'] : [],
+      rules,
       length,
       startingPoints,
       targetScore,
@@ -168,6 +170,12 @@ export function SetupScreen({ onStart, onCancel }: {
               </button>
             ))}
           </div>
+          {players === 3 && (
+            <span className="field__hint">
+              Sanma: no chii, manzu 2–8 removed, North pulled as nukidora, tsumo
+              paid by two players only, honba worth 1,000.
+            </span>
+          )}
         </div>
 
         <div className="field">
@@ -253,103 +261,111 @@ export function SetupScreen({ onStart, onCancel }: {
           </div>
         </div>
 
-        <div className="field">
-          <span className="field__label">Red fives</span>
-          <div className="segmented" role="group" aria-label="Red fives">
-            {[true, false].map((opt) => (
-              <button key={String(opt)} type="button"
-                      className={`segmented__btn${redFives === opt ? ' segmented__btn--on' : ''}`}
-                      aria-pressed={redFives === opt}
-                      onClick={() => setRedFives(opt)}>
-                {opt ? 'With red fives' : 'Without'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="field">
-          <span className="field__label">Ron on an open riichi</span>
-          <div className="segmented" role="group" aria-label="Ron on an open riichi">
-            {[false, true].map((opt) => (
-              <button key={String(opt)} type="button"
-                      className={`segmented__btn${openRiichiYakuman === opt ? ' segmented__btn--on' : ''}`}
-                      aria-pressed={openRiichiYakuman === opt}
-                      onClick={() => setOpenRiichiYakuman(opt)}>
-                {opt ? 'Yakuman' : 'Normal (2 han)'}
-              </button>
-            ))}
-          </div>
-          {openRiichiYakuman && (
-            <span className="field__hint">
-              Dealing into an open riichi is a yakuman, unless the discarder was in riichi too.
+        {/* Everything with a sensible default, folded away: most nights only
+            the players and the length change. Opened by itself when something
+            in it needs fixing, since Start is disabled until it is. */}
+        <details className="setup__rules" open={!rulesValid || undefined}>
+          <summary>
+            <span className="setup__rulestitle">Rules</span>
+            <span className="setup__rulessummary">
+              {redFives ? 'red fives' : 'no red fives'}
+              {' · '}uma {umaValues.map((n) => (n > 0 ? `+${n}` : `${n}`)).join('/')}
+              {' · '}{startingPoints.toLocaleString()} → {targetScore.toLocaleString()}
+              {' · '}goal {goalScore.toLocaleString()}
+              {rules.length > 0 && ' · open riichi ron yakuman'}
             </span>
-          )}
-        </div>
-
-        <div className="field">
-          <span className="field__label">Uma</span>
-          <div className="setup__uma">
-            {seats.map((seat) => placeLabel(seat + 1)).map((label, i) => (
-              <label className="setup__umafield" key={label}>
-                <span className="setup__umaplace">{label}</span>
-                <input className="setup__number" type="text" inputMode="numeric"
-                       value={uma[i]}
-                       aria-label={`Uma for ${label}`}
-                       onChange={(e) => setUma(
-                         (u) => u.map((v, j) => (j === i ? e.target.value : v)))} />
-              </label>
-            ))}
+          </summary>
+          <div className="field">
+            <span className="field__label">Red fives</span>
+            <div className="segmented" role="group" aria-label="Red fives">
+              {[true, false].map((opt) => (
+                <button key={String(opt)} type="button"
+                        className={`segmented__btn${redFives === opt ? ' segmented__btn--on' : ''}`}
+                        aria-pressed={redFives === opt}
+                        onClick={() => setRedFives(opt)}>
+                  {opt ? 'With red fives' : 'Without'}
+                </button>
+              ))}
+            </div>
           </div>
-          {!umaValid && <span className="setup__warn">Uma must be whole numbers.</span>}
-          {umaValid && !umaBalanced && (
-            <span className="setup__warn">
-              Uma has to sum to zero; this adds up to {umaValues.reduce((a, b) => a + b, 0)}.
-            </span>
-          )}
-          <span className="field__hint">Placement points only — no oka.</span>
-          {players === 3 && (
-            <span className="field__hint">
-              Sanma: no chii, manzu 2–8 removed, North pulled as nukidora, tsumo
-              paid by two players only, honba worth 1,000.
-            </span>
-          )}
-        </div>
 
-        <div className="setup__numbers">
+          <div className="field">
+            <span className="field__label">Ron on an open riichi</span>
+            <div className="segmented" role="group" aria-label="Ron on an open riichi">
+              {[false, true].map((opt) => (
+                <button key={String(opt)} type="button"
+                        className={`segmented__btn${openRiichiYakuman === opt ? ' segmented__btn--on' : ''}`}
+                        aria-pressed={openRiichiYakuman === opt}
+                        onClick={() => setOpenRiichiYakuman(opt)}>
+                  {opt ? 'Yakuman' : 'Normal (2 han)'}
+                </button>
+              ))}
+            </div>
+            {openRiichiYakuman && (
+              <span className="field__hint">
+                Dealing into an open riichi is a yakuman, unless the discarder was in riichi too.
+              </span>
+            )}
+          </div>
+
+          <div className="field">
+            <span className="field__label">Uma</span>
+            <div className="setup__uma">
+              {seats.map((seat) => placeLabel(seat + 1)).map((label, i) => (
+                <label className="setup__umafield" key={label}>
+                  <span className="setup__umaplace">{label}</span>
+                  <input className="setup__number" type="text" inputMode="numeric"
+                         value={uma[i]}
+                         aria-label={`Uma for ${label}`}
+                         onChange={(e) => setUma(
+                           (u) => u.map((v, j) => (j === i ? e.target.value : v)))} />
+                </label>
+              ))}
+            </div>
+            {!umaValid && <span className="setup__warn">Uma must be whole numbers.</span>}
+            {umaValid && !umaBalanced && (
+              <span className="setup__warn">
+                Uma has to sum to zero; this adds up to {umaValues.reduce((a, b) => a + b, 0)}.
+              </span>
+            )}
+          </div>
+
+          <div className="setup__numbers">
+            <label className="field">
+              <span className="field__label">Starting points</span>
+              <input className="setup__number" type="number" step={1000} min={0}
+                     value={startingPoints}
+                     onChange={(e) => setStartingPoints(Number(e.target.value))} />
+            </label>
+            <label className="field">
+              <span className="field__label">Goal score</span>
+              <input className="setup__number" type="number" step={1000} min={0}
+                     value={goalScore}
+                     onChange={(e) => setGoalScore(Number(e.target.value))} />
+            </label>
+          </div>
           <label className="field">
-            <span className="field__label">Starting points</span>
+            <span className="field__label">Target score</span>
             <input className="setup__number" type="number" step={1000} min={0}
-                   value={startingPoints}
-                   onChange={(e) => setStartingPoints(Number(e.target.value))} />
+                   value={targetScore}
+                   onChange={(e) => setTargetScore(Number(e.target.value))} />
           </label>
-          <label className="field">
-            <span className="field__label">Goal score</span>
-            <input className="setup__number" type="number" step={1000} min={0}
-                   value={goalScore}
-                   onChange={(e) => setGoalScore(Number(e.target.value))} />
-          </label>
-        </div>
-        <label className="field">
-          <span className="field__label">Target score</span>
-          <input className="setup__number" type="number" step={1000} min={0}
-                 value={targetScore}
-                 onChange={(e) => setTargetScore(Number(e.target.value))} />
-        </label>
-        <span className="field__hint">
-          The goal decides when the match ends: if nobody has reached it by the
-          end of the last round, play goes on for one more wind, until somebody
-          does or that wind is over.
-        </span>
-        <span className="field__hint">
-          The target is what everyone is measured against at the end: each
-          result is final score − target + uma, and 1st also takes the oka,
-          {' '}{oka >= 0
-            ? `(${targetScore.toLocaleString()} − ${startingPoints.toLocaleString()}) × ${players} = ${oka.toLocaleString()}`
-            : 'which is negative here'}. The results always sum to zero.
-        </span>
-        {!targetValid && (
-          <span className="setup__warn">The target cannot be below the starting points.</span>
-        )}
+          <span className="field__hint">
+            The goal decides when the match ends: if nobody has reached it by the
+            end of the last round, play goes on for one more wind, until somebody
+            does or that wind is over.
+          </span>
+          <span className="field__hint">
+            The target is what everyone is measured against at the end: each
+            result is final score − target + uma, and 1st also takes the oka,
+            {' '}{oka >= 0
+              ? `(${targetScore.toLocaleString()} − ${startingPoints.toLocaleString()}) × ${players} = ${oka.toLocaleString()}`
+              : 'which is negative here'}. The results always sum to zero.
+          </span>
+          {!targetValid && (
+            <span className="setup__warn">The target cannot be below the starting points.</span>
+          )}
+        </details>
       </div>
 
       <div className="app__spacer" />

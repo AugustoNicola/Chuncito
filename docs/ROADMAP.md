@@ -702,6 +702,12 @@ per item.** Ticked here as they land, with what was decided.
       and bronze (`--place-1..3`). Players with no ranked match follow,
       alphabetically, with a dashed badge and "—". The card is the link to
       the profile; Rename stays beside it.
+- [x] **Hide rules by default when creating a match** — red fives, the open
+      riichi rule, uma and the three scores sit in a folded "Rules" box whose
+      summary line shows the current values; it opens by itself when
+      something in it blocks Start. **Kept outside it: the table (four /
+      sanma)** as well as the length — it decides how many seats are asked
+      for, so it belongs above them. Dropped the stale "no oka" hint.
 
 ## Picking this up cold
 

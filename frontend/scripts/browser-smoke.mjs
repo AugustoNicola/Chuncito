@@ -447,6 +447,11 @@ try {
 
   const names = ['Ana', 'Beto', 'Cami', 'Dani'];
   await seatGuests(names);
+  const rulesFold = await page.$eval('.setup__rules', (el) => [el.open, el.querySelector('summary').textContent]);
+  check(rulesFold[0] === false && rulesFold[1].includes('uma +20/+10/-10/-20') && rulesFold[1].includes('goal 30,000'),
+        `the defaulted rules are folded away, summarised (got ${JSON.stringify(rulesFold)})`);
+  await page.click('.setup__rules summary');
+  await shot('10b-setup-rules.png');
   const umaFields = await page.$$eval('.setup__uma input', (els) => els.map((e) => e.value));
   check(JSON.stringify(umaFields) === JSON.stringify(['20', '10', '-10', '-20']),
         `uma is four editable fields, preloaded (got ${JSON.stringify(umaFields)})`);
