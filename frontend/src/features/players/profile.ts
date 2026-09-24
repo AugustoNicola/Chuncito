@@ -38,6 +38,9 @@ export interface PlayerStats {
   placementCounts: number[];
   umaTotal: number;
   hands: number;
+  /** MAKApoints over every ranked match, four-player and sanma alike. */
+  mpPoints: number;
+  mpMatches: number;
   wins: number;
   tsumoWins: number;
   /**

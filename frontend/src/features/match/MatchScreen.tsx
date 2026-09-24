@@ -22,7 +22,7 @@ import { useBlocker } from 'react-router-dom';
 import type { HandInput, HandRow, MatchState, WinEntry } from './matchState';
 import {
   adjustScores, advanceRoundManually, endMatchManually, recordHand, setHonba,
-  setMatchName, toggleRiichi, undoLastHand, winnersOf,
+  setMatchName, setRanked, toggleRiichi, undoLastHand, winnersOf,
 } from './matchState';
 import type { Seat } from './seats';
 import { roundLabel } from './seats';
@@ -154,8 +154,8 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
         state={match}
         onDiscard={leave(onDiscard)}
         onTimeline={() => setMenu({ at: 'timeline' })}
-        onSave={async (name) => {
-          const named = setMatchName(match, name);
+        onSave={async (name, ranked) => {
+          const named = setRanked(setMatchName(match, name), ranked);
           onChange(named);
           // Queued here as well as by the effect, which will not run: this
           // screen is gone by the time the state change would reach it.

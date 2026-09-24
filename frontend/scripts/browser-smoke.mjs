@@ -95,6 +95,7 @@ try {
           mine.filter(([, { rows: r }]) => seatOf(r).placement === i + 1).length),
         umaTotal: mine.reduce((a, [, { rows: r }]) => a + (seatOf(r).umaPoints ?? 0), 0),
         hands: 20, wins: 4, tsumoWins: 1, pointsWonTotal: 25800, dealIns: 3, riichis: 5,
+        mpPoints: 12500, mpMatches: 2,
         winMethods: { riichi: 2, dama: 1, open: 1, unknown: 0 },
         bestHand: mine.length && tiles ? {
           matchId: mine[0][0], matchName: mine[0][1].rows.match.name, roundWind: 'este', roundNumber: 2,
@@ -1006,6 +1007,11 @@ try {
   check(rulesLine.includes('oka') && rulesLine.includes('sum to 0.0'),
         `the end screen explains the results and that they sum to zero (got "${rulesLine}")`);
   await shot('16-endscreen.png');
+  const mpChoice = await groupState('MAKApoints');
+  check(mpChoice[0][0] === 'Played for MPs' && mpChoice[0][2] === 'true',
+        `a match is played for MAKApoints unless said otherwise (got ${JSON.stringify(mpChoice)})`);
+  const guestRows = await page.$$eval('.mpgain__guest', (els) => els.length);
+  check(guestRows === 4, `guests are listed as not counted (got ${guestRows})`);
 
   // A finished match can be thrown away instead of saved: two taps, then home.
   await byText('Discard');

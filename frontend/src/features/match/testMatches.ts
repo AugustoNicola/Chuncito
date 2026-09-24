@@ -7,7 +7,7 @@
  */
 import {
   type HandInput, type MatchConfig, type MatchState,
-  adjustScores, createMatch, endMatchManually, recordHand, setMatchName, toggleRiichi,
+  adjustScores, createMatch, endMatchManually, recordHand, setMatchName, setRanked, toggleRiichi,
 } from './matchState';
 import { DEFAULTS } from './matchState';
 import { basePoints, levelFor, paymentFor } from './scoring';
@@ -90,7 +90,8 @@ export function playEverything(): MatchState {
   state = adjustScores(state, state.scores.map((s, i) => (i === 0 ? s - 8000 : s + 2000)),
     'chombo, agreed at the table');
   state = endMatchManually(state, new Date('2026-09-21T11:30:00.000Z'));
-  return setMatchName(state, 'the one with the double ron');
+  // Played for MAKApoints, so the wire and the backend's totals see one that was.
+  return setRanked(setMatchName(state, 'the one with the double ron'), true);
 }
 
 /** A sanma match still in progress, with kita in a stored hand. */

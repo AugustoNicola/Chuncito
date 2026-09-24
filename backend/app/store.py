@@ -26,7 +26,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from sqlalchemy import Connection, delete, exists, func, insert, or_, select
+from sqlalchemy import Connection, case, delete, exists, func, insert, or_, select
 
 from . import models as m
 from .schemas import (
@@ -112,9 +112,37 @@ def rename_player(conn: Connection, player_id: str, display_name: str) -> Player
     return _player_out(row)
 
 
+def _mp_result():
+    """
+    A seat's result in MAKApoints, in points: final score - target + uma, and
+    the oka, (target - start) x players, to 1st. The client's `matchResults`
+    computes the same from the same columns; placement ties were settled when
+    the match ended, so the stored placement is enough.
+    """
+    c, mp = m.matches.c, m.match_players.c
+    oka = case((mp.placement == 1, (c.target_score - c.starting_points) * c.players), else_=0)
+    return mp.final_score - c.target_score + func.coalesce(mp.uma_points, 0) * 1000 + oka
+
+
+def _mp_totals(conn: Connection, player_id: str | None = None) -> dict[str, tuple[int, int]]:
+    """(points, matches) per registered player, over ranked, finished, non-test matches."""
+    c, mp = m.matches.c, m.match_players.c
+    query = (select(mp.player_id, func.sum(_mp_result()), func.count())
+             .select_from(m.match_players.join(m.matches, c.id == mp.match_id))
+             .where(mp.player_id.is_not(None), c.ranked, c.status == 'finished',
+                    c.is_test.is_(False), mp.placement.is_not(None))
+             .group_by(mp.player_id))
+    if player_id is not None:
+        query = query.where(mp.player_id == player_id)
+    return {row[0]: (int(row[1]), row[2]) for row in conn.execute(query).all()}
+
+
 def list_players(conn: Connection) -> list[PlayerOut]:
     found = conn.execute(select(m.players).order_by(m.players.c.display_name)).all()
-    return [PlayerOut(id=p.id, display_name=p.display_name, slug=p.slug) for p in found]
+    totals = _mp_totals(conn)
+    return [PlayerOut(id=p.id, display_name=p.display_name, slug=p.slug,
+                      mp_points=totals.get(p.id, (0, 0))[0], mp_matches=totals.get(p.id, (0, 0))[1])
+            for p in found]
 
 
 def _parse_time(text: str | None) -> datetime | None:
@@ -184,7 +212,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
         'goal_score': t.goal_score,
         'uma': json.loads(t.uma_json), 'status': t.status, 'end_reason': t.end_reason,
         'started_at': _parse_time(t.started_at), 'ended_at': _parse_time(t.ended_at),
-        'max_level': t.max_level, 'is_test': t.is_test,
+        'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
         'revision': revision, 'content_hash': digest, 'updated_at': func.now(),
     }
     if current is None:
@@ -285,7 +313,7 @@ def load_match(conn: Connection, match_id: str
             'uma_json': _dump_json(t.uma),
             'status': t.status, 'end_reason': t.end_reason,
             'started_at': _format_time(t.started_at), 'ended_at': _format_time(t.ended_at),
-            'max_level': t.max_level, 'is_test': t.is_test,
+            'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
         },
         match_players=[{
             'seat': p.seat, 'player_id': p.player_id, 'guest_name': p.guest_name,
@@ -497,6 +525,9 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         .group_by(w.level, w.base_points)
         .order_by(w.base_points.nulls_first(), w.level)).all()
 
+    # MAKApoints are one total over every kind of match, unlike the rest.
+    mp_total = _mp_totals(conn, who.id).get(who.id, (0, 0))
+
     return PlayerStats(
         player=_player_out(who), players=players,
         matches_four=kinds.get(4, 0), matches_sanma=kinds.get(3, 0),
@@ -507,6 +538,7 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         placement_counts=counts,
         uma_total=sum(p.uma_points or 0 for p in placed),
         hands=hand_totals[0], deal_ins=hand_totals[1], riichis=hand_totals[2],
+        mp_points=mp_total[0], mp_matches=mp_total[1],
         wins=win_totals[0], tsumo_wins=win_totals[1], points_won_total=win_totals[6],
         win_methods=WinMethods(riichi=win_totals[2], dama=win_totals[3],
                                open=win_totals[4], unknown=win_totals[5]),

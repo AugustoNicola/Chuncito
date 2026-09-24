@@ -27,7 +27,8 @@ matches(id, name, players ENUM(3,4), red_fives BOOL,
         end_reason ENUM(final_round,bust,manual) NULL,
         started_at, ended_at,
         max_level,        -- denormalised: best limit hand in the match
-        is_test)          -- dev rows, hidden from the UI by default
+        is_test,          -- dev rows, hidden from the UI by default
+        ranked)           -- played for MAKApoints, chosen when saved (0005)
 
 match_players(match_id, seat 0..players-1, player_id NULL, guest_name NULL,
               final_score, placement, uma_points)

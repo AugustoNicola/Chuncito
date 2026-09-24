@@ -14,6 +14,12 @@
 export interface Player {
   id: string;
   displayName: string;
+  /**
+   * MAKApoints, in points (shown in thousands), over ranked finished matches,
+   * and how many. From the server's list; absent in a cache written before.
+   */
+  mpPoints?: number;
+  mpMatches?: number;
 }
 
 const CACHE_KEY = 'chuncito.players.v2';

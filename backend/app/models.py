@@ -97,6 +97,8 @@ matches = Table(
     Column('max_level', Text),
     Column('max_level_rank', SmallInteger, _level_rank('max_level')),
     Column('is_test', Boolean, nullable=False, server_default='false'),
+    # Played for MAKApoints: chosen when the match is saved (0005).
+    Column('ranked', Boolean, nullable=False, server_default='false'),
     # When the server last took a write, for the sync status and for spotting
     # a phone that has been offline a long time.
     Column('updated_at', DateTime(timezone=True), nullable=False, server_default=func.now()),

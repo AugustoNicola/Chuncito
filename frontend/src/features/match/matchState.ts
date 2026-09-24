@@ -163,6 +163,11 @@ export interface MatchState {
   adjustments: Adjustment[];
   status: 'in_progress' | 'finished';
   endReason: EndReason | null;
+  /**
+   * Played for MAKApoints. Chosen when the match is saved, on the end screen,
+   * not at setup: whether a night counted is decided once it is over.
+   */
+  ranked: boolean;
   /** Set on the end screen. */
   name: string;
   startedAt: string;
@@ -266,6 +271,7 @@ export function createMatch(config: MatchConfig, now = new Date(), id = uuid()):
     adjustments: [],
     status: 'in_progress',
     endReason: null,
+    ranked: false,
     name: '',
     startedAt: now.toISOString(),
     endedAt: null,
@@ -653,6 +659,9 @@ export function endMatchManually(state: MatchState, now = new Date()): MatchStat
 
 export const setMatchName = (state: MatchState, name: string): MatchState =>
   ({ ...state, name });
+
+export const setRanked = (state: MatchState, ranked: boolean): MatchState =>
+  ({ ...state, ranked });
 
 // --- derived ---
 

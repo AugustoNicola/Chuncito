@@ -47,6 +47,7 @@ export interface MatchTableRow {
   endedAt: string | null;
   maxLevel: Level | null;
   isTest: boolean;
+  ranked: boolean;
 }
 
 export interface MatchPlayerRow {
@@ -131,6 +132,7 @@ export function toRows(state: MatchState): MatchRows {
       endedAt: state.endedAt,
       maxLevel: maxLevel(state),
       isTest: false,
+      ranked: state.ranked,
     },
     matchPlayers: seatsOf(state.config.players).map((seat) => {
       const player = state.config.seats[seat]!;
@@ -325,6 +327,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     adjustments: rows.adjustments.map<Adjustment>((a) => ({ ...a })),
     status: rows.match.status,
     endReason: rows.match.endReason,
+    ranked: rows.match.ranked,
     name: rows.match.name,
     startedAt: rows.match.startedAt,
     endedAt: rows.match.endedAt,

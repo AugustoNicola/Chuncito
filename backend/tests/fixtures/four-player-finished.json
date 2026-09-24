@@ -18,7 +18,8 @@
       "startedAt": "2026-09-21T10:00:00.000Z",
       "endedAt": "2026-09-21T11:30:00.000Z",
       "maxLevel": "mangan",
-      "isTest": false
+      "isTest": false,
+      "ranked": true
     },
     "matchPlayers": [
       {

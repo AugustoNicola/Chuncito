@@ -18,7 +18,8 @@
       "startedAt": "2026-09-23T00:00:00.000Z",
       "endedAt": null,
       "maxLevel": null,
-      "isTest": false
+      "isTest": false,
+      "ranked": false
     },
     "matchPlayers": [
       {

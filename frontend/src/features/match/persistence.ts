@@ -89,14 +89,16 @@ export function upgrade(state: MatchState): { state: MatchState; changed: boolea
   // against their starting points, which is what a target equal to it means.
   const targetScore = legacy.targetScore ?? legacy.startingPoints ?? DEFAULTS[players].startingPoints;
   const id = (state as Partial<MatchState>).id ?? uuid();
+  // Before MAKApoints nothing was played for them.
+  const ranked = (state as Partial<MatchState>).ranked ?? false;
   if (state.config.players === players && state.config.redFives === redFives
       && state.config.rules === rules && state.config.goalScore === goalScore
-      && state.config.targetScore === targetScore && state.id === id) {
+      && state.config.targetScore === targetScore && state.id === id && state.ranked === ranked) {
     return { state, changed: false };
   }
   const { returnScore: _dropped, ...config } = legacy as MatchState['config'] & { returnScore?: number };
   return {
-    state: { ...state, id, config: { ...config, players, redFives, rules, goalScore, targetScore } },
+    state: { ...state, id, ranked, config: { ...config, players, redFives, rules, goalScore, targetScore } },
     changed: true,
   };
 }

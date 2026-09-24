@@ -188,7 +188,8 @@ def test_a_blank_name_is_refused(unlocked):
 def test_a_typo_is_fixed_by_renaming(unlocked):
     gabi = unlocked.post('/api/players', json={'displayName': 'Gaib'}).json()
     fixed = unlocked.patch(f"/api/players/{gabi['id']}", json={'displayName': 'Gabi'})
-    assert fixed.json() == {'id': gabi['id'], 'displayName': 'Gabi', 'slug': 'gabi'}
+    assert {k: fixed.json()[k] for k in ('id', 'displayName', 'slug')} == \
+        {'id': gabi['id'], 'displayName': 'Gabi', 'slug': 'gabi'}
     # Renaming to your own name in a different case is not a clash with yourself.
     assert unlocked.patch(f"/api/players/{gabi['id']}",
                           json={'displayName': 'GABI'}).status_code == 200
@@ -322,6 +323,11 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     assert (b['wins'], b['tsumoWins'], b['dealIns'], b['riichis']) == (2, 0, 0, 1)
     # Two non-dealer mangan rons; the nagashi's payment is not a win's.
     assert b['pointsWonTotal'] == 16000
+    # MAKApoints: 1st on 38,800 against a 30,000 target, +20 uma, +20 oka.
+    # The test match does not count, though it is ranked too.
+    assert (b['mpPoints'], b['mpMatches']) == (38800 - 30000 + 20000 + 20000, 1)
+    listed = {p['id']: p for p in unlocked.get('/api/players').json()}
+    assert (listed[beto['id']]['mpPoints'], listed[ana['id']]['mpPoints']) == (48800, 4000 - 30000 - 20000)
     assert b['winMethods'] == {'riichi': 1, 'dama': 1, 'open': 0, 'unknown': 0}
     assert b['bestHand']['level'] == 'mangan' and b['bestHand']['matchId'] == 'stats-4p'
     # Yaku are counted off the hands' yaku rows. (The fixture's hand 5 lists a

@@ -43,6 +43,7 @@ class MatchTable(Wire):
     ended_at: str | None
     max_level: str | None
     is_test: bool
+    ranked: bool
 
 
 class MatchPlayer(Wire):
@@ -152,6 +153,10 @@ class Player(Wire):
 
 class PlayerOut(Player):
     slug: str
+    # MAKApoints: the sum of the player's results over finished, ranked,
+    # non-test matches, in points (the client shows thousands), and how many.
+    mp_points: int = 0
+    mp_matches: int = 0
 
 
 class PutMatch(Wire):
@@ -288,6 +293,8 @@ class PlayerStats(Wire):
     placement_counts: list[int]
     uma_total: float
     hands: int
+    mp_points: int
+    mp_matches: int
     wins: int
     tsumo_wins: int
     # Summed over `wins`, for the average win; see `hand_wins.points_won`.

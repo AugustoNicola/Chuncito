@@ -683,6 +683,19 @@ per item.** Ticked here as they land, with what was decided.
       and match review show each result ("+35.0") with its working ("−5.0 vs
       target · +20 uma · +20.0 oka") and a line of the rules ending "The
       results sum to 0.0". Stored `uma_points` stay uma alone.
+- [x] **MAKApoints** — a match's MP for a player *is* its result above
+      (final − target + uma, oka to 1st; shown in thousands, "+14.5").
+      Whether a match counts is chosen **on the end screen**, "Played for
+      MPs" (the default) or "Just for fun" (`MatchState.ranked`,
+      `matches.ranked`, **migration `0005`**; earlier matches unranked). The
+      end screen lists each registered player's gain and their total before
+      → after, from the server's list (or "total when online"); guests are
+      "not counted". The server sums results over finished, ranked,
+      non-test matches (`_mp_result` in `store.py`, from the stored
+      placement, score and uma) into `mpPoints`/`mpMatches` on every player
+      in `GET /api/players` and on the profile's stats, which shows a
+      MAKApoints tile. **One total across four-player and sanma**, unlike
+      the other stats — the backlog defines MP as the sum of all matches.
 
 ## Picking this up cold
 
