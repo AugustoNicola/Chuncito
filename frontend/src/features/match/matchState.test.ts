@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UMA, type HandInput, type MatchConfig, type MatchState,
-  adjustScore, adjustScores, advanceRoundManually, createMatch, maxLevel, potOnTable,
-  recordHand, toggleRiichi, undoLastHand,
+  LEFTOVER_NOTE, adjustScore, adjustScores, advanceRoundManually, createMatch, endMatchManually,
+  maxLevel, potOnTable, recordHand, toggleRiichi, undoLastHand,
 } from './matchState';
+import { fromRows, toRows } from './rows';
 import {
   type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, baseFromResult, basePoints, levelFor,
   manualReachable,
@@ -581,5 +582,43 @@ describe('live places', () => {
 
   it('names places as the table says them', () => {
     expect([1, 2, 3, 4].map(placeLabel)).toEqual(['1st', '2nd', '3rd', '4th']);
+  });
+});
+
+describe('sticks left on the table at the end', () => {
+  it('go to 1st when the last hand is a draw', () => {
+    let s = start({ length: 'east' });
+    s = adjustScore(s, 2, 10000, '');                 // Cami leads
+    s = toggleRiichi(s, 0);                            // a stick goes down...
+    for (let i = 0; i < 4; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.status).toBe('finished');                 // ...and nobody wins it
+    expect(s.potCarried).toBe(0);
+    expect(s.scores[2]).toBe(35000 + 1000);
+    expect(s.adjustments.at(-1)).toMatchObject({ seat: 2, delta: 1000, note: LEFTOVER_NOTE });
+    // Points are neither made nor lost.
+    expect(s.scores.reduce((a, b) => a + b, 0)).toBe(4 * 25000 + 10000);
+  });
+
+  it('go to 1st on a manual end too, declared-but-unplayed sticks included', () => {
+    let s = adjustScore(start(), 1, 5000, '');
+    s = toggleRiichi(s, 3);
+    s = endMatchManually(s);
+    expect(s.scores[1]).toBe(30000 + 1000);
+    expect(s.scores[3]).toBe(24000);
+    expect(s.pendingRiichi).toEqual([]);
+    const rebuilt = fromRows(toRows(s));
+    expect(rebuilt.scores).toEqual(s.scores);
+  });
+
+  it('come back off 1st when the ending hand is undone', () => {
+    let s = start({ length: 'east' });
+    s = adjustScore(s, 2, 10000, '');
+    s = toggleRiichi(s, 0);
+    for (let i = 0; i < 4; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    const undone = undoLastHand(s);
+    expect(undone.status).toBe('in_progress');
+    expect(undone.scores[2]).toBe(35000);
+    expect(undone.potCarried).toBe(1);
+    expect(undone.adjustments.some((a) => a.note === LEFTOVER_NOTE)).toBe(false);
   });
 });

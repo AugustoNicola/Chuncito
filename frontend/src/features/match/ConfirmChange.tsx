@@ -11,7 +11,7 @@
  * differ.
  */
 import type { HandRow, MatchState } from './matchState';
-import { potOnTable, seatsIn } from './matchState';
+import { LEFTOVER_NOTE, potOnTable, seatsIn } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
@@ -118,6 +118,9 @@ export function ConfirmChange({
    * leaving the arithmetic looking wrong.
    */
   const collected = potOnTable(before) - potOnTable(after);
+  /** Sticks the end of the match hands to 1st (`settleTable`), if it ends here. */
+  const leftover = after.adjustments.slice(before.adjustments.length)
+    .find((a) => a.note === LEFTOVER_NOTE);
 
   return (
     <div className="app">
@@ -179,7 +182,14 @@ export function ConfirmChange({
             ))}
           </div>
           {!moved && <span className="field__hint">No points change hands.</span>}
-          {collected > 0 && (
+          {leftover && (
+            <span className="field__hint">
+              The match ends with {leftover.delta / 1000} riichi
+              stick{leftover.delta === 1000 ? '' : 's'} left on the table: they go
+              to {names[leftover.seat]}, in 1st ({leftover.delta.toLocaleString()}).
+            </span>
+          )}
+          {collected > 0 && !leftover && (
             <span className="field__hint">
               Includes {collected} riichi stick{collected === 1 ? '' : 's'} collected
               from the table ({(collected * 1000).toLocaleString()}).

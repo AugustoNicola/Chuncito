@@ -664,6 +664,13 @@ per item.** Ticked here as they land, with what was decided.
       (round 3 in sanma); it ends the moment a hand puts somebody at the
       goal, or at the end of that wind. The *target* score — what placements
       are measured against, for oka — is a separate field, next item.
+- [x] **Riichi sticks on match end** — whatever ends a match (last hand,
+      bust, a manual end) settles the table: sticks still on it go to 1st
+      (ties to the earlier seat), as an `adjustments` row noted
+      `LEFTOVER_NOTE`, so the rows rebuild it. A declaration for a hand never
+      played (a manual end) gets its own row too, fixing the old edge where
+      such a stick vanished from a rebuilt match. Undo of the ending hand
+      takes the settlement back. The review screen says where they go.
 
 ## Picking this up cold
 

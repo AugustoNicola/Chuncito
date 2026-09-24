@@ -313,7 +313,8 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     config,
     round: after.round,
     honba: after.honba,
-    potCarried: after.pot,
+    // A finished match settled its table: the sticks went to 1st (an adjustment).
+    potCarried: rows.match.status === 'finished' ? 0 : after.pot,
     // Not persisted: a declaration belongs to a hand that has not resolved.
     pendingRiichi: [],
     scores,

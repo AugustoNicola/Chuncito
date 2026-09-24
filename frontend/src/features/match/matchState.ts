@@ -26,6 +26,7 @@ import {
 } from './seats';
 import {
   LIMIT_BASE, RIICHI_STICK, type Delta, type WinPayment, baseFromResult, deltaOf, drawDelta,
+  placements,
   nagashiDelta, paymentFor, paymentTotal, ronDelta, tsumoDelta, zeroDelta,
 } from './scoring';
 
@@ -407,6 +408,61 @@ function endCheck(
   return null;
 }
 
+/** Notes on the adjustments `settleTable` writes, which is how undo finds them. */
+export const LEFTOVER_NOTE = 'Riichi sticks left on the table, to 1st';
+export const UNPLAYED_NOTE = 'Riichi declared for a hand never played';
+
+/**
+ * The end of a match: sticks still on the table go to whoever is 1st (ties to
+ * the earlier seat, as in the standings).
+ *
+ * Written as adjustments, so the rows -- which rebuild scores from hand deltas
+ * plus adjustments -- come out as the table did. The award moves the live
+ * score. A declaration for a hand that was never played (a manual end) came
+ * off its player's score when it was made, but no hand row holds it; its
+ * adjustment records that for the rebuild without moving the live score twice.
+ */
+function settleTable(state: MatchState): MatchState {
+  const sticks = potOnTable(state);
+  if (sticks === 0) return state;
+  const afterSeq = state.hands.length;
+  const first = placements(state.scores, state.config.uma)[0]!.seat;
+  const scores = [...state.scores] as Delta;
+  scores[first] += sticks * RIICHI_STICK;
+  return {
+    ...state,
+    scores,
+    potCarried: 0,
+    pendingRiichi: [],
+    adjustments: [
+      ...state.adjustments,
+      ...state.pendingRiichi.map((seat) => ({
+        clientUuid: uuid(), afterSeq, seat, delta: -RIICHI_STICK, note: UNPLAYED_NOTE,
+      })),
+      { clientUuid: uuid(), afterSeq, seat: first, delta: sticks * RIICHI_STICK, note: LEFTOVER_NOTE },
+    ],
+  };
+}
+
+/** Takes `settleTable` back, for undo: the award leaves the score, the notes go. */
+function unsettleTable(state: MatchState): MatchState {
+  const afterSeq = state.hands.length;
+  const settled = (a: Adjustment) => a.afterSeq === afterSeq
+    && (a.note === LEFTOVER_NOTE || a.note === UNPLAYED_NOTE);
+  const scores = [...state.scores] as Delta;
+  let pot = 0;
+  for (const a of state.adjustments.filter(settled)) {
+    if (a.note === LEFTOVER_NOTE) { scores[a.seat] -= a.delta; pot += a.delta / RIICHI_STICK; }
+  }
+  const unplayed = state.adjustments.filter((a) => settled(a) && a.note === UNPLAYED_NOTE).map((a) => a.seat);
+  return {
+    ...state, scores,
+    adjustments: state.adjustments.filter((a) => !settled(a)),
+    potCarried: pot - unplayed.length,
+    pendingRiichi: unplayed,
+  };
+}
+
 export interface RecordResult {
   state: MatchState;
   row: HandRow;
@@ -487,22 +543,20 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
   // -> South 1" on an East match's last hand).
   const round = repeats || endReason ? state.round : nextRound(state.round, players);
 
-  return {
-    state: {
-      ...state,
-      round,
-      honba: nextHonba(input, state.honba, repeats),
-      // A win clears the table; every kind of draw leaves the sticks on it.
-      potCarried: collectsPot ? 0 : potBefore,
-      pendingRiichi: [],
-      scores,
-      hands: [...state.hands, row],
-      status: endReason ? 'finished' : 'in_progress',
-      endReason,
-      endedAt: endReason ? now.toISOString() : null,
-    },
-    row,
+  const next: MatchState = {
+    ...state,
+    round,
+    honba: nextHonba(input, state.honba, repeats),
+    // A win clears the table; every kind of draw leaves the sticks on it.
+    potCarried: collectsPot ? 0 : potBefore,
+    pendingRiichi: [],
+    scores,
+    hands: [...state.hands, row],
+    status: endReason ? 'finished' : 'in_progress',
+    endReason,
+    endedAt: endReason ? now.toISOString() : null,
   };
+  return { state: endReason ? settleTable(next) : next, row };
 }
 
 /**
@@ -515,6 +569,8 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
 export function undoLastHand(state: MatchState): MatchState {
   const row = state.hands.at(-1);
   if (!row) return state;
+  // A hand that ended the match also settled the table; that goes first.
+  if (state.status === 'finished') state = unsettleTable(state);
   return {
     ...state,
     round: { wind: row.roundWind, number: row.roundNumber },
@@ -579,13 +635,13 @@ export function setHonba(state: MatchState, honba: number): MatchState {
 }
 
 export function endMatchManually(state: MatchState, now = new Date()): MatchState {
-  return {
+  // Sticks still on the table go to 1st, as at any other end.
+  return settleTable({
     ...state,
     status: 'finished',
     endReason: 'manual',
     endedAt: now.toISOString(),
-    // Sticks still on the table are simply lost, as they are in a real game.
-  };
+  });
 }
 
 export const setMatchName = (state: MatchState, name: string): MatchState =>
