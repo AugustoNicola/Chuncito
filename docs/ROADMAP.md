@@ -643,6 +643,13 @@ per item.** Ticked here as they land, with what was decided.
       player's line bold (the stats' `PlacedMatch` now carries `table`). The
       value histogram prints no counts; hovering, focusing or tapping a bar
       shows its range and "2 (50.0%)" of all wins.
+- [x] **More links to player profiles** — `PlayerName` (`features/players/`)
+      links a registered player's name to `/players/<slugOf(name)>`; a guest
+      stays plain text. Used in a match review: standings, best hand, the
+      timeline's per-hand deltas and adjustments. Not on the end screen or
+      the in-match timeline (the table blocks navigation), and not inside the
+      history cards, which are already links as a whole. Styled as the text
+      colour with a dotted underline, accent on hover.
 
 ## Picking this up cold
 

@@ -11,6 +11,7 @@ import { placeLabel, placements } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel, seatWindOf } from './seats';
 import { WindMark } from './WindMark';
+import { PlayerName } from '../players/PlayerName';
 
 const END_REASON: Record<string, string> = {
   final_round: 'Played to the end',
@@ -20,7 +21,8 @@ const END_REASON: Record<string, string> = {
 
 const START = { wind: 'este', number: 1 } as const;
 
-export function MatchOutcome({ state }: { state: MatchState }) {
+/** `linkPlayers` in a match review; never on the night, inside the match. */
+export function MatchOutcome({ state, linkPlayers = false }: { state: MatchState; linkPlayers?: boolean }) {
   const standings = placements(state.scores, state.config.uma);
   const best = bestHand(state);
   const hands = state.hands.length;
@@ -43,7 +45,7 @@ export function MatchOutcome({ state }: { state: MatchState }) {
                 drawn, rather than wherever the deal had got to by the end. */}
             <span className="standings__name">
               <WindMark wind={seatWindOf(p.seat, START, state.config.players)} />
-              {state.config.seats[p.seat]!.name}
+              <PlayerName seat={state.config.seats[p.seat]!} link={linkPlayers} />
             </span>
             <span className={`standings__score${p.score < 0 ? ' standings__score--negative' : ''}`}>
               {p.score.toLocaleString()}
@@ -64,7 +66,7 @@ export function MatchOutcome({ state }: { state: MatchState }) {
               : levelName(best.win.level!)}
           </span>
           <span className="endscreen__bestwho">
-            {state.config.seats[best.seat]!.name}
+            <PlayerName seat={state.config.seats[best.seat]!} link={linkPlayers} />
             {best.win.pointsWon !== null && ` · ${best.win.pointsWon.toLocaleString()}`}
           </span>
           {best.win.handTiles && <HandSummary state={decodeHandTiles(best.win.handTiles, state.config.players === 3)} />}

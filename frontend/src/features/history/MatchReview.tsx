@@ -56,11 +56,11 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
           </p>
           <div className="review">
             <div className="endscreen review__outcome">
-              <MatchOutcome state={state} />
+              <MatchOutcome state={state} linkPlayers />
             </div>
             <section className="review__hands">
               <h2 className="home__heading review__heading">Hands</h2>
-              <TimelineList state={state} />
+              <TimelineList state={state} linkPlayers />
             </section>
           </div>
         </>

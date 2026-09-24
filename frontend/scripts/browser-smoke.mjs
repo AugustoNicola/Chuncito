@@ -1405,6 +1405,9 @@ try {
   check((await page.$eval('.app__title', (el) => el.textContent)) === 'with Beto',
         'the review is titled with the match name');
   check((await page.$$('.standings__row')).length === 3, 'the review shows the standings');
+  const nameLinks = await page.$$eval('.standings .playerlink', (els) => els.map((e) => e.getAttribute('href')));
+  check(JSON.stringify(nameLinks) === JSON.stringify(['/players/beto']),
+        `a registered player's name links to their page, a guest's does not (got ${JSON.stringify(nameLinks)})`);
   check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
         `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
   await shot('61-review.png');

@@ -5,7 +5,8 @@
  * screen will do against the server in Phase 4, which is the point of the
  * timeline being a plain list of rows rather than a fold over events.
  */
-import type { HandRow, MatchState, WinRow } from './matchState';
+import type { HandRow, MatchState, SeatPlayer, WinRow } from './matchState';
+import { PlayerName } from '../players/PlayerName';
 import { topLevel } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
@@ -84,8 +85,8 @@ function tierOf(row: HandRow): string | undefined {
   return levelTier(level);
 }
 
-function HandEntry({ row, names, sanma }: {
-  row: HandRow; names: readonly string[]; sanma: boolean;
+function HandEntry({ row, names, seats, link, sanma }: {
+  row: HandRow; names: readonly string[]; seats: readonly SeatPlayer[]; link: boolean; sanma: boolean;
 }) {
   return (
     <li className="timeline__hand" data-tier={tierOf(row)}>
@@ -105,7 +106,7 @@ function HandEntry({ row, names, sanma }: {
       <div className="timeline__deltas">
         {seatsOf(sanma ? 3 : 4).map((seat) => (
           <span key={seat} className="timeline__delta">
-            <span className="timeline__seatname">{names[seat]}</span>
+            <span className="timeline__seatname"><PlayerName seat={seats[seat]!} link={link} /></span>
             <span className={row.scoreDelta[seat] < 0 ? 'timeline__loss'
               : row.scoreDelta[seat] > 0 ? 'timeline__gain' : 'timeline__flat'}>
               {row.scoreDelta[seat] > 0 ? '+' : ''}{row.scoreDelta[seat].toLocaleString()}
@@ -136,7 +137,8 @@ function HandEntry({ row, names, sanma }: {
  * finished one is read as a story, East 1 down to the last hand -- which is
  * how the history shows it too.
  */
-export function TimelineList({ state }: { state: MatchState }) {
+/** `linkPlayers` in a match review; never during the match itself. */
+export function TimelineList({ state, linkPlayers = false }: { state: MatchState; linkPlayers?: boolean }) {
   const names = state.config.seats.map((p) => p.name);
   const rows = state.status === 'finished' ? state.hands : [...state.hands].reverse();
 
@@ -147,6 +149,7 @@ export function TimelineList({ state }: { state: MatchState }) {
       ) : (
         <ol className="timeline">
           {rows.map((row) => <HandEntry key={row.clientUuid} row={row} names={names}
+                                            seats={state.config.seats} link={linkPlayers}
                                             sanma={state.config.players === 3} />)}
         </ol>
       )}
@@ -156,7 +159,7 @@ export function TimelineList({ state }: { state: MatchState }) {
           <span className="field__label">Manual adjustments</span>
           {state.adjustments.map((adj) => (
             <div key={adj.clientUuid} className="timeline__adjustment">
-              <span>{names[adj.seat]}</span>
+              <span><PlayerName seat={state.config.seats[adj.seat]!} link={linkPlayers} /></span>
               <span className={adj.delta < 0 ? 'timeline__loss' : 'timeline__gain'}>
                 {adj.delta > 0 ? '+' : ''}{adj.delta.toLocaleString()}
               </span>
