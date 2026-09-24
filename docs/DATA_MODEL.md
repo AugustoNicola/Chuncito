@@ -107,7 +107,9 @@ Notes:
   recovered from the level first (`baseFromResult`), because `dobleYakuman` is
   26 han and the han formula would flatten it back to one yakuman.
 - `winner_open` is NULL, not false, on a hand nobody won — it feeds the
-  win-method pie, where "no winner" is not "closed".
+  win-method pie, where "no winner" is not "closed". It is also NULL on a
+  typed-in win where nobody said (the win menu's Open/Closed is optional),
+  which the pie counts as "not recorded" unless the winner was in riichi.
 - `chombo` stays in the enum but Phase 2 does **not** produce it: the group
   handles a chombo as an `adjustments` row with a note. See `ROADMAP.md`.
 - **A hand has a *list* of winners, not a winner.** This ruleset pays every

@@ -176,7 +176,11 @@ export type HandValue =
       fu: number | null;
       level: Level;
       basePoints: number;
-      open: boolean;
+      /**
+       * Optional in the win menu: null when nobody said. Stored as such, and
+       * counted as "not recorded" in a player's win methods rather than guessed.
+       */
+      open: boolean | null;
     };
 
 export interface WinEntry {

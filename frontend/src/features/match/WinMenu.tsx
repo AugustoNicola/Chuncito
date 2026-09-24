@@ -68,7 +68,8 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const [han, setHan] = useState<number | null>(null);
   const [fu, setFu] = useState<number | null>(null);
   const [limit, setLimit] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  /** Optional: null until somebody says, and a second tap takes it back. */
+  const [open, setOpen] = useState<boolean | null>(null);
   const [route, setRoute] = useState<Route>('menu');
 
   const players = state.config.players;
@@ -88,7 +89,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const outcomeSettled = current !== null
     && (mode === 'tsumo' || (dealIn !== null && dealIn !== current));
 
-  const clearValue = () => { setHan(null); setFu(null); setLimit(null); setOpen(false); };
+  const clearValue = () => { setHan(null); setFu(null); setLimit(null); setOpen(null); };
 
   /** Everything entered so far, plus the hand on screen if it is complete. */
   const allWins = (extra?: WinEntry): WinEntry[] => [...staged, ...(extra ? [extra] : [])];
@@ -363,13 +364,13 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         </div>
 
         <div className="field">
-          <span className="field__label">Hand was</span>
+          <span className="field__label">Hand was <span className="field__optional">optional</span></span>
           <div className="segmented" role="group" aria-label="Hand was">
             {[false, true].map((value) => (
               <button key={String(value)} type="button"
                       className={`segmented__btn${open === value ? ' segmented__btn--on' : ''}`}
                       aria-pressed={open === value}
-                      onClick={() => setOpen(value)}>
+                      onClick={() => setOpen(open === value ? null : value)}>
                 {value ? 'Open' : 'Closed'}
               </button>
             ))}

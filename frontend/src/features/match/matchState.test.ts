@@ -28,7 +28,7 @@ const start = (over: Partial<MatchConfig> = {}) => createMatch(config(over));
 
 /** A manual win, so the tests never need the engine. */
 const win = (winner: Seat, dealer: Seat, opts: {
-  mode?: 'ron' | 'tsumo'; dealIn?: Seat | null; han?: number; fu?: number;
+  mode?: 'ron' | 'tsumo'; dealIn?: Seat | null; han?: number; fu?: number; open?: boolean | null;
 } = {}): HandInput => {
   const mode = opts.mode ?? 'ron';
   const han = opts.han ?? 3;
@@ -40,7 +40,7 @@ const win = (winner: Seat, dealer: Seat, opts: {
       winner,
       value: {
         source: 'manual', payment: paymentFor(base, winner === dealer, mode),
-        han, fu, level: levelFor(han, fu), basePoints: base, open: false,
+        han, fu, level: levelFor(han, fu), basePoints: base, open: opts.open === undefined ? false : opts.open,
       },
     }],
   };
@@ -371,6 +371,11 @@ describe('rows for the history', () => {
     }]);
     expect(row.scoreDelta).toEqual([0, 3900, -3900, 0]);
     expect(row.clientUuid).toBeTruthy();
+  });
+
+  it('keeps an open/closed nobody gave as unknown, not closed', () => {
+    const { row } = recordHand(start(), win(1, 0, { mode: 'ron', dealIn: 2, open: null }));
+    expect(row.wins[0]!.winnerOpen).toBeNull();
   });
 
   it('numbers hands from one, in order', () => {

@@ -476,6 +476,16 @@ try {
   check(hanState['2'] === false, '2 han stays available at 25 fu');
   await pick('Fu', '30');
 
+  // Open or closed is optional: nothing is chosen for you, and nothing needs to be.
+  const openState = await page.evaluate(() => {
+    const group = document.querySelector('[aria-label="Hand was"]');
+    const pressed = [...group.querySelectorAll('button')].filter((b) => b.getAttribute('aria-pressed') === 'true');
+    const review = [...document.querySelectorAll('.btn--primary')].find((b) => b.textContent === 'Review');
+    return { pressed: pressed.length, reviewable: !review.disabled };
+  });
+  check(openState.pressed === 0 && openState.reviewable,
+        `open/closed starts unset and is not needed to record (got ${JSON.stringify(openState)})`);
+
   await byText('Review');
   await page.waitForSelector('.confirm');
   const confirmRound = await page.$$eval('.confirm__round span',

@@ -513,6 +513,11 @@ per item.** Ticked here as they land, with what was decided.
       `HandBuilder` takes an `attribution` for it; the plain calculator has
       none and shows none. The confirmation's title says it too ("Dani ron
       off Ana"), for the typed-value route.
+- [x] **Optional closed/open hand** — done before the invalid combinations,
+      which build on it. The win menu's "Hand was" starts unset, a second tap
+      clears it, and a hand records without it. A manual `HandValue.open` is
+      `boolean | null`; null reaches `winner_open` as NULL, which the backend
+      and the profile already counted as "not recorded" — no migration.
 
 ## Picking this up cold
 
