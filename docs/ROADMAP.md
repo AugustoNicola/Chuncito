@@ -717,6 +717,30 @@ per item.** Ticked here as they land, with what was decided.
 
 ## Picking this up cold
 
+**State at the end of 2026-09-24's session** (the Backlog section above has
+the detail):
+
+- **`main` is four migrations behind: `0002`–`0005`** (rules, goal_score,
+  target_score, ranked). Nothing is pushed. Before the next push: install
+  `postgresql-client-18`, `make db-backup TARGET=main`, then
+  `make db-migrate TARGET=main` — or Heroku's release phase refuses the
+  deploy. `dev` is at `0005`.
+- **Mahjonglog's work is uncommitted** in `/home/lambda/develop/Mahjonglog`
+  (open riichi, house rules, double yakuman, the fu breakdown — 487 tests),
+  next to the user's own older uncommitted work there. The vendored copy is
+  in sync with that working tree; the user decides how to commit it.
+- The client asks the engine `resultadoDeVictoria/7` (rules in, fu breakdown
+  out). A new upstream file must also be listed in `prologSource.ts`
+  (`prologSource.test.ts` catches it).
+- Scoring vocabulary, now kept apart: **starting** points; the **target**
+  score results are measured against (oka = (target − start) × players, to
+  1st); the **goal** score that ends the match (short of it, one extra wind).
+  A result = final − target + uma (+ oka) and results sum to zero; a match's
+  **MAKApoints** are its results, if it was saved as "Played for MPs".
+- Every end of a match settles the table: leftover riichi sticks to 1st, as
+  an adjustment row. A match-ending hand leaves the round where it was.
+- 265 unit tests, 237 browser checks, 52 backend tests.
+
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:
 
@@ -732,7 +756,7 @@ was learned building Phases 1 to 3 and the sanma round:
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 201 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
+  UI in Firefox — 237 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
   a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
   screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught
