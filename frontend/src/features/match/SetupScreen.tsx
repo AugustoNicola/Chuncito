@@ -13,7 +13,7 @@ import type { MatchLength, PlayerCount, Seat } from './seats';
 import { roundKanji, roundName, seatsOf } from './seats';
 import { SITUATION_WINDS } from '../../scorer/types';
 import {
-  type Player, byRecent, cachedPlayers, findByName, markSeated, search, slugOf,
+  type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
 } from '../players/players';
 import { refreshPlayers } from './syncClient';
 import { placeLabel } from './scoring';
@@ -46,7 +46,7 @@ export function SetupScreen({ onStart, onCancel }: {
   /** What is typed in each seat's search box. */
   const [queries, setQueries] = useState<string[]>(['', '', '', '']);
   const [open, setOpen] = useState<Seat | null>(null);
-  const [roster, setRoster] = useState<Player[]>(() => byRecent(cachedPlayers()));
+  const [roster, setRoster] = useState<Player[]>(() => byName(cachedPlayers()));
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const [length, setLength] = useState<MatchLength>('south');
   const [redFives, setRedFives] = useState(true);
@@ -59,7 +59,7 @@ export function SetupScreen({ onStart, onCancel }: {
   // The cache is enough to start with; the server's list replaces it if it answers.
   useEffect(() => {
     let cancelled = false;
-    void refreshPlayers().then((list) => { if (list && !cancelled) setRoster(byRecent(list)); });
+    void refreshPlayers().then((list) => { if (list && !cancelled) setRoster(byName(list)); });
     return () => { cancelled = true; };
   }, []);
 

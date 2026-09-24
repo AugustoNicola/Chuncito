@@ -17,7 +17,7 @@ export interface Player {
 }
 
 const CACHE_KEY = 'chuncito.players.v2';
-/** When each player last sat at a match on this phone, for ordering the picker. */
+/** When each player last sat at a match on this phone, for ordering the history filter. */
 const RECENT_KEY = 'chuncito.recent';
 /** Keys from earlier versions, which kept names rather than players. */
 const OLD_KEYS = ['chuncito.names', 'chuncito.players'];
@@ -61,6 +61,15 @@ export function setCachedPlayers(list: readonly Player[]): void {
 
 export const nameOf = (id: string): string | undefined =>
   cachedPlayers().find((p) => p.id === id)?.displayName;
+
+/**
+ * Alphabetical, ignoring case and accents (so "Álvaro" sits with the A's),
+ * which is how a name is looked for in a list of the whole group.
+ */
+export function byName(list: readonly Player[]): Player[] {
+  return [...list].sort((a, b) =>
+    a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
+}
 
 /** Recently seated first, then alphabetical. */
 export function byRecent(list: readonly Player[]): Player[] {

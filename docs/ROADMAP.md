@@ -596,6 +596,9 @@ per item.** Ticked here as they land, with what was decided.
 
 - [x] **Rearrange Rinshan and Chankan** — Ippatsu, Last draw, Chankan,
       Rinshan: the two kan circumstances side by side.
+- [x] **Sort player selection alphabetically** — setup's picker uses
+      `byName` (case- and accent-insensitive). The history filter's chips
+      keep `byRecent`, which is what `markSeated` still feeds.
 
 ## Picking this up cold
 

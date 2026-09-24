@@ -4,7 +4,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  type Player, byRecent, cachedPlayers, findByName, markSeated, nameOf, search, setCachedPlayers,
+  type Player, byName, byRecent, cachedPlayers, findByName, markSeated, nameOf, search, setCachedPlayers,
   slugOf,
 } from './players';
 
@@ -64,5 +64,13 @@ describe('ordering the picker', () => {
     markSeated(['b'], new Date('2026-09-01T00:00:00Z'));
     markSeated(['j'], new Date('2026-09-10T00:00:00Z'));
     expect(byRecent([ana, beto, jose]).map((p) => p.id)).toEqual(['j', 'b', 'a']);
+  });
+});
+
+describe('byName', () => {
+  it('sorts alphabetically, ignoring case and accents', () => {
+    const p = (displayName: string) => ({ id: displayName, displayName, slug: displayName }) as Player;
+    expect(byName([p('beto'), p('Álvaro'), p('Ana'), p('Cami')]).map((x) => x.displayName))
+      .toEqual(['Álvaro', 'Ana', 'beto', 'Cami']);
   });
 });
