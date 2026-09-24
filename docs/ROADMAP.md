@@ -630,6 +630,9 @@ per item.** Ticked here as they land, with what was decided.
       Haku 2 fu", "Kanchan wait 2 fu", "Rounded up 4 fu" (`fuPartName`). None
       for a yakuman. Shown below rather than in a column beside the han, which
       a phone has no width for.
+- [x] **Scrap a match on match end** — the end screen has Discard beside
+      Save and finish; two taps, like Manual's, and it is the same discard
+      (the mirror cleared, the server's copy deleted), landing on home.
 
 ## Picking this up cold
 

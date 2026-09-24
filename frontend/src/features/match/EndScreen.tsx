@@ -10,12 +10,16 @@ import { useState } from 'react';
 import type { MatchState } from './matchState';
 import { MatchOutcome } from './MatchOutcome';
 
-export function EndScreen({ state, onSave, onTimeline }: {
+export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
   state: MatchState;
   onSave: (name: string) => void;
+  /** Throws the match away -- from this phone and the server -- instead of saving it. */
+  onDiscard: () => void;
   onTimeline: () => void;
 }) {
   const [name, setName] = useState(state.name);
+  /** Two taps, like discarding from Manual: a whole evening is one tap from gone. */
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   return (
     <div className="app">
@@ -37,9 +41,30 @@ export function EndScreen({ state, onSave, onTimeline }: {
 
       <div className="app__spacer" />
 
-      <button type="button" className="btn btn--primary btn--wide" onClick={() => onSave(name.trim())}>
-        Save and finish
-      </button>
+      {confirmDiscard ? (
+        <div className="endscreen__actions">
+          <button type="button" className="btn btn--danger btn--wide" onClick={onDiscard}>
+            Yes, throw it away
+          </button>
+          <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(false)}>
+            Keep it
+          </button>
+        </div>
+      ) : (
+        <div className="endscreen__actions">
+          <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(true)}>
+            Discard
+          </button>
+          <button type="button" className="btn btn--primary btn--wide" onClick={() => onSave(name.trim())}>
+            Save and finish
+          </button>
+        </div>
+      )}
+      {confirmDiscard && (
+        <span className="field__hint endscreen__warn">
+          The match is deleted from this phone and from the history. It cannot be undone.
+        </span>
+      )}
     </div>
   );
 }

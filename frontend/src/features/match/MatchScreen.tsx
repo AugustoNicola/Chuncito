@@ -152,6 +152,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     return (
       <EndScreen
         state={match}
+        onDiscard={leave(onDiscard)}
         onTimeline={() => setMenu({ at: 'timeline' })}
         onSave={async (name) => {
           const named = setMatchName(match, name);

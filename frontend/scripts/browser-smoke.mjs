@@ -998,6 +998,14 @@ try {
   check(standings[3]?.uma === '-20', `last place takes the bottom uma (got ${standings[3]?.uma})`);
   await shot('16-endscreen.png');
 
+  // A finished match can be thrown away instead of saved: two taps, then home.
+  await byText('Discard');
+  check((await page.$$eval('.endscreen__actions .btn', (els) => els.map((e) => e.textContent)))
+    .join('|') === 'Yes, throw it away|Keep it', 'discarding asks once more');
+  await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
+  check(await page.$('.home__resume') === null, 'a discarded match is not offered back');
+
   // ==================== sanma ====================
 
   await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });

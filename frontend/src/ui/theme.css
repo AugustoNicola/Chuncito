@@ -1102,6 +1102,10 @@ button {
 }
 .standings__uma--negative { color: var(--loss); }
 
+/* Discard beside Save, the way the review screen pairs Go back with Record. */
+.endscreen__actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.endscreen__warn { text-align: center; margin-top: 6px; }
+
 .endscreen__best {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 14px;
