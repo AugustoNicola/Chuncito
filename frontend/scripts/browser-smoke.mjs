@@ -286,6 +286,9 @@ try {
   const seat = await page.$eval('.score__seat', (e) => e.textContent);
   check(seat === 'Non-dealer ron', `seat/win line reads "Non-dealer ron" (got "${seat}")`);
   check(await page.$('.score__who') === null, 'the plain calculator names nobody');
+  const fuLines = await page.$$eval('.score__fuline', (els) => els.map((e) => e.textContent));
+  check(JSON.stringify(fuLines) === JSON.stringify(['Base20 fu', 'Closed ron10 fu']),
+        `the fu are broken down under the han (got ${JSON.stringify(fuLines)})`);
   const tier = await page.$eval('.score', (e) => e.dataset.tier);
   check(tier === 'none', `a 4 han hand uses the plain tier (got "${tier}")`);
   const hanLabels = await page.$$eval('.score__han', (els) => els.map((e) => e.textContent));

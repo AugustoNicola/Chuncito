@@ -7,7 +7,7 @@
 import type { Payment, ScoreResult } from '../../scorer/types';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import { paymentTotal } from '../match/scoring';
-import { isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
+import { fuPartName, isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
 import { HandSummary } from './HandDisplay';
 import type { HandState } from './handState';
 
@@ -91,6 +91,15 @@ export function ScoreResultView({
           <div className="score__yaku score__yaku--extra" data-yaku={y.yaku} key={y.yaku}>
             <span>{yakuName(y.yaku)}</span>
             <span className="score__han">{y.han} han</span>
+          </div>
+        ))}
+        {/* How the fu were counted: secondary to the han, so muted. None for
+            a yakuman, whose fu do not count. */}
+        {result.fuParts.length > 0 && <div className="score__divider" />}
+        {result.fuParts.map((part, i) => (
+          <div className="score__fuline" key={i}>
+            <span>{fuPartName(part)}</span>
+            <span className="score__fu">{part.fu} fu</span>
           </div>
         ))}
       </div>

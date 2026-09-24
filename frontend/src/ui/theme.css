@@ -387,6 +387,13 @@ button {
 .score__yaku--extra[data-yaku="nukiDora"] { --extra: #e0b84e; }
 .score__yaku--extra,
 .score__yaku--extra .score__han { color: var(--extra, var(--text-dim)); }
+/* The fu breakdown: laid out like the yaku, but there to check rather than to
+   read first -- smaller and grey. Not a `.score__yaku`: these are not yaku. */
+.score__fuline {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 4px 0; font-size: 0.9rem; color: var(--text-faint);
+}
+.score__fu { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .score__divider { height: 1px; background: var(--border); margin: 7px 0; }
 
 .score__title {

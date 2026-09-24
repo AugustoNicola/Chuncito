@@ -5,7 +5,7 @@
  * presentation is translated. Anything unmapped falls back to the atom itself,
  * so a new upstream yaku shows up readably rather than blank.
  */
-import type { Level } from '../../scorer/types';
+import type { FuPart, Level, Tile } from '../../scorer/types';
 
 export const YAKU_NAMES: Readonly<Record<string, string>> = {
   // situational
@@ -78,3 +78,35 @@ export function levelTier(level: Level): string {
 /** True for any genuine yakuman level, which gets the loudest treatment. */
 export const isYakumanLevel = (level: Level): boolean =>
   level === 'yakuman' || level === 'kazoeYakuman' || /Yakuman$/.test(level);
+
+const HONOR_NAMES: Readonly<Record<string, string>> = {
+  e: 'East', s: 'South', w: 'West', n: 'North', wh: 'Haku', g: 'Hatsu', r: 'Chun',
+};
+
+/** "5m", "3p", "Chun": a tile as players say it. Honours first -- `s` is South. */
+export function tileName(tile: Tile): string {
+  if (tile in HONOR_NAMES) return HONOR_NAMES[tile]!;
+  return `${tile.slice(1, 2)}${tile[0]}`;
+}
+
+const SET_NAMES: Readonly<Record<string, string>> = {
+  triC: 'Closed triplet', pon: 'Open triplet', kanA: 'Open kan', kanC: 'Closed kan',
+};
+
+/** One line of the fu breakdown, in words. */
+export function fuPartName(part: FuPart): string {
+  switch (part.concept) {
+    case 'fuBase': return 'Base';
+    case 'menzenRon': return 'Closed ron';
+    case 'tsumo': return 'Tsumo';
+    case 'redondeo': return 'Rounded up';
+    case 'chiitoitsu': return 'Chiitoitsu (fixed)';
+    case 'pinfuTsumo': return 'Pinfu tsumo (fixed)';
+    case 'pinfuAbierto': return 'Open pinfu shape';
+    case 'juego': return `${SET_NAMES[part.set] ?? part.set} of ${tileName(part.tiles[0]!)}`;
+    // Concealed, but the ron completed it, so it counts as called.
+    case 'juegoCompletadoPorRon': return `Triplet of ${tileName(part.tiles[0]!)}, completed by ron`;
+    case 'par': return `Pair of ${tileName(part.tile)}`;
+    case 'espera': return `${part.wait[0]!.toUpperCase()}${part.wait.slice(1)} wait`;
+  }
+}

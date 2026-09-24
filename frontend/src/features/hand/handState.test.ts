@@ -1,3 +1,4 @@
+import { fuPartName } from './yakuNames';
 import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
@@ -392,5 +393,16 @@ describe('carrying a hand on', () => {
   it('keeps an open or double riichi when the table only says "riichi"', () => {
     const open = { ...draft, melds: [], riichi: 'riichiAbierto' as const };
     expect(startingHand({ ...setting, riichiDeclared: true }, open).state.riichi).toBe('riichiAbierto');
+  });
+});
+
+describe('fu breakdown lines', () => {
+  it('reads each part as players would say it', () => {
+    expect(fuPartName({ concept: 'juego', set: 'kanC', tiles: T('s9 s9 s9 s9'), fu: 32 }))
+      .toBe('Closed kan of 9s');
+    expect(fuPartName({ concept: 'par', tile: 's', fu: 4 })).toBe('Pair of South');
+    expect(fuPartName({ concept: 'espera', wait: 'kanchan', fu: 2 })).toBe('Kanchan wait');
+    expect(fuPartName({ concept: 'juegoCompletadoPorRon', set: 'triC', tiles: T('wh wh wh'), fu: 4 }))
+      .toBe('Triplet of Haku, completed by ron');
   });
 });

@@ -624,6 +624,12 @@ per item.** Ticked here as they land, with what was decided.
       `decode.ts` reads `desglosado(Resultado, DesgloseFu)`. Found and
       logged, not fixed: a called chii can be taken as the winning meld for
       fu (`SCORER_GAPS.md`).
+- [x] **Display fu breakdown** — the score screen lists the engine's
+      `DesgloseFu` under the han lines, smaller and grey (`.score__fuline`):
+      "Base 20 fu", "Closed ron 10 fu", "Closed triplet of 1m 8 fu", "Pair of
+      Haku 2 fu", "Kanchan wait 2 fu", "Rounded up 4 fu" (`fuPartName`). None
+      for a yakuman. Shown below rather than in a column beside the han, which
+      a phone has no width for.
 
 ## Picking this up cold
 
