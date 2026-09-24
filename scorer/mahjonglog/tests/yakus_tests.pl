@@ -711,4 +711,36 @@ test(renhou_falla_por_tsumo) :-
     manoTanyaoDePrueba(Formas),
     \+ yaku(renhou, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [primeraRonda])).
 
+% ---- riichiAbierto (open riichi) y yakus de reglas de la casa ----
+
+test(riichiAbierto_aplica_con_flag_riichiAbierto) :-
+    manoTanyaoDePrueba(Formas),
+    once(yaku(riichiAbierto, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichiAbierto]))).
+
+test(riichiAbierto_falla_con_riichi_simple) :-
+    manoTanyaoDePrueba(Formas),
+    \+ yaku(riichiAbierto, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichi])).
+
+test(riichi_falla_con_riichiAbierto) :-
+    manoTanyaoDePrueba(Formas),
+    \+ yaku(riichi, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichiAbierto])),
+    \+ yaku(dobleRiichi, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichiAbierto])).
+
+test(ippatsu_aplica_con_riichiAbierto) :-
+    manoTanyaoDePrueba(Formas),
+    once(yaku(ippatsu, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichiAbierto, ippatsu]))).
+
+test(riichiAbiertoRon_aplica_por_ron_con_la_regla) :-
+    manoTanyaoDePrueba(Formas),
+    once(yakuDeRegla(riichiAbiertoRonYakuman, riichiAbiertoRon, victoria(Formas, p5, ron),
+        situacion(este, sur, [], [], [riichiAbierto]))).
+
+test(riichiAbiertoRon_falla_por_tsumo) :-
+    manoTanyaoDePrueba(Formas),
+    \+ yakuDeRegla(_, _, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichiAbierto])).
+
+test(riichiAbiertoRon_falla_sin_riichiAbierto) :-
+    manoTanyaoDePrueba(Formas),
+    \+ yakuDeRegla(_, _, victoria(Formas, p5, ron), situacion(este, sur, [], [], [riichi])).
+
 :- end_tests(yakus).

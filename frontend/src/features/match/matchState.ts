@@ -17,7 +17,9 @@
  * undo exact: dropping the last row restores the table from the row itself,
  * with no compensating event and no replay.
  */
-import type { Flag, Level, Payment, SituationWind, WinMode, YakuHan } from '../../scorer/types';
+import type {
+  Flag, Level, Payment, Rule, SituationWind, WinMode, YakuHan,
+} from '../../scorer/types';
 import type { Seat, MatchLength, PlayerCount, Round } from './seats';
 import {
   dealerOf, finalRound, isLastRound, isSuddenDeath, nextRound, seatsOf, windIndex,
@@ -54,6 +56,11 @@ export interface MatchConfig {
    * aka dora only ever arrive as tiles.
    */
   redFives: boolean;
+  /**
+   * House rules the hand scorer applies, as the engine's own rule atoms, passed
+   * to it as they are. In `ALL_RULES` order, so the rows compare exactly.
+   */
+  rules: readonly Rule[];
   length: MatchLength;
   startingPoints: number;
   /**

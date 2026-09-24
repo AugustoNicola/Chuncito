@@ -17,6 +17,7 @@ See `ARCHITECTURE.md` for why there is no event log.
 players(id, display_name, slug UNIQUE, avatar, created_at)
 
 matches(id, name, players ENUM(3,4), red_fives BOOL,
+        rules TEXT[],     -- house rules, as the scorer's own rule atoms (0002)
         length ENUM(east,south), starting_points, uma_json,
         return_score,     -- the sudden-death threshold this match was played to
         status ENUM(in_progress,finished,abandoned),

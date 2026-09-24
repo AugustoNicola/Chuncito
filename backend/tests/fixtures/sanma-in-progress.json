@@ -5,6 +5,7 @@
       "name": "",
       "players": 3,
       "redFives": false,
+      "rules": [],
       "length": "east",
       "startingPoints": 35000,
       "returnScore": 40000,

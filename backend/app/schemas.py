@@ -30,6 +30,8 @@ class MatchTable(Wire):
     name: str = Field(max_length=200)
     players: Literal[3, 4]
     red_fives: bool
+    # The scorer's rule atoms; see `Rule` in frontend/src/scorer/types.ts.
+    rules: list[Literal['riichiAbiertoRonYakuman']]
     length: Literal['east', 'south']
     starting_points: int
     return_score: int

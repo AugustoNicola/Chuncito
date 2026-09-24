@@ -549,6 +549,29 @@ per item.** Ticked here as they land, with what was decided.
       ippatsu. In the tracker a declared riichi is preselected, so the calls
       are off from the start. This reverses the old "ura before riichi,
       since the tile flap comes first": pick the riichi first now.
+- [x] **Open riichi** — upstream first, by a subagent in the Mahjonglog
+      working tree (**left uncommitted there**, next to the user's earlier
+      uncommitted work; 428 upstream tests pass), then re-vendored:
+      - Engine: a `riichiAbierto` flag and yaku (2 han, instead of riichi),
+        and **house rules as a sixth argument** — `resultadoDeVictoria/6`
+        takes a list of rule atoms; `/5` is `/6` with `[]`. The first rule,
+        `riichiAbiertoRonYakuman`, makes a ron on an open riichi the yakuman
+        `riichiAbiertoRon`. See `SCORER_CONTRACT.md`.
+      - Client: "Open" is a fourth riichi choice in the hand scorer, and
+        counts as a riichi everywhere (ippatsu, ura, calls, the typed-value
+        rules, nukidora's ura). `MatchConfig.rules` is the rule list, stored
+        as `matches.rules` (**migration `0002`**), chosen at setup ("Ron on
+        an open riichi: Normal (2 han) / Yakuman", normal by default), and
+        passed by the win menu with every hand scored in the match — except
+        that the yakuman rule is withheld when the discarder was in riichi
+        themselves (they could not choose what to throw; the usual form of
+        the rule — **an assumption, not confirmed with the user**). The plain
+        calculator shows the same toggle once it applies.
+      - **`main` needs `make db-migrate TARGET=main` (backup first) before
+        the next push**, or the release phase refuses the deploy. `dev` is
+        migrated.
+      - The tracker's riichi button does not record *which* riichi; the kind
+        is picked in the hand scorer. Stats count an open riichi as a riichi.
 
 ## Picking this up cold
 

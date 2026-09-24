@@ -52,7 +52,7 @@ frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
 backend/app/                 FastAPI: settings (dev/main target), db, models (the
                              tables), schemas (the wire format = MatchRows), store
                              (save/load a whole match), auth (the PIN), main (routes)
-backend/migrations/          Alembic; 0001 is the whole schema
+backend/migrations/          Alembic; 0001 is the schema, 0002 adds matches.rules
 backend/tests/               pytest on real Postgres; fixtures/ written by wire.test.ts
 backend/scripts/             db_backup, check_migrations (the release phase)
 docs/                        contract, gaps, architecture, data model, deploy, roadmap

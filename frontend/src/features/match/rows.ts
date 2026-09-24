@@ -16,7 +16,7 @@
  *   the last hand's own row and outcome. Storing them would be a second source
  *   of truth that could disagree with the hands.
  */
-import type { Flag, Level, SituationWind, YakuHan } from '../../scorer/types';
+import type { Flag, Level, Rule, SituationWind, YakuHan } from '../../scorer/types';
 import {
   type AbortiveReason, type Adjustment, type EndReason, type HandRow, type MatchConfig,
   type MatchState, type Outcome, type SeatPlayer, type WinRow, maxLevel,
@@ -35,6 +35,7 @@ export interface MatchTableRow {
    */
   players: PlayerCount;
   redFives: boolean;
+  rules: Rule[];
   length: MatchLength;
   startingPoints: number;
   returnScore: number;
@@ -117,6 +118,7 @@ export function toRows(state: MatchState): MatchRows {
       name: state.name,
       players: state.config.players,
       redFives: state.config.redFives,
+      rules: [...state.config.rules],
       length: state.config.length,
       startingPoints: state.config.startingPoints,
       returnScore: state.config.returnScore,
@@ -239,6 +241,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
   const config: MatchConfig = {
     players: rows.match.players,
     redFives: rows.match.redFives,
+    rules: rows.match.rules,
     length: rows.match.length,
     startingPoints: rows.match.startingPoints,
     returnScore: rows.match.returnScore,

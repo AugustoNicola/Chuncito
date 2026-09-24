@@ -41,12 +41,27 @@ export const WIND_TILE_TO_SITUATION: Readonly<Record<'e' | 's' | 'w' | 'n', Situ
 export type WinMode = 'ron' | 'tsumo';
 
 export type Flag =
-  | 'riichi' | 'dobleRiichi' | 'ippatsu' | 'houtei'
+  | 'riichi' | 'dobleRiichi' | 'riichiAbierto' | 'ippatsu' | 'houtei'
   | 'haitei' | 'rinshan' | 'chankan' | 'primeraRonda';
 
 export const ALL_FLAGS: readonly Flag[] = [
-  'riichi', 'dobleRiichi', 'ippatsu', 'houtei', 'haitei', 'rinshan', 'chankan', 'primeraRonda',
+  'riichi', 'dobleRiichi', 'riichiAbierto', 'ippatsu', 'houtei', 'haitei', 'rinshan', 'chankan',
+  'primeraRonda',
 ];
+
+/** The three kinds of riichi; any one of them allows ippatsu and ura dora. */
+export const RIICHI_FLAGS: readonly Flag[] = ['riichi', 'dobleRiichi', 'riichiAbierto'];
+
+/**
+ * House rules the engine applies (`reglaSoportada/1` upstream). Unlike a flag,
+ * a rule describes the match rather than the hand. An unknown one makes the
+ * engine *fail*, so they are validated like everything else.
+ *
+ * - `riichiAbiertoRonYakuman`: a ron on an open riichi is a yakuman
+ *   (`riichiAbiertoRon`, 13 han) instead of the 2-han `riichiAbierto`.
+ */
+export type Rule = 'riichiAbiertoRonYakuman';
+export const ALL_RULES: readonly Rule[] = ['riichiAbiertoRonYakuman'];
 
 export interface Hand {
   /** Concealed tiles including the winning tile, any order. */
@@ -71,6 +86,8 @@ export interface ScoreQuery {
   winningTile: Tile;
   mode: WinMode;
   situation: Situation;
+  /** House rules in force; none if omitted. */
+  rules?: Rule[];
 }
 
 export type Payment =

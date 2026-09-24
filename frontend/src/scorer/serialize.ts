@@ -25,10 +25,14 @@ export function serializeSituation(s: Situation): string {
     `${list(sortTiles(s.uraDora))},${list(s.flags)})`;
 }
 
-/** The bare `resultadoDeVictoria/5` goal, with `R` as the output variable. */
+/**
+ * The bare `resultadoDeVictoria/6` goal, with `R` as the output variable. The
+ * rules are always passed, as `[]` when there are none -- `/5` is the same
+ * thing upstream, so there is one shape of query rather than two.
+ */
 export function serializeQuery(q: ScoreQuery, outVar = 'R'): string {
   return `resultadoDeVictoria(${serializeHand(q.hand)},${q.winningTile},` +
-    `${q.mode},${serializeSituation(q.situation)},${outVar})`;
+    `${q.mode},${serializeSituation(q.situation)},[${(q.rules ?? []).join(',')}],${outVar})`;
 }
 
 /**

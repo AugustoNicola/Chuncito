@@ -45,6 +45,9 @@ yakuman(suuKantsu).
 yakuman(tenhou).
 yakuman(chiihou).
 yakuman(renhou).
+% solo existe bajo la regla riichiAbiertoRonYakuman (ver yakuDeRegla/4 en
+% yakus.pl): el riichi abierto ganado por ron.
+yakuman(riichiAbiertoRon).
 
 %! anula(?YakuSuperior, ?YakuInferior) is nondet.
 %* Relaciona un yaku con otro que queda anulado cuando el superior también
@@ -59,11 +62,22 @@ anula(junchan, chanta).     % terminal en cada forma también satisface "termina
 anula(Yakuman, Yaku) :- yakuman(Yakuman), \+ yakuman(Yaku), Yaku \== Yakuman.
 
 %! yakusAplicables(+Victoria, +Situacion, -YakusFinales) is det.
-%* Relaciona una Victoria y una Situacion con la lista de yakus que
-%* efectivamente cuentan para la puntuación: los que aplican
-%* estructuralmente (yaku/3, ver yakus.pl) menos los que quedan anulados
-%* por otro yaku más valioso que también aplica (ver anula/2).
+%* yakusAplicables/4 sin reglas de la casa.
 yakusAplicables(Victoria, Situacion, YakusFinales) :-
-    findall(Yaku, yaku(Yaku, Victoria, Situacion), Todos),
+    yakusAplicables(Victoria, Situacion, [], YakusFinales).
+
+%! yakusAplicables(+Victoria, +Situacion, +Reglas, -YakusFinales) is det.
+%* Relaciona una Victoria y una Situacion, bajo las reglas de la casa
+%* Reglas (ver reglas.pl), con la lista de yakus que efectivamente cuentan
+%* para la puntuación: los que aplican estructuralmente (yaku/3, ver
+%* yakus.pl) más los que agrega alguna de las Reglas (yakuDeRegla/4, ídem),
+%* menos los que quedan anulados por otro yaku más valioso que también
+%* aplica (ver anula/2).
+yakusAplicables(Victoria, Situacion, Reglas, YakusFinales) :-
+    findall(Yaku,
+        ( yaku(Yaku, Victoria, Situacion)
+        ; member(Regla, Reglas), yakuDeRegla(Regla, Yaku, Victoria, Situacion)
+        ),
+        Todos),
     list_to_set(Todos, TodosUnicos),
     exclude([Yaku]>>(member(Superior, TodosUnicos), anula(Superior, Yaku)), TodosUnicos, YakusFinales).

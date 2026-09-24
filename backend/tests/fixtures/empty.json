@@ -5,6 +5,9 @@
       "name": "",
       "players": 4,
       "redFives": true,
+      "rules": [
+        "riichiAbiertoRonYakuman"
+      ],
       "length": "south",
       "startingPoints": 25000,
       "returnScore": 30000,

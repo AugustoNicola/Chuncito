@@ -17,11 +17,13 @@
 %* que se puntúa aparte) con su valor en han según la mano esté cerrada o
 %* abierta ("kuisagari": varios yakus valen 1 han menos abiertos). Los
 %* yakus que solo pueden darse en mano cerrada (riichi, dobleRiichi,
-%* ippatsu, menzenTsumo, pinfu, iipeikou, ryanpeikou, chiitoitsu) ya están
-%* estructuralmente restringidos a mano cerrada en yaku/3 o en
-%* manoGanadora/2, así que HanAbierta nunca se consulta para ellos.
+%* riichiAbierto, ippatsu, menzenTsumo, pinfu, iipeikou, ryanpeikou,
+%* chiitoitsu) ya están estructuralmente restringidos a mano cerrada en
+%* yaku/3 o en manoGanadora/2, así que HanAbierta nunca se consulta para
+%* ellos.
 hanYaku(riichi, 1, 1).
 hanYaku(dobleRiichi, 2, 2).
+hanYaku(riichiAbierto, 2, 2). % bajo la regla riichiAbiertoRonYakuman, por ron es yakuman (riichiAbiertoRon)
 hanYaku(ippatsu, 1, 1).
 hanYaku(menzenTsumo, 1, 1).
 hanYaku(pinfu, 1, 1).

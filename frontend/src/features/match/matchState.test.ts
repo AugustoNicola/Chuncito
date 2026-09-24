@@ -14,6 +14,7 @@ import type { Seat } from './seats';
 const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   players: 4,
   redFives: true,
+  rules: [],
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,

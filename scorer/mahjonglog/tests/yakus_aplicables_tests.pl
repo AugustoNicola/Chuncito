@@ -147,4 +147,41 @@ test(yakusAplicables_no_repite_un_yaku_con_varias_soluciones) :-
     yakusAplicables(victoria(Formas, p5, tsumo), Sit, Yakus),
     list_to_set(Yakus, Yakus).
 
+% ---- reglas de la casa: riichiAbiertoRonYakuman ----
+
+test(yakus_aplicables_3_equivale_a_4_sin_reglas) :-
+    manoDaisuushiiDePrueba(Formas),
+    Sit = situacion(este, sur, [], [], [riichiAbierto]),
+    yakusAplicables(victoria(Formas, p5, ron), Sit, Yakus3),
+    yakusAplicables(victoria(Formas, p5, ron), Sit, [], Yakus4),
+    Yakus3 == Yakus4.
+
+test(riichiAbierto_sin_regla_es_yaku_normal) :-
+    manoRyanpeikouDePrueba(Formas),
+    yakusAplicables(victoria(Formas, p5, ron), situacion(este, sur, [], [], [riichiAbierto]), Yakus),
+    memberchk(riichiAbierto, Yakus),
+    memberchk(ryanpeikou, Yakus),
+    \+ memberchk(riichiAbiertoRon, Yakus).
+
+% el yakuman anula a riichiAbierto y a cualquier otro yaku no-yakuman:
+test(riichiAbierto_ron_con_regla_es_solo_yakuman) :-
+    manoRyanpeikouDePrueba(Formas),
+    yakusAplicables(victoria(Formas, p5, ron), situacion(este, sur, [], [], [riichiAbierto, ippatsu]),
+        [riichiAbiertoRonYakuman], Yakus),
+    Yakus == [riichiAbiertoRon].
+
+test(riichiAbierto_tsumo_con_regla_no_es_yakuman) :-
+    manoRyanpeikouDePrueba(Formas),
+    yakusAplicables(victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichiAbierto]),
+        [riichiAbiertoRonYakuman], Yakus),
+    memberchk(riichiAbierto, Yakus),
+    \+ memberchk(riichiAbiertoRon, Yakus).
+
+test(riichiAbiertoRon_se_suma_a_otro_yakuman) :-
+    manoDaisuushiiDePrueba(Formas),
+    yakusAplicables(victoria(Formas, p5, ron), situacion(este, sur, [], [], [riichiAbierto]),
+        [riichiAbiertoRonYakuman], Yakus),
+    memberchk(daisuushii, Yakus),
+    memberchk(riichiAbiertoRon, Yakus).
+
 :- end_tests(yakus_aplicables).

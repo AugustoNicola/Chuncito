@@ -85,6 +85,18 @@ store the indicator, for the same reason.
 In sanma the manzu cycle is 1m→9m→1m, since 2m–8m are not in the set; that is
 `doraFromIndicator(tile, sanma)`.
 
+### Open riichi and house rules — DONE upstream 2026-09-24
+Added in the Mahjonglog working tree (uncommitted there, alongside earlier
+uncommitted work): the `riichiAbierto` flag and yaku, `resultadoDeVictoria/6`
+with a rule list (`reglas.pl`), and the first rule, `riichiAbiertoRonYakuman`.
+See `SCORER_CONTRACT.md`. Noticed while doing it, not changed:
+
+- A yaku missing from `ordenYaku/2` silently vanishes from the output, since
+  the sort filters through it. Any new yaku needs an entry there.
+- Upstream added a source file (`reglas.pl`), and the client's bundle lists
+  files by hand, so every query failed until it was added.
+  `prologSource.test.ts` now compares the bundle with the directory.
+
 ## Known behaviour worth knowing (not bugs)
 
 | Behaviour | Note |

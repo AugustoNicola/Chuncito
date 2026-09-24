@@ -7,6 +7,10 @@
  *
  * Order matters only in that `mahjong.pl` is consulted last; the others are
  * written to the virtual filesystem first so its `ensure_loaded` chain resolves.
+ *
+ * A file upstream adds must be added here too, or the predicates in it are
+ * unknown at query time -- which the engine reports as a plain failure. The
+ * test in `prologSource.test.ts` compares this list with the directory.
  */
 import fichas from '../../../scorer/mahjonglog/src/fichas.pl?raw';
 import juegos from '../../../scorer/mahjonglog/src/juegos.pl?raw';
@@ -18,6 +22,7 @@ import situacion from '../../../scorer/mahjonglog/src/situacion.pl?raw';
 import yakus from '../../../scorer/mahjonglog/src/yakus.pl?raw';
 import yakusAplicables from '../../../scorer/mahjonglog/src/yakus_aplicables.pl?raw';
 import puntuacion from '../../../scorer/mahjonglog/src/puntuacion.pl?raw';
+import reglas from '../../../scorer/mahjonglog/src/reglas.pl?raw';
 import resultado from '../../../scorer/mahjonglog/src/resultado.pl?raw';
 import mahjong from '../../../scorer/mahjonglog/src/mahjong.pl?raw';
 
@@ -33,6 +38,7 @@ export const PROLOG_SOURCES: Readonly<Record<string, string>> = {
   'yakus.pl': yakus,
   'yakus_aplicables.pl': yakusAplicables,
   'puntuacion.pl': puntuacion,
+  'reglas.pl': reglas,
   'resultado.pl': resultado,
   'mahjong.pl': mahjong,
 };

@@ -11,6 +11,7 @@
 :- ensure_loaded(forma_mano_ganadora_tests).
 :- ensure_loaded(victoria_tests).
 :- ensure_loaded(situacion_tests).
+:- ensure_loaded(reglas_tests).
 :- ensure_loaded(yakus_tests).
 :- ensure_loaded(yakus_aplicables_tests).
 :- ensure_loaded(puntuacion_tests).

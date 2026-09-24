@@ -292,11 +292,47 @@ try {
   check(hanLabels.every((t) => /^\d+ han$/.test(t)),
         `each yaku line is labelled in han (got ${JSON.stringify(hanLabels)})`);
 
-  // --- melds render as they sit on a real table ---
-  await page.evaluate(() => {
+  // --- open riichi: 2 han, or a yakuman on a ron under the house rule ---
+  const backToHand = () => page.evaluate(() => {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Back to the hand').click();
   });
-  await page.waitForSelector('.keyboard');
+  const setRiichi = async (label) => {
+    await page.click('.flaps__tab:nth-child(2)');
+    await page.waitForSelector('.context');
+    await page.evaluate((l) => [...document.querySelector('[aria-label="Riichi"]').querySelectorAll('button')]
+      .find((b) => b.textContent === l).click(), label);
+  };
+  const scoreIt = async () => {
+    await page.evaluate(() => [...document.querySelectorAll('button')]
+      .find((x) => x.textContent === 'Score hand').click());
+    await page.waitForSelector('.score');
+    return page.$$eval('.score__yaku span:first-child', (els) => els.map((e) => e.textContent));
+  };
+  await backToHand();
+  await page.waitForSelector('.flaps__tab');
+  await setRiichi('Open');
+  const ruleToggle = await page.$('[aria-label="Ron on an open riichi"]');
+  check(ruleToggle !== null, 'the calculator offers the open riichi ron rule once it applies');
+  const openYakus = await scoreIt();
+  const openPoints = await page.$eval('.score__points', (e) => e.textContent);
+  check(openYakus[0] === 'Open Riichi' && openPoints === '12,000',
+        `open riichi is 2 han: a haneman here (got ${JSON.stringify(openYakus)}, ${openPoints})`);
+  await backToHand();
+  await page.waitForSelector('.flaps__tab');
+  await page.click('.flaps__tab:nth-child(2)');
+  await page.evaluate(() => [...document.querySelector('[aria-label="Ron on an open riichi"]')
+    .querySelectorAll('button')].find((b) => b.textContent === 'Yakuman').click());
+  const ronYakus = await scoreIt();
+  const ronLevel = await page.$eval('.score__title', (e) => e.textContent);
+  check(JSON.stringify(ronYakus) === JSON.stringify(['Open Riichi Ron']) && ronLevel === 'Yakuman',
+        `under the rule the ron is a yakuman (got ${JSON.stringify(ronYakus)}, ${ronLevel})`);
+  await shot('03-open-riichi.png');
+  await backToHand();
+  await page.waitForSelector('.flaps__tab');
+  await setRiichi('None');
+  await page.click('.flaps__tab:nth-child(1)');
+
+  // --- melds render as they sit on a real table ---
   await page.evaluate(() => {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
   });
@@ -409,6 +445,10 @@ try {
   const seatMarks = await page.$$eval('.setup__seatno', (els) => els.map((e) => e.textContent));
   check(JSON.stringify(seatMarks) === JSON.stringify(['東', '南', '西', '北']),
         `seats are marked with winds (got ${JSON.stringify(seatMarks)})`);
+  const openRule = await page.$$eval('[aria-label="Ron on an open riichi"] button',
+    (els) => els.map((e) => [e.textContent, e.getAttribute('aria-pressed')]));
+  check(JSON.stringify(openRule) === JSON.stringify([['Normal (2 han)', 'true'], ['Yakuman', 'false']]),
+        `the open riichi ron rule is a setup choice, normal by default (got ${JSON.stringify(openRule)})`);
   await shot('10-setup.png');
 
   await byText('Start match');

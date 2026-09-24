@@ -72,21 +72,25 @@ export const saveMatch = (state: MatchState): Promise<unknown> =>
 /**
  * Brings a mirror written by an older version up to date.
  *
- * Mirrors written before sanma existed have no player count, and ones written
- * before red fives were optional have no setting for them; they were all
- * four-player matches with red fives. Ones written before the server existed
+ * Mirrors written before sanma existed have no player count, ones written
+ * before red fives were optional have no setting for them, and ones written
+ * before house rules have no rules; they were all four-player matches with red
+ * fives and no house rules. Ones written before the server existed
  * have no id. Filled in on the way out so nothing downstream has to guess --
  * and the caller writes an upgraded mirror back, because an id made up afresh
  * on every load would upload the same match under a new name each time.
  */
 function upgrade(state: MatchState): { state: MatchState; changed: boolean } {
-  const { players = 4, redFives = true } = state.config as Partial<MatchState['config']>;
+  const { players = 4, redFives = true, rules = [] } = state.config as Partial<MatchState['config']>;
   const id = (state as Partial<MatchState>).id ?? uuid();
   if (state.config.players === players && state.config.redFives === redFives
-      && state.id === id) {
+      && state.config.rules === rules && state.id === id) {
     return { state, changed: false };
   }
-  return { state: { ...state, id, config: { ...state.config, players, redFives } }, changed: true };
+  return {
+    state: { ...state, id, config: { ...state.config, players, redFives, rules } },
+    changed: true,
+  };
 }
 
 export const loadMatch = async (): Promise<MatchState | null> => {

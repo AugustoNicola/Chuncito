@@ -22,7 +22,7 @@
  * be gained by enforcing it here.
  */
 import { useState } from 'react';
-import type { ScoreResult, WinMode } from '../../scorer/types';
+import type { Rule, ScoreResult, WinMode } from '../../scorer/types';
 import { HandBuilder } from '../hand/HandBuilder';
 import { encodeHandTiles } from '../hand/handTiles';
 import { isHandOpen, toFlags, type HandState } from '../hand/handState';
@@ -116,6 +116,14 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   /** Room for another winner: everyone but the discarder can ron one discard. */
   const roomForMore = mode === 'ron' && staged.length + 1 < maxWinners;
 
+  /**
+   * The match's house rules, as they apply to this hand. A ron on an open
+   * riichi is a yakuman only when the discarder was not in riichi too: a
+   * player in riichi has no choice about what to throw.
+   */
+  const rulesForHand: Rule[] = state.config.rules.filter((rule) => rule !== 'riichiAbiertoRonYakuman'
+    || (mode === 'ron' && dealIn !== null && !state.pendingRiichi.includes(dealIn)));
+
   if (route === 'tiles' && current !== null) {
     const scored = (result: ScoreResult, hand: HandState): WinEntry => ({
       winner: current,
@@ -148,6 +156,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         redFives={state.config.redFives}
         winMode={mode}
         riichiDeclared={state.pendingRiichi.includes(current)}
+        rules={rulesForHand}
         onCancel={() => setRoute('menu')}
         onConfirm={(result, hand) => record(scored(result, hand))}
         onAddAnother={roomForMore ? (result, hand) => stage(scored(result, hand)) : undefined}

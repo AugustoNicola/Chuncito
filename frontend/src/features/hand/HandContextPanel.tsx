@@ -60,9 +60,13 @@ function Check({ label, checked, disabled, hint, onChange }: {
   );
 }
 
+const RIICHI_LABEL: Readonly<Record<RiichiChoice, string>> = {
+  none: 'None', riichi: 'Riichi', dobleRiichi: 'Double', riichiAbierto: 'Open',
+};
+
 export function HandContextPanel({
   state, update, showWinds = true, showWinMode = true, riichiDeclared, showPlayers = false, onSanma,
-  showRedFives = false, onRedFives,
+  showRedFives = false, onRedFives, showRules = false,
 }: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
@@ -88,6 +92,8 @@ export function HandContextPanel({
   /** Likewise only in the plain calculator. */
   showRedFives?: boolean;
   onRedFives?: (on: boolean) => void;
+  /** The house rules, as toggles; only in the plain calculator. */
+  showRules?: boolean;
 }) {
   const riichiIssue = contextIssue(state, 'riichi');
   const issue = (k: Parameters<typeof contextIssue>[1]) => contextIssue(state, k);
@@ -132,7 +138,7 @@ export function HandContextPanel({
       <div className="field">
         <span className="field__label">Riichi</span>
         <div className="segmented" role="group" aria-label="Riichi">
-          {(['none', 'riichi', 'dobleRiichi'] as RiichiChoice[]).map((opt) => {
+          {(['none', 'riichi', 'dobleRiichi', 'riichiAbierto'] as RiichiChoice[]).map((opt) => {
             // A riichi is impossible on an open hand; the engine does not
             // enforce that, so the UI must.
             let blocked = opt !== 'none' && riichiIssue !== null;
@@ -154,12 +160,22 @@ export function HandContextPanel({
                       disabled={blocked}
                       title={why ?? undefined}
                       onClick={() => update({ riichi: opt, ...(opt === 'none' ? { ippatsu: false } : {}) })}>
-                {opt === 'none' ? 'None' : opt === 'riichi' ? 'Riichi' : 'Double'}
+                {RIICHI_LABEL[opt]}
               </button>
             );
           })}
         </div>
       </div>
+
+      {/* Only where it matters: the rule changes nothing but a ron on an
+          open riichi. The tracker sets it from the match instead. */}
+      {showRules && state.riichi === 'riichiAbierto' && state.winMode === 'ron' && (
+        <Segmented label="Ron on an open riichi"
+                   value={state.rules.includes('riichiAbiertoRonYakuman') ? 'yakuman' : 'normal'}
+                   options={['normal', 'yakuman'] as const}
+                   onChange={(v) => update({ rules: v === 'yakuman' ? ['riichiAbiertoRonYakuman'] : [] })}
+                   render={(v) => (v === 'normal' ? 'Normal (2 han)' : 'Yakuman')} />
+      )}
 
       <div className="field">
         <span className="field__label">Circumstances</span>

@@ -8,7 +8,7 @@ Implementation: `frontend/src/scorer/`. Vendored engine: `scorer/mahjonglog/`.
 
 ## The one rule that bites
 
-`resultadoDeVictoria/5` is **semidet**. For a non-winning hand, a yaku-less win,
+`resultadoDeVictoria/6` (and `/5`, which is `/6` with no rules) is **semidet**. For a non-winning hand, a yaku-less win,
 *or a malformed input*, it simply **fails** — no exception, no message. All three
 look identical from JavaScript.
 
@@ -90,14 +90,40 @@ situacion(VientoRonda, VientoJugador, Doras, UraDoras, Flags)
 - **Aka dora is not listed** — it is derived from `redfive/1` tiles in the hand.
 - `ModoVictoria` is `ron` | `tsumo`.
 
-### Flags (exactly 8)
+### Flags (exactly 9)
 
-`riichi` `dobleRiichi` `ippatsu` `houtei` `haitei` `rinshan` `chankan` `primeraRonda`
+`riichi` `dobleRiichi` `riichiAbierto` `ippatsu` `houtei` `haitei` `rinshan`
+`chankan` `primeraRonda`
 
-Incompatible pairs: riichi↔dobleRiichi, houtei↔haitei, houtei↔rinshan,
-chankan↔rinshan, haitei↔rinshan, chankan↔haitei, primeraRonda↔{riichi,
-dobleRiichi, ippatsu}. Also: `ippatsu` requires a riichi; non-empty `UraDoras`
-requires a riichi.
+`riichiAbierto` is open riichi (2 han, instead of riichi's 1). It is one of
+the three riichi kinds (`RIICHI_FLAGS`): a "requires a riichi" below means any
+of them.
+
+Incompatible pairs: riichi↔dobleRiichi, riichiAbierto↔{riichi, dobleRiichi},
+houtei↔haitei, houtei↔rinshan, chankan↔rinshan, haitei↔rinshan, chankan↔haitei,
+primeraRonda↔{riichi, dobleRiichi, riichiAbierto, ippatsu}. Also: `ippatsu`
+requires a riichi; non-empty `UraDoras` requires a riichi. The engine checks
+none of this at query time (`situacionValida/1` exists but the entry point
+does not call it), so `validate.ts` does.
+
+### Rules (the sixth argument)
+
+```prolog
+resultadoDeVictoria(Mano, FichaGanadora, ModoVictoria, Situacion, Reglas, Resultado)
+```
+
+`Reglas` is a list of house-rule atoms (`reglaSoportada/1`, `reglas.pl`). The
+client always sends the list, `[]` when empty. **An unknown rule makes the
+query fail** — like everything else, indistinguishable from "no yaku" — so
+`validate.ts` checks them against `ALL_RULES`. A rule that does not apply to
+the hand changes nothing.
+
+| Rule | Effect |
+|---|---|
+| `riichiAbiertoRonYakuman` | With `riichiAbierto` on a **ron**, the yaku is `riichiAbiertoRon` (13 han, a yakuman: drops the other yaku and dora, fu 0) instead of the 2-han `riichiAbierto`. A tsumo is unaffected. The engine does not know who dealt in: the tracker sends the rule only when the discarder was not in riichi themselves. |
+
+A match stores its rules (`matches.rules`), and the tracker passes them to
+every hand scored in it; the plain calculator offers them as toggles.
 
 `tenhou`/`chiihou`/`renhou` are **not** flags — they are derived from
 `primeraRonda` + mode + seat wind.
@@ -108,8 +134,10 @@ requires a riichi.
 resultado(Yakus, Han, Fu, Nivel, Pago)
 ```
 
-- `Yakus` — `yakuHan(Name, Han)`, pre-sorted in client display order. 47 possible
-  names: 30 regular yaku, 13 yakuman (always 13 han each), and 3 pseudo-yaku
+- `Yakus` — `yakuHan(Name, Han)`, pre-sorted in client display order. 49 possible
+  names: 31 regular yaku (with `riichiAbierto`, sorted right after
+  `dobleRiichi`), 14 yakuman (always 13 han each; `riichiAbiertoRon` sorts
+  last), and 3 pseudo-yaku
   (`dora`, `akaDora`, `uraDora`) appended **last**, whose han is a count. Render
   the pseudo-yaku visually apart from real yaku.
 - `Fu` is `0` whenever a yakuman applies; `25` for chiitoitsu; `20` pinfu tsumo.

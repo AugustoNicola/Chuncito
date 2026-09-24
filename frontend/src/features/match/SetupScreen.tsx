@@ -50,6 +50,8 @@ export function SetupScreen({ onStart, onCancel }: {
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const [length, setLength] = useState<MatchLength>('south');
   const [redFives, setRedFives] = useState(true);
+  /** Off by default: an open riichi ron is worth its 2 han like any other. */
+  const [openRiichiYakuman, setOpenRiichiYakuman] = useState(false);
   const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
   const [returnScore, setReturnScore] = useState(DEFAULTS[4].returnScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
@@ -123,6 +125,7 @@ export function SetupScreen({ onStart, onCancel }: {
     onStart({
       players,
       redFives,
+      rules: openRiichiYakuman ? ['riichiAbiertoRonYakuman'] : [],
       length,
       startingPoints,
       returnScore,
@@ -256,6 +259,25 @@ export function SetupScreen({ onStart, onCancel }: {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="field">
+          <span className="field__label">Ron on an open riichi</span>
+          <div className="segmented" role="group" aria-label="Ron on an open riichi">
+            {[false, true].map((opt) => (
+              <button key={String(opt)} type="button"
+                      className={`segmented__btn${openRiichiYakuman === opt ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={openRiichiYakuman === opt}
+                      onClick={() => setOpenRiichiYakuman(opt)}>
+                {opt ? 'Yakuman' : 'Normal (2 han)'}
+              </button>
+            ))}
+          </div>
+          {openRiichiYakuman && (
+            <span className="field__hint">
+              Dealing into an open riichi is a yakuman, unless the discarder was in riichi too.
+            </span>
+          )}
         </div>
 
         <div className="field">

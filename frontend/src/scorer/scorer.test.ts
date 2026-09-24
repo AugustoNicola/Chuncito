@@ -4,7 +4,7 @@ import { nodeSwiplFactory } from './engine.node';
 import { serializeQuery, serializeHand, serializeMeld } from './serialize';
 import { sortTiles, tilesInOrder } from './order';
 import { validateQuery } from './validate';
-import type { ScoreQuery, Tile } from './types';
+import type { Flag, ScoreQuery, Tile } from './types';
 
 let scorer: Scorer;
 beforeAll(async () => { scorer = await createScorer(nodeSwiplFactory); }, 60_000);
@@ -222,6 +222,44 @@ describe('validation catches what the engine ignores', () => {
   });
 });
 
+describe('open riichi', () => {
+  const REF = { concealed: T('m2 m2 m3 m4 m5 m6 m7 m8 p3 p4 p5 s3 s4 s5'), melds: [] };
+  const open = (mode: 'ron' | 'tsumo', rules?: ScoreQuery['rules']) => scorer.score(q({
+    hand: REF, winningTile: 'm5', mode, rules,
+    situation: { roundWind: 'este', seatWind: 'sur', dora: [], uraDora: [], flags: ['riichiAbierto'] },
+  }));
+
+  it('is two han in place of riichi', () => {
+    const r = open('ron');
+    expect(r.ok && r.result.yakus[0]).toEqual({ yaku: 'riichiAbierto', han: 2 });
+    expect(r.ok && r.result.han).toBe(6);
+  });
+
+  it('is a yakuman on a ron under the house rule, and only on a ron', () => {
+    const ron = open('ron', ['riichiAbiertoRonYakuman']);
+    expect(ron.ok && ron.result.yakus).toEqual([{ yaku: 'riichiAbiertoRon', han: 13 }]);
+    expect(ron.ok && ron.result.level).toBe('yakuman');
+    const tsumo = open('tsumo', ['riichiAbiertoRonYakuman']);
+    expect(tsumo.ok && tsumo.result.yakus.some((y) => y.yaku === 'riichiAbierto')).toBe(true);
+  });
+
+  it('counts as a riichi for ura dora, and never goes with another riichi', () => {
+    const check = (flags: Flag[], uraDora: Tile[] = []) => validateQuery(q({
+      hand: REF, winningTile: 'm5',
+      situation: { roundWind: 'este', seatWind: 'sur', dora: [], uraDora, flags },
+    })).map((i) => i.code);
+    expect(check(['riichiAbierto', 'ippatsu'], T('p4'))).toEqual([]);
+    expect(check(['riichiAbierto', 'riichi'])).toContain('flag.incompatible');
+  });
+
+  it('refuses a rule the engine does not know, rather than letting it fail', () => {
+    const issues = validateQuery(q({
+      hand: REF, winningTile: 'm5', rules: ['noSuchRule' as never],
+    }));
+    expect(issues.map((i) => i.code)).toContain('rule.unknown');
+  });
+});
+
 describe('serialization', () => {
   it('emits a goal the engine accepts verbatim', () => {
     const goal = serializeQuery(q({
@@ -233,8 +271,16 @@ describe('serialization', () => {
     }));
     expect(goal).toBe(
       'resultadoDeVictoria(mano([m2,m2,m3,m4,m5,p3,p4,p5],[chii(s6,s7,s8)]),' +
-      'm5,ron,situacion(este,sur,[],[],[]),R)',
+      'm5,ron,situacion(este,sur,[],[],[]),[],R)',
     );
+  });
+
+  it('passes the house rules as a list', () => {
+    const goal = serializeQuery(q({
+      hand: { concealed: T('m2 m2 m3 m4 m5 m6 m7 m8 p3 p4 p5 s3 s4 s5'), melds: [] },
+      winningTile: 'm5', rules: ['riichiAbiertoRonYakuman'],
+    }));
+    expect(goal).toMatch(/,\[riichiAbiertoRonYakuman\],R\)$/);
   });
 
   it('sorts concealed tiles so goals are stable', () => {

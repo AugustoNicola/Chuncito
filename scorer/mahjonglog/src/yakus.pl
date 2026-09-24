@@ -294,6 +294,25 @@ yaku(riichi, _, situacion(_, _, _, _, Flags)) :-
 yaku(dobleRiichi, _, situacion(_, _, _, _, Flags)) :- 
     member(dobleRiichi, Flags).
 
+%* ===================== Open Riichi (Riichi Abierto) =====================
+%* Riichi declarado mostrando la mano: reemplaza al riichi común (los flags
+%* riichi, dobleRiichi y riichiAbierto son excluyentes, ver situacion.pl),
+%* así que nunca se cuenta junto con riichi ni con dobleRiichi.
+yaku(riichiAbierto, _, situacion(_, _, _, _, Flags)) :-
+    member(riichiAbierto, Flags).
+
+%! yakuDeRegla(?Regla, ?Yaku, +Victoria, +Situacion) is nondet.
+%* Como yaku/3, pero para los yakus que solo existen bajo alguna regla de
+%* la casa (ver reglas.pl): relaciona Yaku con una Victoria y una Situacion
+%* solo si Regla está entre las Reglas de la partida (eso lo decide
+%* yakusAplicables/4, en yakus_aplicables.pl).
+%* riichiAbiertoRon: con la regla riichiAbiertoRonYakuman, el riichi
+%* abierto ganado por ron es yakuman (ver yakuman/1). No hace falta
+%* quitar riichiAbierto: como todo yakuman, anula a los yakus que no lo son
+%* (ver anula/2).
+yakuDeRegla(riichiAbiertoRonYakuman, riichiAbiertoRon, victoria(_, _, ron), situacion(_, _, _, _, Flags)) :-
+    member(riichiAbierto, Flags).
+
 %* ===================== Ippatsu (One-shot) =====================
 yaku(ippatsu, _, situacion(_, _, _, _, Flags)) :- 
     member(ippatsu, Flags).

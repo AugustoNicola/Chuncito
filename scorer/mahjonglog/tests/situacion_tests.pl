@@ -61,4 +61,24 @@ test(situacion_invalida_firstTurnWin_y_doble_riichi) :-
 test(situacion_invalida_firstTurnWin_y_ippatsu) :-
     \+ situacionValida(situacion(este, sur, [], [], [primeraRonda, ippatsu])).
 
+% ---- riichiAbierto (open riichi): una tercera variante de riichi ----
+
+test(situacion_valida_con_riichi_abierto) :-
+    situacionValida(situacion(este, sur, [], [], [riichiAbierto])).
+test(situacion_valida_ippatsu_con_riichi_abierto) :-
+    situacionValida(situacion(este, sur, [], [], [riichiAbierto, ippatsu])).
+test(situacion_valida_ura_dora_con_riichi_abierto) :-
+    situacionValida(situacion(este, sur, [], [p5], [riichiAbierto])).
+test(situacion_invalida_riichi_y_riichi_abierto) :-
+    \+ situacionValida(situacion(este, sur, [], [], [riichi, riichiAbierto])).
+test(situacion_invalida_doble_riichi_y_riichi_abierto) :-
+    \+ situacionValida(situacion(este, sur, [], [], [riichiAbierto, dobleRiichi])).
+test(situacion_invalida_firstTurnWin_y_riichi_abierto) :-
+    \+ situacionValida(situacion(este, sur, [], [], [primeraRonda, riichiAbierto])).
+
+test(flag_de_riichi, all(F == [riichi, dobleRiichi, riichiAbierto])) :- flagDeRiichi(F).
+test(con_riichi_acepta_cada_variante) :-
+    conRiichi([riichi]), conRiichi([dobleRiichi, ippatsu]), conRiichi([haitei, riichiAbierto]).
+test(con_riichi_falla_sin_riichi) :- \+ conRiichi([ippatsu, haitei]).
+
 :- end_tests(situacion).

@@ -12,7 +12,7 @@
  *    at least one concealed tile has to come after the final meld.
  */
 import type {
-  DeclaredMeld, Flag, Situation, SituationWind, Tile, WinMode,
+  DeclaredMeld, Flag, Rule, Situation, SituationWind, Tile, WinMode,
 } from '../../scorer/types';
 import { OPEN_MELD_KINDS } from '../../scorer/types';
 import { compareTiles, isRedFive, normalizeRed, numberOf, suitOf } from '../../scorer/order';
@@ -28,7 +28,8 @@ export type CallMode = 'chii' | 'pon' | 'kan' | 'closedKan' | 'dora' | 'uraDora'
 const isMarker = (mode: CallMode | null): boolean =>
   mode === 'dora' || mode === 'uraDora' || mode === 'kita';
 
-export type RiichiChoice = 'none' | 'riichi' | 'dobleRiichi';
+/** `riichiAbierto` is open riichi: a riichi with the hand shown, worth 2 han. */
+export type RiichiChoice = 'none' | 'riichi' | 'dobleRiichi' | 'riichiAbierto';
 
 export interface HandState {
   /** Insertion order; the last entry is the winning tile. */
@@ -64,6 +65,11 @@ export interface HandState {
    * a replacement tile is drawn, so the hand stays 14 tiles.
    */
   kita: number;
+  /**
+   * House rules passed to the engine with this hand. Set by the tracker from
+   * the match (and from who dealt in); a toggle in the plain calculator.
+   */
+  rules: Rule[];
 
   winMode: WinMode;
   roundWind: SituationWind;
@@ -80,7 +86,7 @@ export interface HandState {
 
 export const initialHandState: HandState = {
   concealed: [], melds: [], doraIndicators: [], uraIndicators: [], mode: null, red: false,
-  sanma: false, redFives: true, kita: 0,
+  sanma: false, redFives: true, kita: 0, rules: [],
   winMode: 'ron', roundWind: 'este', seatWind: 'este', riichi: 'none',
   ippatsu: false, chankan: false, rinshan: false, lastDraw: false, firstRound: false,
 };
@@ -403,7 +409,7 @@ export const removeKita = (state: HandState): HandState =>
 export const clearHand = (state: HandState): HandState => ({
   ...initialHandState,
   winMode: state.winMode, roundWind: state.roundWind, seatWind: state.seatWind,
-  sanma: state.sanma, redFives: state.redFives,
+  sanma: state.sanma, redFives: state.redFives, rules: state.rules,
 });
 
 /**
@@ -557,6 +563,7 @@ export function toFlags(state: HandState): Flag[] {
   const flags: Flag[] = [];
   if (state.riichi === 'riichi') flags.push('riichi');
   if (state.riichi === 'dobleRiichi') flags.push('dobleRiichi');
+  if (state.riichi === 'riichiAbierto') flags.push('riichiAbierto');
   if (state.ippatsu) flags.push('ippatsu');
   if (state.chankan) flags.push('chankan');
   if (state.rinshan) flags.push('rinshan');

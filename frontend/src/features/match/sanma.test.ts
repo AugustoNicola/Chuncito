@@ -22,6 +22,7 @@ import {
 const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   players: 3,
   redFives: true,
+  rules: [],
   length: 'south',
   startingPoints: DEFAULTS[3].startingPoints,
   returnScore: DEFAULTS[3].returnScore,

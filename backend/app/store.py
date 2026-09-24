@@ -177,7 +177,8 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
     revision = (current.revision if current else 0) + 1
     t = rows.match
     values = {
-        'name': t.name, 'players': t.players, 'red_fives': t.red_fives, 'length': t.length,
+        'name': t.name, 'players': t.players, 'red_fives': t.red_fives, 'rules': t.rules,
+        'length': t.length,
         'starting_points': t.starting_points, 'return_score': t.return_score,
         'uma': json.loads(t.uma_json), 'status': t.status, 'end_reason': t.end_reason,
         'started_at': _parse_time(t.started_at), 'ended_at': _parse_time(t.ended_at),
@@ -277,7 +278,7 @@ def load_match(conn: Connection, match_id: str
     rows = MatchRows(
         match={
             'id': t.id, 'name': t.name, 'players': t.players, 'red_fives': t.red_fives,
-            'length': t.length, 'starting_points': t.starting_points,
+            'rules': list(t.rules), 'length': t.length, 'starting_points': t.starting_points,
             'return_score': t.return_score, 'uma_json': _dump_json(t.uma),
             'status': t.status, 'end_reason': t.end_reason,
             'started_at': _format_time(t.started_at), 'ended_at': _format_time(t.ended_at),

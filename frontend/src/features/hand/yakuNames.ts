@@ -9,7 +9,7 @@ import type { Level } from '../../scorer/types';
 
 export const YAKU_NAMES: Readonly<Record<string, string>> = {
   // situational
-  riichi: 'Riichi', dobleRiichi: 'Double Riichi', ippatsu: 'Ippatsu',
+  riichi: 'Riichi', dobleRiichi: 'Double Riichi', riichiAbierto: 'Open Riichi', ippatsu: 'Ippatsu',
   menzenTsumo: 'Menzen Tsumo', haitei: 'Haitei Raoyue', houtei: 'Houtei Raoyui',
   rinshan: 'Rinshan Kaihou', chankan: 'Chankan',
   // yakuhai
@@ -27,6 +27,8 @@ export const YAKU_NAMES: Readonly<Record<string, string>> = {
   shousuushii: 'Shousuushii', daisuushii: 'Daisuushii', tsuuiisou: 'Tsuuiisou',
   chinroutou: 'Chinroutou', ryuuiisou: 'Ryuuiisou', chuurenPoutou: 'Chuuren Poutou',
   suuKantsu: 'Suu Kantsu', tenhou: 'Tenhou', chiihou: 'Chiihou', renhou: 'Renhou',
+  // a house rule: ron on an open riichi (`riichiAbiertoRonYakuman`)
+  riichiAbiertoRon: 'Open Riichi Ron',
   // appended last by the engine, counted rather than fixed
   dora: 'Dora', akaDora: 'Red Dora', uraDora: 'Ura Dora',
   // sanma; added by the client, not the engine

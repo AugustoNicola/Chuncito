@@ -7,6 +7,7 @@
 %*   forma_mano_ganadora.pl  - condiciones de mano ganadora
 %*   victoria.pl             - evento de ganar una mano
 %*   situacion.pl            - estado de la partida al momento de ganar
+%*   reglas.pl               - reglas de la casa opcionales con las que se puntúa
 %*   yakus.pl                - condiciones de cada yaku
 %*   yakus_aplicables.pl     - filtra los yakus solapados/anulados entre sí
 %*   puntuacion.pl           - han, fu y pago final de una victoria
@@ -20,6 +21,7 @@
 :- ensure_loaded(forma_mano_ganadora).
 :- ensure_loaded(victoria).
 :- ensure_loaded(situacion).
+:- ensure_loaded(reglas).
 :- ensure_loaded(yakus).
 :- ensure_loaded(yakus_aplicables).
 :- ensure_loaded(puntuacion).

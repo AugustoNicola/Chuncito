@@ -26,7 +26,7 @@ from sqlalchemy import (
     ForeignKey, ForeignKeyConstraint, Index, Integer, MetaData, SmallInteger, Table, Text,
     UniqueConstraint, func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
 metadata = MetaData(naming_convention={
     'ix': 'ix_%(table_name)s_%(column_0_N_name)s',
@@ -81,6 +81,9 @@ matches = Table(
     Column('name', Text, nullable=False, server_default=''),
     Column('players', SmallInteger, nullable=False),
     Column('red_fives', Boolean, nullable=False),
+    # House rules the scorer applies, as its own rule atoms (`reglaSoportada/1`
+    # upstream), so a new rule needs no new column. Kept in the client's order.
+    Column('rules', ARRAY(Text), nullable=False, server_default='{}'),
     Column('length', Text, nullable=False),
     Column('starting_points', Integer, nullable=False),
     Column('return_score', Integer, nullable=False),

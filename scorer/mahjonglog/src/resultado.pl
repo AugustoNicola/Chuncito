@@ -2,6 +2,7 @@
 :- ensure_loaded(forma_mano_ganadora).
 :- ensure_loaded(yakus_aplicables).
 :- ensure_loaded(puntuacion).
+:- ensure_loaded(reglas).
 
 %* ===================== Resultado de Victoria =====================
 %* Punto de entrada de todo el pipeline: a partir de una Mano (fichas +
@@ -18,6 +19,13 @@
 %* puntuacion.pl).
 
 %! resultadoDeVictoria(+Mano, +FichaGanadora, +ModoVictoria, +Situacion, -Resultado) is semidet.
+%* resultadoDeVictoria/6 sin reglas de la casa (Reglas = []).
+resultadoDeVictoria(Mano, FichaGanadora, ModoVictoria, Situacion, Resultado) :-
+    resultadoDeVictoria(Mano, FichaGanadora, ModoVictoria, Situacion, [], Resultado).
+
+%! resultadoDeVictoria(+Mano, +FichaGanadora, +ModoVictoria, +Situacion, +Reglas, -Resultado) is semidet.
+%* Reglas es la lista de reglas de la casa con las que se juega (ver
+%* reglas.pl); falla si alguna no es reconocida (ver reglasValidas/1).
 %* Resultado = resultado(Yakus, Han, Fu, Nivel, Pago):
 %*   Yakus es la lista de yakuHan(Nombre, Han) que efectivamente cuentan,
 %*     en el orden en que los muestran los clientes de mahjong (ver
@@ -33,11 +41,12 @@
 %*     pagoTsumo(PagoNoDealer, PagoDealer) (tsumo), ver puntosDeVictoria/6.
 %* Falla si ninguna descomposición de Mano produce al menos un yaku (una
 %* mano sin yaku no puede ganar, sin importar cuántos puntos "tendría").
-resultadoDeVictoria(Mano, FichaGanadora, ModoVictoria, Situacion, Resultado) :-
+resultadoDeVictoria(Mano, FichaGanadora, ModoVictoria, Situacion, Reglas, Resultado) :-
+    reglasValidas(Reglas),
     findall(Total-resultado(Yakus, Han, Fu, Nivel, Pago),
         ( manoGanadora(Mano, Formas),
           Victoria = victoria(Formas, FichaGanadora, ModoVictoria),
-          yakusAplicables(Victoria, Situacion, YakusFinales),
+          yakusAplicables(Victoria, Situacion, Reglas, YakusFinales),
           YakusFinales \= [],
           puntuacion(Formas, FichaGanadora, ModoVictoria, YakusFinales, Situacion, puntuacion(Han, Fu, Nivel, Pago)),
           pagoTotal(Pago, Total),
@@ -73,6 +82,7 @@ ordenYaku(rinshan, 14).
 ordenYaku(haitei, 15).
 ordenYaku(houtei, 16).
 ordenYaku(dobleRiichi, 17).
+ordenYaku(riichiAbierto, 18).
 ordenYaku(pinfu, 20).
 ordenYaku(tanyao, 21).
 ordenYaku(iipeikou, 22).
@@ -108,6 +118,7 @@ ordenYaku(suuKantsu, 59).
 ordenYaku(tenhou, 60).
 ordenYaku(chiihou, 61).
 ordenYaku(renhou, 62).
+ordenYaku(riichiAbiertoRon, 63).
 ordenYaku(dora, 90).
 ordenYaku(akaDora, 91).
 ordenYaku(uraDora, 92).

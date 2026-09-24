@@ -17,6 +17,8 @@ import type { Seat } from './seats';
 export const fourPlayerConfig: MatchConfig = {
   players: 4,
   redFives: true,
+  // A house rule on, so the round trip and the wire carry a non-empty list.
+  rules: ['riichiAbiertoRonYakuman'],
   length: 'south',
   startingPoints: 25000,
   returnScore: 30000,
@@ -95,6 +97,7 @@ export function playSanmaInProgress(): MatchState {
   let state = createMatch({
     players: 3,
     redFives: false,
+    rules: [],
     length: 'east',
     startingPoints: DEFAULTS[3].startingPoints,
     returnScore: DEFAULTS[3].returnScore,

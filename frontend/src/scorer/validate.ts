@@ -7,7 +7,7 @@
  * report precisely, rather than letting the user see "not a winning hand".
  */
 import type { DeclaredMeld, Flag, ScoreQuery, Situation, Tile } from './types';
-import { ALL_FLAGS, SITUATION_WINDS } from './types';
+import { ALL_FLAGS, ALL_RULES, RIICHI_FLAGS, SITUATION_WINDS } from './types';
 import { compareTiles, isRedFive, normalizeRed, numberOf, suitOf } from './order';
 
 export interface ValidationIssue { code: string; message: string }
@@ -23,10 +23,13 @@ const INCOMPATIBLE_FLAGS: ReadonlyArray<readonly [Flag, Flag]> = [
   ['primeraRonda', 'riichi'],
   ['primeraRonda', 'dobleRiichi'],
   ['primeraRonda', 'ippatsu'],
+  ['riichiAbierto', 'riichi'],
+  ['riichiAbierto', 'dobleRiichi'],
+  ['riichiAbierto', 'primeraRonda'],
 ];
 
 const isRiichi = (flags: readonly Flag[]): boolean =>
-  flags.includes('riichi') || flags.includes('dobleRiichi');
+  flags.some((f) => RIICHI_FLAGS.includes(f));
 
 function meldTiles(melds: readonly DeclaredMeld[]): Tile[] {
   return melds.flatMap((m) => m.tiles as Tile[]);
@@ -90,6 +93,11 @@ export function validateQuery(q: ScoreQuery): ValidationIssue[] {
 
   if (mode !== 'ron' && mode !== 'tsumo') {
     issues.push({ code: 'mode.unknown', message: `${mode} is not ron or tsumo` });
+  }
+
+  // An unknown rule makes the engine fail, which would read as "no yaku".
+  for (const rule of q.rules ?? []) {
+    if (!ALL_RULES.includes(rule)) issues.push({ code: 'rule.unknown', message: `unknown rule ${rule}` });
   }
 
   for (const meld of hand.melds) validateMeldShape(meld, issues);

@@ -10,14 +10,30 @@
 %* (no los indicadores; esa conversión es responsabilidad de quien arma
 %* la Situacion, no de este programa).
 %* Flags es una lista de atomos que describen eventos de la ronda
-%* (riichi, ippatsu, dobleRiichi, houtei, haitei, rinshan, chankan,
-%* primeraRonda, ...). tenhou/chiihou/renhou NO son flags: son yakus
+%* (riichi, ippatsu, dobleRiichi, riichiAbierto, houtei, haitei, rinshan,
+%* chankan, primeraRonda, ...). tenhou/chiihou/renhou NO son flags: son yakus
 %* derivados de primeraRonda junto con ModoVictoria y VientoJugador (ver
 %* yakus.pl), ya que cuál de los tres aplica depende de esos otros datos.
 
 %! tieneFlag(+Situacion, +Flag) is semidet.
 %* Indica si Flag está presente en los flags de Situacion.
 tieneFlag(situacion(_, _, _, _, Flags), Flag) :- memberchk(Flag, Flags).
+
+%! flagDeRiichi(?Flag) is nondet.
+%* Flags que representan haber declarado riichi, en cualquiera de sus
+%* variantes: riichi común, doble riichi (declarado en el primer descarte)
+%* o riichi abierto (declarado mostrando la mano). Son mutuamente
+%* excluyentes (ver flagsIncompatibles/2): a lo sumo uno está presente.
+flagDeRiichi(riichi).
+flagDeRiichi(dobleRiichi).
+flagDeRiichi(riichiAbierto).
+
+%! conRiichi(+Flags) is semidet.
+%* Indica si Flags incluye alguna variante de riichi (ver flagDeRiichi/1).
+%* Es la única comprobación de "hay riichi" que debería usarse: todo lo que
+%* exige un riichi declarado (ippatsu, ura dora) acepta cualquiera de sus
+%* variantes.
+conRiichi(Flags) :- flagDeRiichi(Flag), memberchk(Flag, Flags), !.
 
 %* ===================== Validación =====================
 
@@ -29,6 +45,10 @@ vientoValido(este). vientoValido(sur). vientoValido(oeste). vientoValido(norte).
 %* que se implementen más yakus que dependan de la situación.
 flagSoportado(riichi).
 flagSoportado(dobleRiichi).
+% riichi abierto (open riichi): riichi declarado mostrando la mano. Vale
+% más que un riichi común (ver yakus.pl y la regla riichiAbiertoRonYakuman
+% en reglas.pl).
+flagSoportado(riichiAbierto).
 flagSoportado(ippatsu).
 flagSoportado(houtei).
 flagSoportado(haitei).
@@ -44,6 +64,8 @@ flagSoportado(primeraRonda).
 %* Pares de flags que no pueden darse juntos en una misma situación.
 %* No hace falta declarar ambos órdenes: flagsCompatibles/1 los prueba en los dos sentidos.
 flagsIncompatibles(riichi, dobleRiichi).      % riichi y doble riichi son excluyentes: es uno u otro
+flagsIncompatibles(riichi, riichiAbierto).    % ídem con riichi abierto: se declara una sola variante de riichi
+flagsIncompatibles(dobleRiichi, riichiAbierto).
 flagsIncompatibles(houtei, haitei).            % houtei (último descarte) y haitei (último robo) son excluyentes
 flagsIncompatibles(houtei, rinshan).           % houtei (descarte) y rinshan (robo tras kan) son excluyentes
 flagsIncompatibles(chankan, rinshan).          % chankan (robar un kan ajeno) y rinshan (kan propio) son excluyentes
@@ -55,20 +77,21 @@ flagsIncompatibles(haitei, rinshan).           % la ficha ganadora robada es o l
 % ippatsu (requiere una vuelta completa tras declarar riichi):
 flagsIncompatibles(primeraRonda, riichi).
 flagsIncompatibles(primeraRonda, dobleRiichi).
+flagsIncompatibles(primeraRonda, riichiAbierto).
 flagsIncompatibles(primeraRonda, ippatsu).
 
 %! situacionValida(+Situacion) is semidet.
 %* Corrobora que Situacion tenga vientos válidos, que Doras y UraDoras
 %* sean listas de fichas válidas (y que UraDoras esté vacía salvo que haya
-%* riichi o doble riichi), que todos sus flags sean reconocidos y que no
-%* haya combinaciones de flags incompatibles entre sí (ver
-%* flagsIncompatibles/2), ni ippatsu sin riichi.
+%* alguna variante de riichi, ver conRiichi/1), que todos sus flags sean
+%* reconocidos y que no haya combinaciones de flags incompatibles entre sí
+%* (ver flagsIncompatibles/2), ni ippatsu sin riichi.
 situacionValida(situacion(VientoRonda, VientoJugador, Doras, UraDoras, Flags)) :-
     vientoValido(VientoRonda),
     vientoValido(VientoJugador),
     maplist(ficha, Doras),
     maplist(ficha, UraDoras),
-    once(( UraDoras == [] ; memberchk(riichi, Flags) ; memberchk(dobleRiichi, Flags) )),
+    once(( UraDoras == [] ; conRiichi(Flags) )),
     forall(member(Flag, Flags), flagSoportado(Flag)),
     \+ (flagsIncompatibles(F1, F2), memberchk(F1, Flags), memberchk(F2, Flags)),
-    \+ (memberchk(ippatsu, Flags), \+ memberchk(riichi, Flags), \+ memberchk(dobleRiichi, Flags)).
+    \+ (memberchk(ippatsu, Flags), \+ conRiichi(Flags)).

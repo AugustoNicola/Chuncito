@@ -24,7 +24,7 @@ import type { PlayerCount } from '../match/seats';
 import { useScorer } from '../../scorer/useScorer';
 import { validateQuery } from '../../scorer/validate';
 import type {
-  ScoreQuery, ScoreResult, SituationWind, Tile as TileAtom, WinMode,
+  Rule, ScoreQuery, ScoreResult, SituationWind, Tile as TileAtom, WinMode,
 } from '../../scorer/types';
 
 type Flap = 'tiles' | 'details';
@@ -78,6 +78,11 @@ export interface HandBuilderProps {
   title?: string;
   /** Names the winner, and on a ron the discarder, on the score screen. */
   attribution?: ScoreAttribution;
+  /**
+   * House rules for this hand, from the match. Undefined in the plain
+   * calculator, which offers them as toggles instead.
+   */
+  rules?: Rule[];
 }
 
 function buildQuery(state: HandState): ScoreQuery | null {
@@ -88,17 +93,19 @@ function buildQuery(state: HandState): ScoreQuery | null {
     winningTile: tile,
     mode: state.winMode,
     situation: toSituation(state),
+    rules: state.rules,
   };
 }
 
 export function HandBuilder({
   winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
-  attribution,
+  attribution, rules,
 }: HandBuilderProps = {}) {
   const [state, setState] = useState<HandState>(() => ({
     ...initialHandState,
     sanma: players === 3,
     redFives: redFives ?? true,
+    rules: rules ?? [],
     ...winds,
     ...(winMode ? { winMode } : {}),
     ...(riichiDeclared ? { riichi: 'riichi' as const } : {}),
@@ -210,6 +217,7 @@ export function HandBuilder({
                           onSanma={(on) => apply((s) => setSanma(s, on))}
                           showRedFives={redFives === undefined}
                           onRedFives={(on) => apply((s) => setRedFives(s, on))}
+                          showRules={rules === undefined}
                           riichiDeclared={riichiDeclared} />
       )}
     </div>

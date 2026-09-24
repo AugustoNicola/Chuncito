@@ -18,6 +18,7 @@
  * North was pulled or kept.
  */
 import type { ScoreResult, YakuHan } from '../../scorer/types';
+import { RIICHI_FLAGS } from '../../scorer/types';
 import { basePoints, levelFor, paymentFor } from '../match/scoring';
 import { toSituation, type HandState } from './handState';
 
@@ -35,7 +36,7 @@ export function withNukidora(result: ScoreResult, state: HandState): ScoreResult
   if (state.kita === 0 || isYakuman(result.level)) return result;
 
   const situation = toSituation(state);
-  const riichi = situation.flags.includes('riichi') || situation.flags.includes('dobleRiichi');
+  const riichi = situation.flags.some((f) => RIICHI_FLAGS.includes(f));
   const doraNorths = situation.dora.filter((t) => t === 'n').length;
   const uraNorths = riichi ? situation.uraDora.filter((t) => t === 'n').length : 0;
 
