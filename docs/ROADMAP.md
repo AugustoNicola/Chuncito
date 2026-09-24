@@ -585,6 +585,19 @@ per item.** Ticked here as they land, with what was decided.
       `reconcile`s. A winner who declared riichi cannot have open calls, so
       those are removed and the builder says so; a winner who did not loses
       the riichi (and its ura). The plain calculator is unchanged.
+- [x] **Players sorted by placement** — the end screen, the match review
+      and the history list already listed by place; the review screen's
+      points table did not, and now does (by the places *after* the change;
+      seat order while everyone is level). Every one of them now shows a
+      wind beside each name (`WindMark`, a circled kanji like setup's, East
+      in the dealer accent): the **starting** wind on the end screen and in
+      a match review, the wind **of the hand being recorded** on the review
+      screen. The review table's number columns were narrowed to make room.
+
+Still open from `backlog.md` (stopped here at the user's request,
+2026-09-24): **Player list should look better** (MAKApoints, metal top
+three), **More links to player profiles**, **Better hovers in player
+profile**.
 
 ## Picking this up cold
 

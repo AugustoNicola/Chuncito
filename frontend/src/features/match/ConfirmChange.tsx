@@ -16,7 +16,8 @@ import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
-import { roundLabel } from './seats';
+import { roundLabel, seatWindOf } from './seats';
+import { WindMark } from './WindMark';
 import { placeLabel, placesOf } from './scoring';
 
 /** "East 3 · 1 repeat", the state of the round as a player would say it. */
@@ -94,6 +95,15 @@ export function ConfirmChange({
     return now < was ? 'up' : 'down';
   };
 
+  /**
+   * Rows in the order the change leaves them, 1st first, so the table reads
+   * as standings. Seat order while everyone is still level. Each row keeps
+   * the wind it held in the hand being recorded.
+   */
+  const byPlace = placesAfter
+    ? [...seats].sort((a, b) => placesAfter[a]! - placesAfter[b]!)
+    : seats;
+
   const roundChanged = roundLabel(before.round) !== roundLabel(after.round)
     || before.honba !== after.honba;
 
@@ -136,9 +146,12 @@ export function ConfirmChange({
         <div className="field">
           <span className="field__label">Points</span>
           <div className="confirm__table">
-            {seats.map((seat) => (
+            {byPlace.map((seat) => (
               <div key={seat} className="confirm__row">
-                <span className="confirm__name">{names[seat]}</span>
+                <span className="confirm__name">
+                  <WindMark wind={seatWindOf(seat, before.round, before.config.players)} />
+                  {names[seat]}
+                </span>
                 <span className="confirm__was">{before.scores[seat].toLocaleString()}</span>
                 <span className={`confirm__delta${
                   delta[seat]! < 0 ? ' confirm__delta--loss'

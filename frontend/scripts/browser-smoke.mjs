@@ -515,6 +515,14 @@ try {
   const groupState = (label) => page.evaluate((l) => [...document.querySelector(
     `[aria-label="${l}"]`).querySelectorAll('button')].map(
     (b) => [b.textContent.trim(), b.disabled, b.getAttribute('aria-pressed')]), label);
+  /** The review's points table, row by row, as the player reads it. */
+  const confirmRows = () => page.$$eval('.confirm__row', (els) => els.map((el) => ({
+    wind: el.querySelector('.windmark')?.textContent,
+    name: el.querySelector('.confirm__name').lastChild.textContent,
+    was: el.querySelector('.confirm__was').textContent,
+    delta: el.querySelector('.confirm__delta').textContent,
+    place: el.querySelector('.confirm__place').textContent,
+  })));
   const pick = async (label, value) => page.evaluate((l, v) => {
     const field = [...document.querySelectorAll('.field')].find(
       (f) => f.querySelector('.field__label')?.textContent === l);
@@ -577,17 +585,20 @@ try {
                                          (els) => els.map((e) => e.textContent));
   check(confirmRound[0] === 'East 1 · 0 repeats' && confirmRound[2] === 'East 2 · 0 repeats',
         `the round change is spelled out (got ${JSON.stringify(confirmRound)})`);
-  const confirmDeltas = await page.$$eval('.confirm__delta', (els) => els.map((e) => e.textContent));
+  const confirmTable = await confirmRows();
+  const deltaOf = (name) => confirmTable.find((r) => r.name === name)?.delta;
   // Beto is on riichi, so he also lifts his own stick: 3,900 + 1,000.
-  check(confirmDeltas[1] === '+4,900' && confirmDeltas[2] === '-3,900',
-        `the points change is shown before committing (got ${JSON.stringify(confirmDeltas)})`);
+  check(deltaOf('Beto') === '+4,900' && deltaOf('Cami') === '-3,900',
+        `the points change is shown before committing (got ${JSON.stringify(confirmTable)})`);
   const confirmHints = await page.$$eval('.confirm .field__hint',
                                          (els) => els.map((e) => e.textContent).join(' '));
   check(confirmHints.includes('riichi stick'),
         'the confirmation explains why the change exceeds the hand value');
-  const confirmPlaces = await page.$$eval('.confirm__place', (els) => els.map((e) => e.textContent));
-  check(JSON.stringify(confirmPlaces) === JSON.stringify(['▼2nd', '▲1st', '▼4th', '3rd']),
-        `the review shows places and which way they moved (got ${JSON.stringify(confirmPlaces)})`);
+  // Listed as the standings will be after the hand, each with the wind it held.
+  const confirmOrder = confirmTable.map((r) => `${r.wind}${r.name} ${r.place}`);
+  check(JSON.stringify(confirmOrder) === JSON.stringify(
+    ['南Beto ▲1st', '東Ana ▼2nd', '北Dani 3rd', '西Cami ▼4th']),
+        `the review lists players by place, with winds and movement (got ${JSON.stringify(confirmOrder)})`);
   await shot('19-confirm.png');
   await byText('Record this hand');
   await page.waitForSelector('.table');
@@ -851,15 +862,15 @@ try {
   const bothHands = await page.$$eval('.confirm__value', (els) => els.length);
   check(bothHands === 2, `both hands are shown before committing (got ${bothHands})`);
   await shot('26-multiron-confirm.png');
-  const beforeMulti = await page.$$eval('.confirm__was', (els) => els.map((e) => e.textContent));
+  const camiRow = (await confirmRows()).find((r) => r.name === 'Cami');
   await byText('Record this hand');
   await page.waitForSelector('.table');
   const afterMulti = await scores();
   // Ana 2 han 30 fu (2000) and Dani 3 han 30 fu (3900), both off Cami, on the
   // honba the exhaustive draw left behind -- paid once, to the nearest winner.
-  const camiBefore = Number(beforeMulti[2].replace(/,/g, ''));
+  const camiBefore = Number(camiRow.was.replace(/,/g, ''));
   check(Number(afterMulti[2].replace(/,/g, '')) === camiBefore - 5900 - 300,
-        `the discarder pays both hands and one honba (got ${afterMulti[2]} from ${beforeMulti[2]})`);
+        `the discarder pays both hands and one honba (got ${afterMulti[2]} from ${camiRow.was})`);
   // Cami discards, so Dani is next in turn order and takes the honba; Ana,
   // further round, is paid her hand and nothing else.
   check(afterMulti[3] === '28,200',
@@ -968,11 +979,15 @@ try {
   await byText('End it now');
   await page.waitForSelector('.standings');
   const standings = await page.$$eval('.standings__row', (els) => els.map((el) => ({
-    name: el.querySelector('.standings__name').textContent,
+    name: el.querySelector('.standings__name').lastChild.textContent,
+    wind: el.querySelector('.windmark').textContent,
     uma: el.querySelector('.standings__uma').textContent,
   })));
   check(standings[0]?.name === 'Ana',
         `a level table places by seat order (got ${standings[0]?.name})`);
+  // The wind each started on, however far the deal went.
+  check(JSON.stringify(standings.map((r) => r.wind)) === JSON.stringify(['東', '南', '西', '北']),
+        `the standings show each player's starting wind (got ${JSON.stringify(standings.map((r) => r.wind))})`);
   check(standings[0]?.uma === '+20', `uma is applied by placement (got ${standings[0]?.uma})`);
   check(standings[3]?.uma === '-20', `last place takes the bottom uma (got ${standings[3]?.uma})`);
   await shot('16-endscreen.png');

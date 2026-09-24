@@ -1076,6 +1076,16 @@ button {
 .standings__row[data-place="2"] .standings__place { color: var(--place-2); }
 .standings__row[data-place="3"] .standings__place { color: var(--place-3); }
 .standings__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A seat's wind beside its name, like the setup screen's seat marks. */
+.windmark {
+  display: inline-grid; place-items: center;
+  width: 1.5em; height: 1.5em; margin-right: 0.45em;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  font-size: 0.72em; color: var(--text-dim);
+}
+.windmark[data-wind="este"] { border-color: var(--seat-dealer); color: var(--seat-dealer); }
 .standings__score { font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .standings__score--negative { color: var(--loss); }
 .standings__uma {
@@ -1224,7 +1234,9 @@ button {
 }
 .confirm__row {
   display: grid;
-  grid-template-columns: 1fr 4.5rem 4.5rem 5rem 2.9rem;
+  /* Sized to their widest plausible value ("100,000", "+48,000") so the
+     name, with its wind mark, keeps the rest. */
+  grid-template-columns: minmax(0, 1fr) 3.6rem 3.8rem 4rem 2.9rem;
   align-items: baseline;
   gap: 6px;
   padding: 5px 0;

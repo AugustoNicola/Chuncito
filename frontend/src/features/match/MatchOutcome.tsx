@@ -9,13 +9,16 @@ import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
 import { placeLabel, placements } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
-import { roundLabel } from './seats';
+import { roundLabel, seatWindOf } from './seats';
+import { WindMark } from './WindMark';
 
 const END_REASON: Record<string, string> = {
   final_round: 'Played to the end',
   bust: 'Ended on a bust',
   manual: 'Ended early',
 };
+
+const START = { wind: 'este', number: 1 } as const;
 
 export function MatchOutcome({ state }: { state: MatchState }) {
   const standings = placements(state.scores, state.config.uma);
@@ -36,7 +39,12 @@ export function MatchOutcome({ state }: { state: MatchState }) {
         {standings.map((p) => (
           <li key={p.seat} className="standings__row" data-place={p.place}>
             <span className="standings__place">{placeLabel(p.place)}</span>
-            <span className="standings__name">{state.config.seats[p.seat]!.name}</span>
+            {/* The wind each player started the match on: the seat, as it was
+                drawn, rather than wherever the deal had got to by the end. */}
+            <span className="standings__name">
+              <WindMark wind={seatWindOf(p.seat, START, state.config.players)} />
+              {state.config.seats[p.seat]!.name}
+            </span>
             <span className={`standings__score${p.score < 0 ? ' standings__score--negative' : ''}`}>
               {p.score.toLocaleString()}
             </span>
