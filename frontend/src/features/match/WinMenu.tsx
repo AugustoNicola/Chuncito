@@ -52,24 +52,51 @@ const LIMITS = ['mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman'] as const;
 
 type Route = 'menu' | 'tiles';
 
-export function WinMenu({ state, winner, onRecord, onCancel }: {
+/**
+ * Everything entered in the menu, so it can be handed back: the review screen
+ * sits outside the menu, and Back from it must return to the form as it was
+ * left -- winners, value, tiles and all -- rather than to an empty one.
+ */
+export interface WinDraft {
+  mode: WinMode;
+  dealIn: Seat | null;
+  staged: WinEntry[];
+  current: Seat | null;
+  han: number | null;
+  fu: number | null;
+  limit: string | null;
+  open: boolean | null;
+  route: Route;
+  /** The tiles of the hand being built, kept when the builder is left. */
+  hand: HandState | null;
+}
+
+export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
   state: MatchState;
   winner: Seat;
-  onRecord: (args: { mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }) => void;
+  /** The form as it was left, when coming back from the review. */
+  draft?: WinDraft;
+  onRecord: (args: { mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }, draft: WinDraft) => void;
   onCancel: () => void;
 }) {
-  const [mode, setMode] = useState<WinMode>('ron');
-  const [dealIn, setDealIn] = useState<Seat | null>(null);
+  const [mode, setMode] = useState<WinMode>(draft?.mode ?? 'ron');
+  const [dealIn, setDealIn] = useState<Seat | null>(draft?.dealIn ?? null);
   /** Winners already settled; the form below is the one being entered now. */
-  const [staged, setStaged] = useState<WinEntry[]>([]);
+  const [staged, setStaged] = useState<WinEntry[]>(draft?.staged ?? []);
   /** Null right after staging a winner, until the next one is picked. */
-  const [current, setCurrent] = useState<Seat | null>(winner);
-  const [han, setHan] = useState<number | null>(null);
-  const [fu, setFu] = useState<number | null>(null);
-  const [limit, setLimit] = useState<string | null>(null);
+  const [current, setCurrent] = useState<Seat | null>(draft ? draft.current : winner);
+  const [han, setHan] = useState<number | null>(draft?.han ?? null);
+  const [fu, setFu] = useState<number | null>(draft?.fu ?? null);
+  const [limit, setLimit] = useState<string | null>(draft?.limit ?? null);
   /** Optional: null until somebody says, and a second tap takes it back. */
-  const [open, setOpen] = useState<boolean | null>(null);
-  const [route, setRoute] = useState<Route>('menu');
+  const [open, setOpen] = useState<boolean | null>(draft?.open ?? null);
+  const [route, setRoute] = useState<Route>(draft?.route ?? 'menu');
+  /**
+   * The tile builder's hand, put aside when it is left, so Back and a second
+   * "Enter the hand" carry on from it. Changing the winner or the win keeps
+   * it: the builder brings it in line with whatever changed.
+   */
+  const [hand, setHand] = useState<HandState | null>(draft?.hand ?? null);
 
   const players = state.config.players;
   const seats = seatsIn(state);
@@ -99,17 +126,18 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   /** Everything entered so far, plus the hand on screen if it is complete. */
   const allWins = (extra?: WinEntry): WinEntry[] => [...staged, ...(extra ? [extra] : [])];
 
-  const record = (extra?: WinEntry) => onRecord({
+  const record = (extra?: WinEntry, from: Route = route, tiles: HandState | null = hand) => onRecord({
     mode,
     dealIn: mode === 'ron' ? dealIn : null,
     wins: allWins(extra),
-  });
+  }, { mode, dealIn, staged, current, han, fu, limit, open, route: from, hand: tiles });
 
   /** Puts a hand aside and goes back for the next winner's. */
   const stage = (entry: WinEntry) => {
     setStaged([...staged, entry]);
     setCurrent(null);
     clearValue();
+    setHand(null);
     setRoute('menu');
   };
 
@@ -157,8 +185,9 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         winMode={mode}
         riichiDeclared={state.pendingRiichi.includes(current)}
         rules={rulesForHand}
-        onCancel={() => setRoute('menu')}
-        onConfirm={(result, hand) => record(scored(result, hand))}
+        draft={hand ?? undefined}
+        onCancel={(tiles) => { setHand(tiles); setRoute('menu'); }}
+        onConfirm={(result, tiles) => record(scored(result, tiles), 'tiles', tiles)}
         onAddAnother={roomForMore ? (result, hand) => stage(scored(result, hand)) : undefined}
       />
     );

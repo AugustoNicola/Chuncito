@@ -572,6 +572,19 @@ per item.** Ticked here as they land, with what was decided.
         migrated.
       - The tracker's riichi button does not record *which* riichi; the kind
         is picked in the hand scorer. Stats count an open riichi as a riichi.
+- [x] **Manual hand scoring should save hand** — two losses, both fixed:
+      leaving the tile builder for the win menu dropped the tiles, and Back
+      from the review screen (which sits outside the menu) remounted the menu
+      empty — winners, typed value, staged hands and tiles. The menu's form is
+      now one `WinDraft`, carried in `MatchScreen`'s `win` menu entry so Back
+      (tap or gesture) returns to it exactly, including reopening the builder
+      when that is where the hand was recorded from; Cancel to the table
+      still discards it. The builder resumes a draft through `startingHand`
+      (`handState.ts`), which re-applies what may have changed meanwhile —
+      another winner's seat wind and riichi, ron ↔ tsumo, the rules — and
+      `reconcile`s. A winner who declared riichi cannot have open calls, so
+      those are removed and the builder says so; a winner who did not loses
+      the riichi (and its ura). The plain calculator is unchanged.
 
 ## Picking this up cold
 

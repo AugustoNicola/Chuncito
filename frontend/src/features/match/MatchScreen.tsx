@@ -27,7 +27,7 @@ import {
 import type { Seat } from './seats';
 import { roundLabel } from './seats';
 import { TableView } from './TableView';
-import { WinMenu } from './WinMenu';
+import { WinMenu, type WinDraft } from './WinMenu';
 import { DrawMenu } from './DrawMenu';
 import { TimelineView } from './TimelineView';
 import { ManualControls } from './ManualControls';
@@ -41,7 +41,8 @@ import { warmScorer } from '../../scorer/useScorer';
 
 type Menu =
   | { at: 'table' }
-  | { at: 'win'; seat: Seat }
+  /** `draft` is the form as it was left, when Back from a review returns to it. */
+  | { at: 'win'; seat: Seat; draft?: WinDraft }
   | { at: 'draw' }
   | { at: 'timeline' }
   | { at: 'manual' };
@@ -127,9 +128,9 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     stage({ after, row, title, confirmLabel: 'Record this hand', back });
   }
 
-  const stageWin = (args: { mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }) => {
+  const stageWin = (args: { mode: WinMode; dealIn: Seat | null; wins: WinEntry[] }, draft: WinDraft) => {
     if (menu.at !== 'win') return;
-    stageHand({ kind: 'win', ...args }, menu);
+    stageHand({ kind: 'win', ...args }, { ...menu, draft });
   };
 
   if (pending) {
@@ -169,7 +170,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
   switch (menu.at) {
     case 'win':
       return (
-        <WinMenu state={match} winner={menu.seat}
+        <WinMenu state={match} winner={menu.seat} draft={menu.draft}
                  onRecord={stageWin}
                  onCancel={() => setMenu({ at: 'table' })} />
       );

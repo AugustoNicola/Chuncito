@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
-  firstRoundYakuman, isComplete, isHandOpen, modeIssue, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
+  firstRoundYakuman, isComplete, isHandOpen, modeIssue, startingHand, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
   toFlags, toSituation, toggleMode, toggleRed, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
@@ -352,5 +352,45 @@ describe('without red fives', () => {
     expect(off.concealed).toEqual(T('p5'));
     expect(off.doraIndicators).toEqual(T('s5'));
     expect(off.redFives).toBe(false);
+  });
+});
+
+describe('carrying a hand on', () => {
+  const setting = { sanma: false, redFives: true, rules: [] };
+  const draft: HandState = {
+    ...initialHandState,
+    concealed: T('m2 m3 m4 p5 p6 p7 e e s6 s7 s8'),
+    melds: [{ kind: 'pon', tiles: T('r r r') as never }],
+    mode: 'dora',
+  };
+
+  it('keeps the tiles, and takes the new winds and win mode', () => {
+    const { state, notice } = startingHand({
+      ...setting, winds: { roundWind: 'este', seatWind: 'oeste' }, winMode: 'tsumo',
+    }, draft);
+    expect(state.concealed).toEqual(draft.concealed);
+    expect(state.melds).toEqual(draft.melds);
+    expect([state.seatWind, state.winMode, state.mode]).toEqual(['oeste', 'tsumo', null]);
+    expect(notice).toBeNull();
+  });
+
+  it('drops open calls for a winner who declared riichi, and says so', () => {
+    const withAnkan = { ...draft, melds: [...draft.melds, { kind: 'kanC' as const, tiles: T('m9 m9 m9 m9') as never }] };
+    const { state, notice } = startingHand({ ...setting, riichiDeclared: true }, withAnkan);
+    expect(state.melds.map((m) => m.kind)).toEqual(['kanC']);
+    expect(state.riichi).toBe('riichi');
+    expect(notice).toMatch(/riichi/);
+  });
+
+  it('takes a riichi away from a winner who never declared one, ura and all', () => {
+    const inRiichi = { ...draft, melds: [], riichi: 'riichiAbierto' as const, uraIndicators: T('p1') };
+    const { state } = startingHand({ ...setting, riichiDeclared: false }, inRiichi);
+    expect(state.riichi).toBe('none');
+    expect(state.uraIndicators).toEqual([]);
+  });
+
+  it('keeps an open or double riichi when the table only says "riichi"', () => {
+    const open = { ...draft, melds: [], riichi: 'riichiAbierto' as const };
+    expect(startingHand({ ...setting, riichiDeclared: true }, open).state.riichi).toBe('riichiAbierto');
   });
 });

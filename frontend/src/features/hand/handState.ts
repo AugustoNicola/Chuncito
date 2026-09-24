@@ -91,6 +91,55 @@ export const initialHandState: HandState = {
   ippatsu: false, chankan: false, rinshan: false, lastDraw: false, firstRound: false,
 };
 
+/**
+ * What the caller fixes about a hand before any tile is entered: the table's
+ * facts in the tracker, the calculator's toggles otherwise. Undefined winds,
+ * win mode and riichi are left to the hand.
+ */
+export interface HandSetting {
+  sanma: boolean;
+  redFives: boolean;
+  rules: Rule[];
+  winds?: { roundWind: SituationWind; seatWind: SituationWind };
+  winMode?: WinMode;
+  /** See `HandBuilderProps.riichiDeclared`. */
+  riichiDeclared?: boolean;
+}
+
+/**
+ * The hand the builder opens with: a fresh one, or a draft entered earlier and
+ * put aside -- in which case the setting may have changed since (another
+ * winner, so another seat wind and riichi; ron switched to tsumo), and the
+ * draft is brought in line with it rather than trusted.
+ *
+ * The table's riichi is the one fact that can contradict the tiles: a riichi
+ * hand is closed, so a declared riichi takes the draft's open calls away, and
+ * says so. Everything else is `reconcile`'s usual work.
+ */
+export function startingHand(setting: HandSetting, draft?: HandState): {
+  state: HandState; notice: string | null;
+} {
+  let s: HandState = {
+    ...(draft ?? initialHandState),
+    mode: null, red: false,
+    sanma: setting.sanma, redFives: setting.redFives, rules: setting.rules,
+    ...setting.winds,
+    ...(setting.winMode ? { winMode: setting.winMode } : {}),
+  };
+  let notice: string | null = null;
+  if (setting.riichiDeclared === true) {
+    const closed = s.melds.filter((m) => m.kind === 'kanC');
+    if (closed.length < s.melds.length) {
+      s = { ...s, melds: closed };
+      notice = 'Open calls removed: this player declared riichi.';
+    }
+    if (s.riichi === 'none') s = { ...s, riichi: 'riichi' };
+  } else if (setting.riichiDeclared === false && s.riichi !== 'none') {
+    s = { ...s, riichi: 'none' };
+  }
+  return { state: reconcile(s), notice };
+}
+
 /** At most five dora indicators can ever be revealed (one plus four kan dora). */
 export const MAX_DORA = 5;
 

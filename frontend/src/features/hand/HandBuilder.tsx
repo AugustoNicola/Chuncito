@@ -14,7 +14,7 @@ import { HandDisplay } from './HandDisplay';
 import { HandContextPanel } from './HandContextPanel';
 import { ScoreResultView, type ScoreAttribution } from './ScoreResultView';
 import {
-  clearHand, currentSize, initialHandState, isComplete, pressTile, reconcile,
+  clearHand, currentSize, startingHand, isComplete, pressTile, reconcile,
   removeConcealed, removeDora, removeKita, removeMeld, setRedFives, setSanma, targetSize,
   toSituation,
   toggleMode, toggleRed, winningTile, type CallMode, type HandState,
@@ -65,6 +65,11 @@ export interface HandBuilderProps {
    * Undefined in the standalone calculator, which has no table to consult.
    */
   riichiDeclared?: boolean;
+  /**
+   * A hand entered earlier and put aside, to carry on with. Brought in line
+   * with the props first (`startingHand`): they may have changed since.
+   */
+  draft?: HandState;
   /** Called with a confirmed score. Absent when used as a plain calculator. */
   onConfirm?: (result: ScoreResult, state: HandState) => void;
   /**
@@ -73,7 +78,8 @@ export interface HandBuilderProps {
    * ending at this one.
    */
   onAddAnother?: (result: ScoreResult, state: HandState) => void;
-  onCancel?: () => void;
+  /** Given the hand as it stands, so the caller can offer it back later. */
+  onCancel?: (state: HandState) => void;
   /** Replaces the "Hand" header, e.g. with the winner's name. */
   title?: string;
   /** Names the winner, and on a ron the discarder, on the score screen. */
@@ -99,20 +105,16 @@ function buildQuery(state: HandState): ScoreQuery | null {
 
 export function HandBuilder({
   winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
-  attribution, rules,
+  attribution, rules, draft,
 }: HandBuilderProps = {}) {
-  const [state, setState] = useState<HandState>(() => ({
-    ...initialHandState,
-    sanma: players === 3,
-    redFives: redFives ?? true,
-    rules: rules ?? [],
-    ...winds,
-    ...(winMode ? { winMode } : {}),
-    ...(riichiDeclared ? { riichi: 'riichi' as const } : {}),
-  }));
+  const [start] = useState(() => startingHand({
+    sanma: players === 3, redFives: redFives ?? true, rules: rules ?? [],
+    winds, winMode, riichiDeclared,
+  }, draft));
+  const [state, setState] = useState<HandState>(start.state);
   const [flap, setFlap] = useState<Flap>('tiles');
   const [result, setResult] = useState<ScoreResult | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(start.notice);
   const scorer = useScorer();
 
   const query = useMemo(() => buildQuery(state), [state]);
@@ -165,7 +167,7 @@ export function HandBuilder({
     <div className="app">
       <header className="app__bar">
         {onCancel && (
-          <button type="button" className="btn btn--quiet" onClick={onCancel}>Back</button>
+          <button type="button" className="btn btn--quiet" onClick={() => onCancel(state)}>Back</button>
         )}
         <h1 className="app__title">{title ?? 'Hand'}</h1>
         <button type="button" className="btn btn--quiet"

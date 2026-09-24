@@ -564,6 +564,15 @@ try {
 
   await byText('Review');
   await page.waitForSelector('.confirm');
+  await byText('Back');
+  await page.waitForSelector('.winmenu');
+  const keptValue = [(await groupState('Han')).find(([, , p]) => p === 'true')?.[0],
+                     (await groupState('Fu')).find(([, , p]) => p === 'true')?.[0],
+                     (await groupState('Dealt in')).find(([, , p]) => p === 'true')?.[0]];
+  check(JSON.stringify(keptValue) === JSON.stringify(['3', '30', 'Cami']),
+        `Back from the review keeps the typed value (got ${JSON.stringify(keptValue)})`);
+  await byText('Review');
+  await page.waitForSelector('.confirm');
   const confirmRound = await page.$$eval('.confirm__round span',
                                          (els) => els.map((e) => e.textContent));
   check(confirmRound[0] === 'East 1 · 0 repeats' && confirmRound[2] === 'East 2 · 0 repeats',
@@ -686,6 +695,13 @@ try {
   await page.click('.flaps__tab:nth-child(1)');
 
   for (const t of HAND) await page.click(`.keyboard [data-key="${t}"]`);
+  // Leaving the builder for the menu keeps the tiles for when it is reopened.
+  const heldTiles = () => page.$$eval('.handdisplay__tiles .tile', (els) => els.length);
+  await byText('Back');
+  await page.waitForSelector('.winmenu');
+  await byText('Enter the hand and score it');
+  await page.waitForSelector('.keyboard');
+  check(await heldTiles() === 14, `the tiles survive a trip back to the menu (got ${await heldTiles()})`);
   await page.waitForFunction(
     () => !document.querySelector('.btn--primary')?.disabled, { timeout: 30_000 });
   await byText('Score hand');
@@ -703,6 +719,16 @@ try {
   check(scoredValue === '7,700', `the confirmation shows the scored value (got ${scoredValue})`);
   const confirmTitle = await page.$eval('.app__title', (el) => el.textContent);
   check(confirmTitle === 'Dani ron off Ana', `the confirmation names the discarder (got "${confirmTitle}")`);
+  // Back from the review returns to the hand as it was, not an empty form.
+  await byText('Back');
+  await page.waitForSelector('.keyboard');
+  check(await heldTiles() === 14, `Back from the review keeps the hand (got ${await heldTiles()})`);
+  await page.waitForFunction(
+    () => !document.querySelector('.btn--primary')?.disabled, { timeout: 30_000 });
+  await byText('Score hand');
+  await page.waitForSelector('.score');
+  await byText('Record this hand');
+  await page.waitForSelector('.confirm');
   await byText('Record this hand');
   await page.waitForSelector('.table');
   const afterScored = await scores();
