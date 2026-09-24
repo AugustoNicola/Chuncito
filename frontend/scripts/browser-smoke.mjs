@@ -365,10 +365,25 @@ try {
   check(JSON.stringify(indicators) === JSON.stringify(['m9']),
         `the dora row shows the indicator itself (got ${JSON.stringify(indicators)})`);
 
-  // Ura is enterable before a riichi is picked, since the tile flap comes first.
+  // Ura dora and the open calls both follow the riichi, picked on the other flap.
+  const modes = () => page.$$eval('.modebar__btn',
+    (els) => Object.fromEntries(els.map((e) => [e.textContent, e.disabled])));
+  const noRiichi = await modes();
+  check(noRiichi['Ura Dora'] && !noRiichi.Pon, `ura dora needs a riichi (got ${JSON.stringify(noRiichi)})`);
+  await page.click('.flaps__tab:nth-child(2)');
+  await page.waitForSelector('.context');
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')]
+      .find((f) => f.querySelector('.field__label')?.textContent === 'Riichi');
+    [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Riichi').click();
+  });
+  await page.click('.flaps__tab:nth-child(1)');
+  const inRiichi = await modes();
+  check(inRiichi.Chii && inRiichi.Pon && inRiichi.Kan && !inRiichi['Closed kan'] && !inRiichi['Ura Dora'],
+        `a riichi rules out the open calls and allows ura (got ${JSON.stringify(inRiichi)})`);
   await arm('Ura Dora'); await page.click('.keyboard [data-key="s1"]');
   const uraCount = await page.$$eval('.dorarow', (rows) => rows.length);
-  check(uraCount === 2, `ura accepted without a riichi (got ${uraCount} indicator rows)`);
+  check(uraCount === 2, `ura accepted in riichi (got ${uraCount} indicator rows)`);
 
   // A kan of fives necessarily contains the red one, and it must be visible.
   await arm('Closed kan'); await page.click('.keyboard [data-key="p5"]');

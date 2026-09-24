@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
-  firstRoundYakuman, isComplete, isHandOpen, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
+  firstRoundYakuman, isComplete, isHandOpen, modeIssue, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
   toFlags, toSituation, toggleMode, toggleRed, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
@@ -212,19 +212,36 @@ describe('only three of each five are plain', () => {
 });
 
 describe('ura indicators', () => {
-  it('accepts them before a riichi is chosen, since the tile flap comes first', () => {
-    const s = pressTile(toggleMode(initialHandState, 'uraDora'), 'm1');
+  const riichi: HandState = { ...initialHandState, riichi: 'riichi' };
+
+  it('need a riichi before they can be entered', () => {
+    expect(modeIssue(initialHandState, 'uraDora')).toMatch(/requires a riichi/);
+    expect(toggleMode(initialHandState, 'uraDora').mode).toBeNull();
+    const s = pressTile(toggleMode(riichi, 'uraDora'), 'm1');
     expect(s.uraIndicators).toEqual(T('m1'));
-    expect(disabledReason(toggleMode(initialHandState, 'uraDora'), 'm1')).toBeNull();
   });
 
-  it('keeps them when the hand is opened, rather than silently dropping them', () => {
-    const s = reconcile({
-      ...initialHandState,
-      uraIndicators: T('m1'),
-      melds: [{ kind: 'pon', tiles: T('s3 s3 s3') as never }],
-    });
-    expect(s.uraIndicators).toEqual(T('m1'));
+  it('go when the riichi is withdrawn, and so does the armed mode', () => {
+    const s = reconcile({ ...toggleMode(riichi, 'uraDora'), uraIndicators: T('m1'), riichi: 'none' });
+    expect(s.uraIndicators).toEqual([]);
+    expect(s.mode).toBeNull();
+  });
+});
+
+describe('calls in riichi', () => {
+  const riichi: HandState = { ...initialHandState, riichi: 'dobleRiichi' };
+
+  it('refuses the open calls, but not a concealed kan', () => {
+    for (const mode of ['chii', 'pon', 'kan'] as const) {
+      expect(modeIssue(riichi, mode)).toMatch(/no open calls/);
+      expect(toggleMode(riichi, mode).mode).toBeNull();
+      expect(modeIssue(initialHandState, mode)).toBeNull();
+    }
+    expect(toggleMode(riichi, 'closedKan').mode).toBe('closedKan');
+  });
+
+  it('disarms an armed call when a riichi is picked', () => {
+    expect(reconcile({ ...toggleMode(initialHandState, 'pon'), riichi: 'riichi' }).mode).toBeNull();
   });
 });
 
@@ -248,9 +265,8 @@ describe('context rules the engine does not enforce', () => {
     const s = reconcile(open({ riichi: 'riichi', ippatsu: true, uraIndicators: T('m1') }));
     expect(s.riichi).toBe('none');
     expect(s.ippatsu).toBe(false);
-    // The ura indicators stay: they were entered on the tile flap, and
-    // validateQuery reports the combination when the hand is scored.
-    expect(s.uraIndicators).toEqual(T('m1'));
+    // Without the riichi the ura have nothing to count for.
+    expect(s.uraIndicators).toEqual([]);
   });
 
   it('ties chankan to ron and rinshan to tsumo', () => {

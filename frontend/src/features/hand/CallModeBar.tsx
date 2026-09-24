@@ -3,9 +3,10 @@
  * Call modes disarm themselves after use; dora and kita modes stay armed.
  *
  * In sanma there is no chii, so its button is not shown at all rather than
- * disabled -- and Kita joins the markers.
+ * disabled -- and Kita joins the markers. A riichi disables the open calls and
+ * enables Ura Dora.
  */
-import { redAvailable, type CallMode, type HandState } from './handState';
+import { modeIssue, redAvailable, type CallMode, type HandState } from './handState';
 
 type ModeSpec = { mode: CallMode; label: string; hint: string };
 
@@ -31,19 +32,24 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
   onToggleRed: () => void;
 }) {
   // data-mode drives the armed colour; idle buttons all look alike.
-  const modeButton = ({ mode, label, hint }: ModeSpec) => (
-    <button
-      key={mode}
-      type="button"
-      className={`modebar__btn${state.mode === mode ? ' modebar__btn--on' : ''}`}
-      data-mode={mode}
-      aria-pressed={state.mode === mode}
-      title={hint}
-      onClick={() => onToggle(mode)}
-    >
-      {label}
-    </button>
-  );
+  const modeButton = ({ mode, label, hint }: ModeSpec) => {
+    // Calls in riichi, ura without one: see `modeIssue`.
+    const issue = modeIssue(state, mode);
+    return (
+      <button
+        key={mode}
+        type="button"
+        className={`modebar__btn${state.mode === mode ? ' modebar__btn--on' : ''}`}
+        data-mode={mode}
+        aria-pressed={state.mode === mode}
+        disabled={issue !== null}
+        title={issue ?? hint}
+        onClick={() => onToggle(mode)}
+      >
+        {label}
+      </button>
+    );
+  };
 
   return (
     <div className="modebar">

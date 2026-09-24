@@ -328,8 +328,29 @@ export const isDisabled = (state: HandState, tile: Tile): boolean =>
 
 // --- transitions ---
 
+/**
+ * Why a mode cannot be armed right now, or null. Both rules follow the riichi,
+ * which is picked on the other flap, so `reconcile` re-checks the armed mode
+ * whenever the state changes:
+ *
+ * - **No open calls in riichi.** A riichi hand is closed; the concealed kan
+ *   stays, since an ankan is legal after riichi.
+ * - **Ura dora need a riichi.** They are only turned over for one.
+ */
+export function modeIssue(state: HandState, mode: CallMode): string | null {
+  switch (mode) {
+    case 'chii': case 'pon': case 'kan':
+      return state.riichi !== 'none' ? 'no open calls after a riichi' : null;
+    case 'uraDora':
+      return contextIssue(state, 'uraDora');
+    default:
+      return null;
+  }
+}
+
 export function toggleMode(state: HandState, mode: CallMode): HandState {
   const next = state.mode === mode ? null : mode;
+  if (next !== null && modeIssue(state, next)) return state;
   // The red modifier is meaningless while marking dora indicators or a kita.
   const red = isMarker(next) ? false : state.red;
   return { ...state, mode: next, red };
@@ -513,9 +534,11 @@ export function reconcile(state: HandState): HandState {
   if (contextIssue(s, 'chankan') && s.chankan) s = { ...s, chankan: false };
   if (contextIssue(s, 'rinshan') && s.rinshan) s = { ...s, rinshan: false };
   if (contextIssue(s, 'firstRound') && s.firstRound) s = { ...s, firstRound: false };
-  // Ura indicators are deliberately kept even without a riichi: they are entered
-  // on the tile flap, before the riichi is picked. validateQuery reports the
-  // combination at score time.
+  // Ura indicators can only be entered in riichi, so withdrawing the riichi
+  // takes them with it -- as it takes ippatsu -- rather than leaving indicators
+  // that could no longer be added or scored.
+  if (contextIssue(s, 'uraDora') && s.uraIndicators.length > 0) s = { ...s, uraIndicators: [] };
+  if (s.mode !== null && modeIssue(s, s.mode)) s = { ...s, mode: null };
   return s;
 }
 

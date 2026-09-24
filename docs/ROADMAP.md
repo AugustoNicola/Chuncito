@@ -540,6 +540,15 @@ per item.** Ticked here as they land, with what was decided.
       back on switching to ron), and the panel says on screen what the tick
       will score as — Tenhou / Chiihou / Renhou (`firstRoundYakuman`) — or
       why it is unavailable, since the tooltip never shows on a phone.
+- [x] **Call buttons disabled on riichi** and **Ura Dora only on riichi** —
+      one commit, since they are one rule (`modeIssue` in `handState.ts`):
+      a riichi (any kind) disables Chii, Pon and the open Kan (Closed kan
+      stays, an ankan is legal in riichi) and enables Ura Dora. The riichi
+      is on the other flap, so `reconcile` disarms a mode that just became
+      illegal, and withdrawing the riichi drops the ura indicators, like
+      ippatsu. In the tracker a declared riichi is preselected, so the calls
+      are off from the start. This reverses the old "ura before riichi,
+      since the tile flap comes first": pick the riichi first now.
 
 ## Picking this up cold
 
