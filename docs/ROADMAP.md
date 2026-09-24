@@ -599,6 +599,8 @@ per item.** Ticked here as they land, with what was decided.
 - [x] **Sort player selection alphabetically** — setup's picker uses
       `byName` (case- and accent-insensitive). The history filter's chips
       keep `byRecent`, which is what `markSeated` still feeds.
+- [x] **Gap between wind and dragon tiles** — the keyboard's honour row is
+      winds in columns 1–4, dragons in 7–9 (`.keyboard__row--honours`).
 
 ## Picking this up cold
 
