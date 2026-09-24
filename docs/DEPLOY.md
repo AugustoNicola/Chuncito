@@ -9,6 +9,12 @@ origin, which the PIN cookie needs. The database is not on Heroku: it is the
 Neon project's default branch (`aws-us-east-2`, Ohio; Heroku's US region is
 Virginia).
 
+**The host is written into `frontend/index.html`** as the link preview's
+`og:image`, which has to be an absolute URL. A custom domain means updating it
+there. `robots.txt` still turns every crawler away: previews made by the
+sending phone (WhatsApp, iMessage) or by bots that ignore robots (Telegram,
+Discord) unfurl; ones from crawlers that obey it (X, LinkedIn) will not.
+
 **Naming:** our code calls the real database's target `main`
 (`CHUNCITO_TARGET=main`); Neon's console calls that branch **`production`**,
 endpoint `ep-odd-poetry-…`. The `dev` target is Neon's `dev` branch,

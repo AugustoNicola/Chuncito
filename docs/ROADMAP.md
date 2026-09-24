@@ -493,6 +493,21 @@ their stats endpoints, then the desktop layout.
       are smaller than the other cards' glyphs (they share one card's width).
 
 
+## Backlog (from 2026-09-24)
+
+The user writes items as sections of the repo-root `backlog.md` (rough notes,
+in Spanish, in `backlog_crudo.md`), and may add to it mid-session. **One commit
+per item.** Ticked here as they land, with what was decided.
+
+- [x] **Opengraph design** — `npm run brand` (`scripts/make-brand.mjs`) draws
+      the favicons (`.svg`, `.ico` at 16/32/48 with the strokes thickened for
+      the small sizes, a 180 px `apple-touch-icon`) and a 1200×630 `og.png`
+      in Firefox, from the chun mask, the accent and the theme's font, so they
+      are the home title rather than a redrawing of it. Landscape, the size
+      every unfurler expects, though the backlog said "portrait". `og:image`
+      names the Heroku host (see `DEPLOY.md`); `robots.txt` still refuses
+      crawlers, so X/LinkedIn will not unfurl, WhatsApp/Telegram will.
+
 ## Picking this up cold
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what

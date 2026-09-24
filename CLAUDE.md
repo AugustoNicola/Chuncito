@@ -18,6 +18,7 @@ All from `frontend/`:
 | `npm run test:browser` | Boots the app in the system Firefox and asserts a real score |
 | `npm run build` | Typecheck + production build |
 | `npm run measure:storage` | Simulates matches and sizes the database (see `DATA_MODEL.md`) |
+| `npm run brand` | Redraws the favicons and link-preview image into `public/` (Firefox) |
 
 From the repo root:
 

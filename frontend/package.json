@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "node scripts/browser-smoke.mjs",
+    "brand": "node scripts/make-brand.mjs",
     "sim:storage": "vite-node scripts/storage-sim.ts",
     "measure:storage": "vite-node scripts/storage-sim.ts ${MATCHES:-1000} ${SCENARIO:-typical} | python3 scripts/storage-measure.py"
   },
