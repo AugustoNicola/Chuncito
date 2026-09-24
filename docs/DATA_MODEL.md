@@ -19,6 +19,8 @@ players(id, display_name, slug UNIQUE, avatar, created_at)
 matches(id, name, players ENUM(3,4), red_fives BOOL,
         rules TEXT[],     -- house rules, as the scorer's own rule atoms (0002)
         length ENUM(east,south), starting_points, uma_json,
+        target_score,     -- results are final - target + uma, oka to 1st (0004;
+                          -- earlier matches get their starting points: no oka)
         goal_score,       -- reach it by the final round or play one more wind (0003;
                           -- was return_score)
         status ENUM(in_progress,finished,abandoned),

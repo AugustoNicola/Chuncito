@@ -180,7 +180,8 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
     values = {
         'name': t.name, 'players': t.players, 'red_fives': t.red_fives, 'rules': t.rules,
         'length': t.length,
-        'starting_points': t.starting_points, 'goal_score': t.goal_score,
+        'starting_points': t.starting_points, 'target_score': t.target_score,
+        'goal_score': t.goal_score,
         'uma': json.loads(t.uma_json), 'status': t.status, 'end_reason': t.end_reason,
         'started_at': _parse_time(t.started_at), 'ended_at': _parse_time(t.ended_at),
         'max_level': t.max_level, 'is_test': t.is_test,
@@ -280,7 +281,8 @@ def load_match(conn: Connection, match_id: str
         match={
             'id': t.id, 'name': t.name, 'players': t.players, 'red_fives': t.red_fives,
             'rules': list(t.rules), 'length': t.length, 'starting_points': t.starting_points,
-            'goal_score': t.goal_score, 'uma_json': _dump_json(t.uma),
+            'target_score': t.target_score, 'goal_score': t.goal_score,
+            'uma_json': _dump_json(t.uma),
             'status': t.status, 'end_reason': t.end_reason,
             'started_at': _format_time(t.started_at), 'ended_at': _format_time(t.ended_at),
             'max_level': t.max_level, 'is_test': t.is_test,

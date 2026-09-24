@@ -1067,7 +1067,7 @@ button {
 .standings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .standings__row {
   display: grid;
-  grid-template-columns: 2.4rem 1fr auto 3rem;
+  grid-template-columns: 2.4rem 1fr auto 3.6rem;
   align-items: center;
   gap: 10px;
   padding: 12px 10px;
@@ -1102,10 +1102,18 @@ button {
 .standings__score { font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .standings__score--negative { color: var(--loss); }
 .standings__uma {
-  text-align: right; color: var(--gain);
+  text-align: right; color: var(--gain); font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .standings__uma--negative { color: var(--loss); }
+/* The result's working, under the name and score: there to check, not to read first. */
+.standings__working {
+  grid-column: 2 / -1;
+  margin-top: -6px;
+  font-size: 0.78rem; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.standings__rules { margin: 8px 2px 0; font-size: 0.78rem; line-height: 1.45; color: var(--text-faint); }
 
 /* Discard beside Save, the way the review screen pairs Go back with Record. */
 .endscreen__actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }

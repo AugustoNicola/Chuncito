@@ -16,7 +16,7 @@ import {
   type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
 } from '../players/players';
 import { refreshPlayers } from './syncClient';
-import { placeLabel } from './scoring';
+import { okaOf, placeLabel } from './scoring';
 
 const umaFields = (players: PlayerCount): string[] => DEFAULTS[players].uma.map(String);
 
@@ -53,6 +53,7 @@ export function SetupScreen({ onStart, onCancel }: {
   /** Off by default: an open riichi ron is worth its 2 han like any other. */
   const [openRiichiYakuman, setOpenRiichiYakuman] = useState(false);
   const [startingPoints, setStartingPoints] = useState(DEFAULTS[4].startingPoints);
+  const [targetScore, setTargetScore] = useState(DEFAULTS[4].targetScore);
   const [goalScore, setGoalScore] = useState(DEFAULTS[4].goalScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
 
@@ -104,6 +105,7 @@ export function SetupScreen({ onStart, onCancel }: {
     setPlayers(count);
     setUma(umaFields(count));
     setStartingPoints(DEFAULTS[count].startingPoints);
+    setTargetScore(DEFAULTS[count].targetScore);
     setGoalScore(DEFAULTS[count].goalScore);
   };
 
@@ -116,7 +118,10 @@ export function SetupScreen({ onStart, onCancel }: {
   // Uma that does not sum to zero would invent or destroy points across the
   // group's whole history, so it is worth refusing rather than warning about.
   const umaBalanced = umaValid && umaValues.reduce((a, b) => a + b, 0) === 0;
-  const ready = filled && !duplicate && umaBalanced;
+  const oka = okaOf({ players, startingPoints, targetScore });
+  // Below the start, the oka would be *taken from* 1st -- nobody plays that.
+  const targetValid = targetScore >= startingPoints;
+  const ready = filled && !duplicate && umaBalanced && targetValid;
 
   function start() {
     if (!ready) return;
@@ -128,6 +133,7 @@ export function SetupScreen({ onStart, onCancel }: {
       rules: openRiichiYakuman ? ['riichiAbiertoRonYakuman'] : [],
       length,
       startingPoints,
+      targetScore,
       goalScore,
       uma: umaValues,
       seats: chosen,
@@ -323,11 +329,27 @@ export function SetupScreen({ onStart, onCancel }: {
                    onChange={(e) => setGoalScore(Number(e.target.value))} />
           </label>
         </div>
+        <label className="field">
+          <span className="field__label">Target score</span>
+          <input className="setup__number" type="number" step={1000} min={0}
+                 value={targetScore}
+                 onChange={(e) => setTargetScore(Number(e.target.value))} />
+        </label>
         <span className="field__hint">
           The goal decides when the match ends: if nobody has reached it by the
           end of the last round, play goes on for one more wind, until somebody
           does or that wind is over.
         </span>
+        <span className="field__hint">
+          The target is what everyone is measured against at the end: each
+          result is final score − target + uma, and 1st also takes the oka,
+          {' '}{oka >= 0
+            ? `(${targetScore.toLocaleString()} − ${startingPoints.toLocaleString()}) × ${players} = ${oka.toLocaleString()}`
+            : 'which is negative here'}. The results always sum to zero.
+        </span>
+        {!targetValid && (
+          <span className="setup__warn">The target cannot be below the starting points.</span>
+        )}
       </div>
 
       <div className="app__spacer" />

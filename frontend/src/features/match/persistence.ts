@@ -85,14 +85,18 @@ export function upgrade(state: MatchState): { state: MatchState; changed: boolea
   // Called `returnScore` before the goal and target scores were told apart.
   const legacy = state.config as Partial<MatchState['config']> & { returnScore?: number };
   const goalScore = legacy.goalScore ?? legacy.returnScore ?? DEFAULTS[players].goalScore;
+  // Matches begun before the target score were played without oka: measured
+  // against their starting points, which is what a target equal to it means.
+  const targetScore = legacy.targetScore ?? legacy.startingPoints ?? DEFAULTS[players].startingPoints;
   const id = (state as Partial<MatchState>).id ?? uuid();
   if (state.config.players === players && state.config.redFives === redFives
-      && state.config.rules === rules && state.config.goalScore === goalScore && state.id === id) {
+      && state.config.rules === rules && state.config.goalScore === goalScore
+      && state.config.targetScore === targetScore && state.id === id) {
     return { state, changed: false };
   }
   const { returnScore: _dropped, ...config } = legacy as MatchState['config'] & { returnScore?: number };
   return {
-    state: { ...state, id, config: { ...config, players, redFives, rules, goalScore } },
+    state: { ...state, id, config: { ...config, players, redFives, rules, goalScore, targetScore } },
     changed: true,
   };
 }

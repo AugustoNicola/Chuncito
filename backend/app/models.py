@@ -86,6 +86,8 @@ matches = Table(
     Column('rules', ARRAY(Text), nullable=False, server_default='{}'),
     Column('length', Text, nullable=False),
     Column('starting_points', Integer, nullable=False),
+    # What results are measured against (oka); see `matchResults` in the client.
+    Column('target_score', Integer, nullable=False),
     Column('goal_score', Integer, nullable=False),
     Column('uma', JSONB, nullable=False),
     Column('status', Text, nullable=False),

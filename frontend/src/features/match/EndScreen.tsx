@@ -1,8 +1,9 @@
 /**
  * Final standings.
  *
- * Placement points are uma alone -- this group plays without oka -- so the raw
- * score is shown next to them rather than folded into them. The name field is
+ * Each player's result -- final score against the target, uma, and 1st's oka
+ * -- is shown with its working (`MatchOutcome`), so it can be checked at the
+ * table and seen to sum to zero. The name field is
  * here because a match is much easier to find later by what happened in it than
  * by its date.
  */

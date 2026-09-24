@@ -29,12 +29,12 @@ def test_the_migration_downgrades_and_upgrades_cleanly(engine):
 def test_level_rank_is_derived_from_the_level(engine):
     with engine.begin() as conn:
         ranks = conn.execute(text("""
-            insert into matches (id, players, red_fives, length, starting_points,
+            insert into matches (id, players, red_fives, length, starting_points, target_score,
                                  goal_score, uma, status, started_at, max_level)
-            values ('r0', 4, true, 'south', 25000, 30000, '[]', 'finished', now(), null),
-                   ('r1', 4, true, 'south', 25000, 30000, '[]', 'finished', now(), 'mangan'),
-                   ('r2', 4, true, 'south', 25000, 30000, '[]', 'finished', now(), 'dobleYakuman'),
-                   ('r3', 4, true, 'south', 25000, 30000, '[]', 'finished', now(), '4xYakuman')
+            values ('r0', 4, true, 'south', 25000, 30000, 30000, '[]', 'finished', now(), null),
+                   ('r1', 4, true, 'south', 25000, 30000, 30000, '[]', 'finished', now(), 'mangan'),
+                   ('r2', 4, true, 'south', 25000, 30000, 30000, '[]', 'finished', now(), 'dobleYakuman'),
+                   ('r3', 4, true, 'south', 25000, 30000, 30000, '[]', 'finished', now(), '4xYakuman')
             returning id, max_level_rank
         """)).all()
         conn.rollback()

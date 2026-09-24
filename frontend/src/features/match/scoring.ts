@@ -386,6 +386,47 @@ export function placements(scores: Delta, uma: readonly number[]): Placement[] {
   }));
 }
 
+/**
+ * The oka: what the table pays for starting below the target. Every player
+ * starts `target - starting` short, so that much times the player count is
+ * missing from the totals; 1st collects it, and the results sum to zero.
+ */
+export const okaOf = (config: { players: PlayerCount; startingPoints: number; targetScore: number }): number =>
+  (config.targetScore - config.startingPoints) * config.players;
+
+/** One player's result: how the final score turns into a number that sums to zero. */
+export interface MatchResult extends Placement {
+  /** `score - target`: above or below what everyone was meant to finish on. */
+  vsTarget: number;
+  /** The uma in points (the config's uma is in thousands). */
+  uma: number;
+  /** The oka, to 1st only. */
+  oka: number;
+  /** vsTarget + uma + oka, in points. Across the table these sum to zero. */
+  total: number;
+}
+
+/**
+ * Final standings with each player's result, the standard way:
+ * (final score - target score) + uma, and 1st adds the oka. Points are
+ * conserved at the table and the uma sums to zero, so the results do too.
+ */
+export function matchResults(scores: Delta, config: {
+  players: PlayerCount; startingPoints: number; targetScore: number; uma: readonly number[];
+}): MatchResult[] {
+  const oka = okaOf(config);
+  return placements(scores, config.uma).map((p) => {
+    const vsTarget = p.score - config.targetScore;
+    const uma = p.umaPoints * 1000;
+    const bonus = p.place === 1 ? oka : 0;
+    return { ...p, vsTarget, uma, oka: bonus, total: vsTarget + uma + bonus };
+  });
+}
+
+/** A result in thousands, signed, as tables write it: "+14.5", "-3.0". */
+export const resultLabel = (points: number): string =>
+  `${points > 0 ? '+' : points < 0 ? '−' : ''}${(Math.abs(points) / 1000).toFixed(1)}`;
+
 /** "1st", "2nd", ... -- a place as the table says it. */
 export const placeLabel = (place: number): string =>
   `${place}${['st', 'nd', 'rd'][place - 1] ?? 'th'}`;

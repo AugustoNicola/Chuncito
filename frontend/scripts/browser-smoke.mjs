@@ -998,8 +998,13 @@ try {
   // The wind each started on, however far the deal went.
   check(JSON.stringify(standings.map((r) => r.wind)) === JSON.stringify(['東', '南', '西', '北']),
         `the standings show each player's starting wind (got ${JSON.stringify(standings.map((r) => r.wind))})`);
-  check(standings[0]?.uma === '+20', `uma is applied by placement (got ${standings[0]?.uma})`);
-  check(standings[3]?.uma === '-20', `last place takes the bottom uma (got ${standings[3]?.uma})`);
+  // All level at 25,000 against a 30,000 target: -5 each, then uma, and 1st's
+  // oka of 20 -- which is what makes the four sum to zero.
+  check(standings[0]?.uma === '+35.0', `1st: -5 + 20 uma + 20 oka (got ${standings[0]?.uma})`);
+  check(standings[3]?.uma === '−25.0', `4th: -5 - 20 uma (got ${standings[3]?.uma})`);
+  const rulesLine = await page.$eval('.standings__rules', (el) => el.textContent);
+  check(rulesLine.includes('oka') && rulesLine.includes('sum to 0.0'),
+        `the end screen explains the results and that they sum to zero (got "${rulesLine}")`);
   await shot('16-endscreen.png');
 
   // A finished match can be thrown away instead of saved: two taps, then home.

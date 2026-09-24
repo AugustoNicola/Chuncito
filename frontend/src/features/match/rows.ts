@@ -38,6 +38,7 @@ export interface MatchTableRow {
   rules: Rule[];
   length: MatchLength;
   startingPoints: number;
+  targetScore: number;
   goalScore: number;
   umaJson: string;
   status: MatchState['status'];
@@ -121,6 +122,7 @@ export function toRows(state: MatchState): MatchRows {
       rules: [...state.config.rules],
       length: state.config.length,
       startingPoints: state.config.startingPoints,
+      targetScore: state.config.targetScore,
       goalScore: state.config.goalScore,
       umaJson: JSON.stringify(state.config.uma),
       status: state.status,
@@ -247,6 +249,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     rules: rows.match.rules,
     length: rows.match.length,
     startingPoints: rows.match.startingPoints,
+    targetScore: rows.match.targetScore,
     goalScore: rows.match.goalScore,
     uma: JSON.parse(rows.match.umaJson) as MatchConfig['uma'],
     seats,

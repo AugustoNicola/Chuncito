@@ -671,6 +671,18 @@ per item.** Ticked here as they land, with what was decided.
       played (a manual end) gets its own row too, fixing the old edge where
       such a stick vanished from a rebuilt match. Undo of the ending hand
       takes the settlement back. The review screen says where they go.
+- [x] **Clean point ranking** — a **target score**, apart from the goal
+      (`MatchConfig.targetScore`, `matches.target_score`, **migration
+      `0004`**, backfilled to the starting points for older matches, i.e. no
+      oka — as they were played). `matchResults` (`scoring.ts`): each result
+      is final − target + uma, and 1st takes the oka, (target − start) ×
+      players; points are conserved and uma sums to zero, so results sum to
+      zero, which a unit test checks. Defaults 25,000 start / 30,000 target
+      (oka 20) / 30,000 goal; sanma 35/40/40 (oka 15). Setup explains the oka
+      with the numbers and refuses a target below the start. The end screen
+      and match review show each result ("+35.0") with its working ("−5.0 vs
+      target · +20 uma · +20.0 oka") and a line of the rules ending "The
+      results sum to 0.0". Stored `uma_points` stay uma alone.
 
 ## Picking this up cold
 

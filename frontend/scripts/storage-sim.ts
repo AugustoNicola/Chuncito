@@ -210,6 +210,7 @@ const config = (): MatchConfig => ({
   rules: [],
   length: 'south',
   startingPoints: 25000,
+  targetScore: 30000,
   goalScore: 30000,
   uma: [20, 10, -10, -20],
   seats: [

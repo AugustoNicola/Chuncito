@@ -65,6 +65,13 @@ export interface MatchConfig {
   length: MatchLength;
   startingPoints: number;
   /**
+   * What every player is measured against at the end: a result is
+   * `final - target + uma`, and 1st also takes the oka, the difference between
+   * this and the starting points for every player (`matchResults`). Not the
+   * end condition -- that is `goalScore`.
+   */
+  targetScore: number;
+  /**
    * The score somebody must reach for the match to end at its final round;
    * short of it, play goes on for one more wind (see `endCheck`). Only the
    * end condition -- not the score placements are measured against.
@@ -231,10 +238,10 @@ export function uuid(): string {
 
 /** Setup defaults, per player count. Every one of them is editable at setup. */
 export const DEFAULTS: Readonly<Record<PlayerCount, {
-  uma: readonly number[]; startingPoints: number; goalScore: number;
+  uma: readonly number[]; startingPoints: number; targetScore: number; goalScore: number;
 }>> = {
-  4: { uma: [20, 10, -10, -20], startingPoints: 25000, goalScore: 30000 },
-  3: { uma: [15, 0, -15], startingPoints: 35000, goalScore: 40000 },
+  4: { uma: [20, 10, -10, -20], startingPoints: 25000, targetScore: 30000, goalScore: 30000 },
+  3: { uma: [15, 0, -15], startingPoints: 35000, targetScore: 40000, goalScore: 40000 },
 };
 
 export const DEFAULT_UMA: readonly number[] = DEFAULTS[4].uma;

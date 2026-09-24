@@ -8,7 +8,7 @@ import { fromRows, toRows } from './rows';
 import {
   type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, baseFromResult, basePoints, levelFor,
   manualReachable,
-  paymentFor, placeLabel, placements, placesOf,
+  matchResults, paymentFor, placeLabel, placements, placesOf, resultLabel,
 } from './scoring';
 import { dealerOf, seatWindOf } from './seats';
 import type { Seat } from './seats';
@@ -19,6 +19,7 @@ const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   rules: [],
   length: 'south',
   startingPoints: 25000,
+  targetScore: 30000,
   goalScore: 30000,
   uma: DEFAULT_UMA,
   seats: [
@@ -429,6 +430,24 @@ describe('placements', () => {
     const result = placements([25000, 25000, 25000, 25000], DEFAULT_UMA);
     expect(result.map((p) => p.seat)).toEqual([0, 1, 2, 3]);
     expect(result.map((p) => p.place)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('turns final scores into results that sum to zero, oka to 1st', () => {
+    const cfg = { players: 4 as const, startingPoints: 25000, targetScore: 30000, uma: [30, 10, -10, -30] };
+    const r = matchResults([34500, 42000, 15500, 8000] as Delta, cfg);
+    // The backlog's example: 2nd on 34,500 is (34.5 - 30) + 10 = +14.5.
+    expect(r[1]).toMatchObject({ seat: 0, place: 2, total: 14500 });
+    expect(r[0]).toMatchObject({ seat: 1, oka: 20000, total: 12000 + 30000 + 20000 });
+    expect(r.reduce((a, p) => a + p.total, 0)).toBe(0);
+    expect(resultLabel(14500)).toBe('+14.5');
+    expect(resultLabel(-22000)).toBe('−22.0');
+  });
+
+  it('has no oka when the target is the starting score', () => {
+    const r = matchResults([30000, 25000, 25000, 20000] as Delta,
+      { players: 4, startingPoints: 25000, targetScore: 25000, uma: [20, 10, -10, -20] });
+    expect(r.map((p) => p.oka)).toEqual([0, 0, 0, 0]);
+    expect(r.reduce((a, p) => a + p.total, 0)).toBe(0);
   });
 
   it('sums uma to zero', () => {

@@ -25,6 +25,7 @@ const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   rules: [],
   length: 'south',
   startingPoints: DEFAULTS[3].startingPoints,
+  targetScore: DEFAULTS[3].targetScore,
   goalScore: DEFAULTS[3].goalScore,
   uma: DEFAULTS[3].uma,
   seats: [
