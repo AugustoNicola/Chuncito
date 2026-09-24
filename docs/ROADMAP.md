@@ -606,6 +606,10 @@ per item.** Ticked here as they land, with what was decided.
       4 → South 1" and a finished match's state sat in a round never played.
       A match-ending hand now leaves the round alone; the review says "East
       4 → End of the match" and drops "On the table next hand".
+- [x] **Back on History undoes filters** — every filter change (chips,
+      selects, Clear filters; typing already did) now *replaces* the history
+      entry, so Back — button or gesture — leaves the list, while Back from a
+      match review still lands on the list as it was filtered.
 
 ## Picking this up cold
 

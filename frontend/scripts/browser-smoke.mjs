@@ -1370,6 +1370,7 @@ try {
   await shot('60-history.png');
 
   // Filtering by a player puts it in the URL.
+  const entriesBefore = await page.evaluate(() => history.length);
   await page.evaluate((name) => [...document.querySelectorAll('.history__chips .chip')]
     .find((c) => c.textContent === name).click(), 'Beto');
   await waitListed(() => ![...document.querySelectorAll('.history__name')]
@@ -1419,6 +1420,10 @@ try {
   await byText('Sanma');
   await waitListed(() => document.querySelectorAll('.history__item').length > 0);
   check((await page.evaluate(() => location.search)) === '?players=3', 'sanma only is in the URL too');
+  // Filters replace the history entry, so Back leaves the list rather than
+  // stepping back through every filter. (One entry was added by the review.)
+  check(await page.evaluate(() => history.length) === entriesBefore + 1,
+        `changing filters adds no history entries (got ${await page.evaluate(() => history.length)}, from ${entriesBefore})`);
 
   await page.goto('http://localhost:5199/matches/no-such-match', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.querySelector('.home__hint')?.textContent

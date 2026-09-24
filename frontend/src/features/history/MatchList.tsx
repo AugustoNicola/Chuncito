@@ -3,7 +3,9 @@
  *
  * The filters are the URL's query string rather than component state, so Back
  * from a match review comes back to the same list, and a reload keeps it.
- * Typing replaces the history entry rather than adding one per keystroke.
+ * Every change *replaces* the history entry rather than adding one, so Back
+ * -- the button or the gesture -- leaves the list instead of stepping back
+ * through the filters one by one.
  */
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -50,8 +52,8 @@ export function MatchList({ onBack }: { onBack: () => void }) {
     // `filters.text` only decides the delay; `key` already carries it.
   }, [key, reload]);
 
-  const change = (next: Partial<HistoryFilters>, opts: { typing?: boolean } = {}) =>
-    setParams(paramsOf({ ...filters, ...next }), { replace: opts.typing ?? false });
+  const change = (next: Partial<HistoryFilters>) =>
+    setParams(paramsOf({ ...filters, ...next }), { replace: true });
 
   const togglePlayer = (id: string) => change({
     playerIds: filters.playerIds.includes(id)
@@ -71,7 +73,7 @@ export function MatchList({ onBack }: { onBack: () => void }) {
       <section className="history__filters" aria-label="Filters">
         <input className="history__search" type="search" value={filters.text}
                placeholder="Search by match or player name" aria-label="Search"
-               onChange={(e) => change({ text: e.target.value }, { typing: true })} />
+               onChange={(e) => change({ text: e.target.value })} />
 
         {players.length > 0 && (
           <div className="history__chips" role="group" aria-label="Played by">
@@ -113,7 +115,7 @@ export function MatchList({ onBack }: { onBack: () => void }) {
 
         {isFiltered(filters) && (
           <button type="button" className="btn btn--quiet history__clear"
-                  onClick={() => setParams(paramsOf(NO_FILTERS))}>
+                  onClick={() => change(NO_FILTERS)}>
             Clear filters
           </button>
         )}
