@@ -29,16 +29,20 @@ function MeldView({ meld, onRemove }: { meld: DeclaredMeld; onRemove: () => void
   );
 }
 
-/** The indicators as they sit on the table. What each points at is left implicit. */
+/**
+ * The indicators as they sit on the table. What each points at is left
+ * implicit. Without `onRemove` the tiles are plain images, not buttons -- a
+ * summary can sit inside something clickable (the profile's best hand).
+ */
 function IndicatorRow({ label, indicators, sanma, onRemove }: {
-  label: string; indicators: TileAtom[]; sanma: boolean; onRemove: (i: number) => void;
+  label: string; indicators: TileAtom[]; sanma: boolean; onRemove?: (i: number) => void;
 }) {
   if (indicators.length === 0) return null;
   return (
     <div className="dorarow">
       <span className="dorarow__label">{label}</span>
       {indicators.map((tile, i) => (
-        <Tile key={i} face={tile} onClick={() => onRemove(i)}
+        <Tile key={i} face={tile} onClick={onRemove && (() => onRemove(i))}
               label={`${label} indicator ${tile} — points at ${doraFromIndicator(tile, sanma)}`} />
       ))}
     </div>
@@ -46,7 +50,7 @@ function IndicatorRow({ label, indicators, sanma, onRemove }: {
 }
 
 /** Norths pulled aside in sanma, shown with the dora since that is what they are. */
-function KitaRow({ count, onRemove }: { count: number; onRemove: () => void }) {
+function KitaRow({ count, onRemove }: { count: number; onRemove?: () => void }) {
   if (count === 0) return null;
   return (
     <div className="dorarow">
@@ -88,11 +92,9 @@ export function HandSummary({ state }: { state: HandState }) {
           </span>
         ))}
       </div>
-      <IndicatorRow label="Dora" indicators={state.doraIndicators} sanma={state.sanma}
-                    onRemove={() => {}} />
-      <IndicatorRow label="Ura" indicators={state.uraIndicators} sanma={state.sanma}
-                    onRemove={() => {}} />
-      <KitaRow count={state.kita} onRemove={() => {}} />
+      <IndicatorRow label="Dora" indicators={state.doraIndicators} sanma={state.sanma} />
+      <IndicatorRow label="Ura" indicators={state.uraIndicators} sanma={state.sanma} />
+      <KitaRow count={state.kita} />
     </div>
   );
 }

@@ -130,7 +130,11 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
       {best && (
         <section className="profile__section">
           <h2 className="home__heading">Best hand</h2>
-          <div className="endscreen__best" data-tier={best.level ? levelTier(best.level) : 'none'}>
+          {/* The whole box opens the match it was won in. */}
+          <button type="button" className="endscreen__best endscreen__best--link"
+                  data-tier={best.level ? levelTier(best.level) : 'none'}
+                  aria-label="Open the match this hand was won in"
+                  onClick={() => onOpen(best.matchId)}>
             <span className="endscreen__bestvalue">
               {!best.level || best.level === 'sinNombre'
                 ? `${best.han ?? '?'} han${best.fu ? ` · ${best.fu} fu` : ''}`
@@ -142,10 +146,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
               {best.pointsWon !== null && ` · ${best.pointsWon.toLocaleString()}`}
             </span>
             {best.handTiles && <HandSummary state={decodeHandTiles(best.handTiles, sanma)} />}
-          </div>
-          <button type="button" className="btn btn--quiet profile__open"
-                  onClick={() => onOpen(best.matchId)}>
-            See that match
+            <span className="endscreen__bestopen" aria-hidden="true">Open the match ›</span>
           </button>
         </section>
       )}

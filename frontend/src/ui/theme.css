@@ -1510,7 +1510,17 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
 .bars__count { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
 .bars__more { align-self: flex-start; }
 
-.profile__open { align-self: flex-start; }
+/* The profile's best hand is itself the way into its match. */
+.endscreen__best--link {
+  width: 100%; font: inherit; color: inherit; text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms, transform 120ms;
+}
+.endscreen__best--link:hover, .endscreen__best--link:focus-visible {
+  border-color: var(--border-strong);
+}
+.endscreen__best--link:active { transform: scale(0.99); }
+.endscreen__bestopen { margin-top: 6px; font-size: 0.78rem; color: var(--text-faint); }
 .profile__table summary, .profile__notyet summary { cursor: pointer; color: var(--text-dim); font-size: 0.88rem; }
 .profile__notyetlist { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
 .profile__matches { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }

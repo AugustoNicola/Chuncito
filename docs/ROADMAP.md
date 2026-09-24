@@ -610,6 +610,10 @@ per item.** Ticked here as they land, with what was decided.
       selects, Clear filters; typing already did) now *replaces* the history
       entry, so Back — button or gesture — leaves the list, while Back from a
       match review still lands on the list as it was filtered.
+- [x] **Best hand's match from the profile** — "See that match" is gone;
+      the best-hand box is itself the button (with a quiet "Open the match ›"
+      line). `HandSummary`'s dora and kita rows no longer render their tiles
+      as no-op buttons, which would have nested buttons inside it.
 
 ## Picking this up cold
 

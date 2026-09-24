@@ -1470,6 +1470,13 @@ try {
   check(JSON.stringify(bars) === JSON.stringify(['Riichi', 'Tanyao', 'Pinfu']),
         `the yaku leave dora out (got ${JSON.stringify(bars)})`);
   check(await page.$('.endscreen__best .handsummary') !== null, 'the best hand shows its tiles');
+  check(await page.$('.profile__open') === null && await page.$('button.endscreen__best--link') !== null,
+        'the best hand box is itself the link to its match');
+  await page.click('button.endscreen__best--link');
+  await page.waitForSelector('.standings', { timeout: 10_000 });
+  check((await at()).startsWith('/matches/'), `tapping the best hand opens its match (got ${await at()})`);
+  await page.goBack();
+  await page.waitForSelector('button.endscreen__best--link', { timeout: 10_000 });
   const fills = await page.$$eval('.donut__slice', (els) => els.map((e) => getComputedStyle(e).fill));
   check(fills.includes('rgb(255, 210, 74)') && fills.includes('rgb(180, 122, 232)') && fills.includes('rgb(255, 107, 107)'),
         `win method is gold, purple and red (got ${JSON.stringify(fills)})`);
