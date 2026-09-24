@@ -125,22 +125,73 @@ export function paymentTotal(payment: Payment, players: PlayerCount): number {
   }
 }
 
+/** The han the win menu offers directly; five and up are limits. */
+export const MANUAL_HAN = [1, 2, 3, 4] as const;
+/** The fu the rules can produce. 25 is chiitoitsu; 20 is a pinfu tsumo. */
+export const MANUAL_FU = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110] as const;
+
 /**
- * Whether a han/fu pair is reachable at all, for disabling the manual pickers.
- *
- * Only the two special fu values constrain anything; 30 fu and up are open at
- * every han. Both depend on how the hand was won:
- *
- * - **20 fu is pinfu**, and its only tsumo form is pinfu plus menzen tsumo, so
- *   two han is the floor. On a ron it cannot happen at all: a closed ron adds
- *   the ten-point menzen bonus, and an open all-runs hand is scored as 30 fu.
- * - **25 fu is chiitoitsu**, which is two han closed. A tsumo adds menzen tsumo
- *   on top, so three is the floor there.
+ * What the win menu knows about a typed-in hand. `riichi` comes from the
+ * table and is never a choice; everything else is null until picked (and
+ * `han`/`fu` stay null when a limit is picked instead).
  */
-export function hanFuPossible(han: number, fu: number, mode: WinMode): boolean {
-  if (fu === 20) return mode === 'tsumo' && han >= 2;
-  if (fu === 25) return han >= (mode === 'tsumo' ? 3 : 2);
-  return true;
+export interface ManualShape {
+  mode: WinMode;
+  riichi: boolean;
+  open: boolean | null;
+  han: number | null;
+  fu: number | null;
+}
+
+/**
+ * Whether a fully specified hand can exist. Everything here follows from four
+ * facts:
+ *
+ * - **Riichi needs a closed hand**, and is a han of its own.
+ * - **A closed tsumo is menzen tsumo**, another han. So riichi plus tsumo is
+ *   at least two han, which is the first thing that rules out 1 han.
+ * - **20 fu is pinfu on a tsumo**, and nothing else: pinfu needs a closed hand,
+ *   and waives the tsumo's 2 fu (`puntuacion.pl`: "Pinfu por tsumo vale 20 fu
+ *   fijo"). A closed ron adds 10 fu, and an open all-runs hand is rounded up
+ *   to 30. So a pinfu tsumo is pinfu plus menzen tsumo: two han, three with
+ *   riichi.
+ * - **25 fu is chiitoitsu**, closed by nature and two han by itself, plus
+ *   menzen tsumo and riichi on top when they apply.
+ *
+ * 30 fu and up constrain nothing: every hand can reach 30, and the high end
+ * is reachable at one han (a riichi ron with two terminal ankan is already
+ * 100).
+ */
+function shapePossible(mode: WinMode, riichi: boolean, open: boolean, han: number,
+                       fu: number): boolean {
+  if (riichi && open) return false;
+  // Han the hand already has for being won this way, before any yaku of its shape.
+  const floor = (riichi ? 1 : 0) + (!open && mode === 'tsumo' ? 1 : 0);
+  let min = Math.max(1, floor);
+  if (fu === 20) {
+    if (open || mode === 'ron') return false;
+    min = floor + 1;              // + pinfu
+  } else if (fu === 25) {
+    if (open) return false;
+    min = floor + 2;              // + chiitoitsu
+  }
+  return han >= min;
+}
+
+/**
+ * Whether what is picked so far can still be completed into a real hand --
+ * the test for disabling a button: try the shape with that button's value, and
+ * disable it if no choice of the fields still open would make the hand real.
+ * Checking every button this way blocks an impossible hand from whichever
+ * side it is approached: picking 25 fu rules out Open, and picking Open rules
+ * out 25 fu.
+ */
+export function manualReachable(shape: ManualShape): boolean {
+  const opens = shape.open !== null ? [shape.open] : [false, true];
+  const hans = shape.han !== null ? [shape.han] : MANUAL_HAN;
+  const fus = shape.fu !== null ? [shape.fu] : MANUAL_FU;
+  return opens.some((open) => hans.some((han) => fus.some(
+    (fu) => shapePossible(shape.mode, shape.riichi, open, han, fu))));
 }
 
 /**

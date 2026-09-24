@@ -5,7 +5,8 @@ import {
   recordHand, toggleRiichi, undoLastHand,
 } from './matchState';
 import {
-  type Delta, basePoints, hanFuPossible, levelFor, paymentFor, placeLabel, placements, placesOf,
+  type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, basePoints, levelFor, manualReachable,
+  paymentFor, placeLabel, placements, placesOf,
 } from './scoring';
 import { dealerOf, seatWindOf } from './seats';
 import type { Seat } from './seats';
@@ -414,26 +415,59 @@ describe('placements', () => {
 });
 
 
-describe('han and fu that cannot happen', () => {
-  it('allows 20 fu only on a tsumo, from two han', () => {
-    expect(hanFuPossible(1, 20, 'tsumo')).toBe(false);   // pinfu alone is 1 han
-    expect(hanFuPossible(2, 20, 'tsumo')).toBe(true);    // pinfu + menzen tsumo
-    expect(hanFuPossible(2, 20, 'ron')).toBe(false);     // a closed ron adds 10 fu
-    expect(hanFuPossible(4, 20, 'ron')).toBe(false);
+describe('typed-in hands that cannot happen', () => {
+  /** Nothing picked: a ron, no riichi, open/closed unsaid. */
+  const can = (shape: Partial<ManualShape>) => manualReachable({
+    mode: 'ron', riichi: false, open: null, han: null, fu: null, ...shape,
   });
 
-  it('allows 25 fu from two han on a ron and three on a tsumo', () => {
-    expect(hanFuPossible(1, 25, 'ron')).toBe(false);     // chiitoitsu is 2 han
-    expect(hanFuPossible(2, 25, 'ron')).toBe(true);
-    expect(hanFuPossible(2, 25, 'tsumo')).toBe(false);   // + menzen tsumo
-    expect(hanFuPossible(3, 25, 'tsumo')).toBe(true);
+  it('allows 20 fu only on a closed tsumo, from two han', () => {
+    expect(can({ mode: 'tsumo', han: 1, fu: 20 })).toBe(false);   // pinfu alone is 1 han
+    expect(can({ mode: 'tsumo', han: 2, fu: 20 })).toBe(true);    // pinfu + menzen tsumo
+    expect(can({ mode: 'ron', han: 2, fu: 20 })).toBe(false);     // a closed ron adds 10 fu
+    expect(can({ mode: 'ron', han: 4, fu: 20 })).toBe(false);
+    expect(can({ mode: 'tsumo', open: true, fu: 20 })).toBe(false); // open pinfu shape is 30
   });
 
-  it('leaves 30 fu and up open at every han', () => {
-    for (const fu of [30, 40, 50, 60, 70, 80, 90, 100, 110]) {
-      for (const han of [1, 2, 3, 4]) {
-        expect(hanFuPossible(han, fu, 'ron')).toBe(true);
-        expect(hanFuPossible(han, fu, 'tsumo')).toBe(true);
+  it('allows 25 fu only closed, from two han on a ron and three on a tsumo', () => {
+    expect(can({ han: 1, fu: 25 })).toBe(false);                  // chiitoitsu is 2 han
+    expect(can({ han: 2, fu: 25 })).toBe(true);
+    expect(can({ mode: 'tsumo', han: 2, fu: 25 })).toBe(false);   // + menzen tsumo
+    expect(can({ mode: 'tsumo', han: 3, fu: 25 })).toBe(true);
+    expect(can({ open: true, fu: 25 })).toBe(false);
+  });
+
+  it('counts a declared riichi, and the menzen tsumo that comes with it', () => {
+    expect(can({ riichi: true, han: 1, fu: 30 })).toBe(true);
+    expect(can({ riichi: true, mode: 'tsumo', han: 1 })).toBe(false);
+    expect(can({ riichi: true, mode: 'tsumo', han: 2, fu: 30 })).toBe(true);
+    expect(can({ riichi: true, mode: 'tsumo', han: 2, fu: 20 })).toBe(false); // pinfu makes 3
+    expect(can({ riichi: true, mode: 'tsumo', han: 3, fu: 20 })).toBe(true);
+    expect(can({ riichi: true, han: 2, fu: 25 })).toBe(false);    // chiitoitsu makes 3
+    expect(can({ riichi: true, mode: 'tsumo', han: 3, fu: 25 })).toBe(false);
+    expect(can({ riichi: true, mode: 'tsumo', han: 4, fu: 25 })).toBe(true);
+  });
+
+  it('never has riichi on an open hand', () => {
+    expect(can({ riichi: true, open: true })).toBe(false);
+    expect(can({ riichi: true, open: false })).toBe(true);
+  });
+
+  it('only guesses about what is still unpicked', () => {
+    // Open/closed unsaid: 25 fu is still possible, as a closed hand.
+    expect(can({ fu: 25 })).toBe(true);
+    // A tsumo is still possible at one han -- open, or closed with menzen tsumo alone.
+    expect(can({ mode: 'tsumo', han: 1 })).toBe(true);
+    expect(can({ mode: 'tsumo', han: 1, open: true })).toBe(true);
+  });
+
+  it('leaves 30 fu and up open at every han without riichi', () => {
+    for (const fu of MANUAL_FU.filter((f) => f >= 30)) {
+      for (const han of MANUAL_HAN) {
+        for (const open of [false, true]) {
+          expect(can({ mode: 'ron', han, fu, open })).toBe(true);
+          expect(can({ mode: 'tsumo', han, fu, open })).toBe(true);
+        }
       }
     }
   });

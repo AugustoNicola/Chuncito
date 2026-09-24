@@ -30,19 +30,18 @@ import { levelName, levelTier } from '../hand/yakuNames';
 import type { HandValue, MatchState, WinEntry } from './matchState';
 import { dealerSeat, seatsIn } from './matchState';
 import {
-  LIMIT_BASE, basePoints, hanFuPossible, levelFor, paymentFor, paymentTotal,
+  LIMIT_BASE, MANUAL_FU, MANUAL_HAN, basePoints, levelFor, manualReachable, paymentFor,
+  paymentTotal, type ManualShape,
 } from './scoring';
 import type { Seat } from './seats';
 import { seatWindOf } from './seats';
 
 /**
- * Fu values the rules can actually produce. 25 is chiitoitsu; 20 is a pinfu
- * tsumo. The common ones get a row to themselves because they are what you
- * reach for; the rest sit below. Both rows share their width evenly.
+ * The common fu get a row to themselves because they are what you reach for;
+ * the rest sit below. Both rows share their width evenly.
  */
-const FU_COMMON = [20, 25, 30, 40, 50];
-const FU_REST = [60, 70, 80, 90, 100, 110];
-const HAN_STEPS = [1, 2, 3, 4];
+const FU_COMMON = MANUAL_FU.filter((fu) => fu <= 50);
+const FU_REST = MANUAL_FU.filter((fu) => fu > 50);
 
 /**
  * Limits offered directly, for when nobody counted the fu. Two to a row, in
@@ -76,6 +75,12 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const seats = seatsIn(state);
   const dealer = dealerSeat(state);
   const isDealer = current === dealer;
+  /**
+   * From the table, like the tile builder's riichi: a declared riichi means a
+   * closed hand, so the menu says so rather than asking.
+   */
+  const riichi = current !== null && state.pendingRiichi.includes(current);
+  const handOpen = riichi ? false : open;
   /**
    * Everybody but the discarder can ron the same tile: three winners at a
    * four-player table, two in sanma.
@@ -168,7 +173,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
       fu: limit !== null ? null : fu,
       level: limit !== null ? limit : levelFor(han!, fu!),
       basePoints: manualBase,
-      open,
+      open: handOpen,
     };
   };
 
@@ -197,13 +202,11 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
   const pickHan = (value: number) => { setHan(han === value ? null : value); setLimit(null); };
   const pickFu = (value: number) => { setFu(fu === value ? null : value); setLimit(null); };
 
-  // Each picker is disabled against what the *other* one already says, so the
-  // impossible pairs cannot be reached from either direction.
-  const hanBlocked = (value: number) =>
-    fu !== null && !hanFuPossible(value, fu, mode);
-  const fuBlocked = (value: number) =>
-    han !== null ? !hanFuPossible(han, value, mode)
-      : !HAN_STEPS.some((h) => hanFuPossible(h, value, mode));
+  // A button is disabled when choosing it would leave no real hand, given
+  // everything else already chosen -- so an impossible combination cannot be
+  // reached from any direction. See `manualReachable`.
+  const shape: ManualShape = { mode, riichi, open: handOpen, han, fu };
+  const blocked = (patch: Partial<ManualShape>) => !manualReachable({ ...shape, ...patch });
 
   return (
     <div className="app">
@@ -261,7 +264,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
                       aria-pressed={mode === opt}
                       // A staged winner means a ron in progress; switching to a
                       // tsumo would leave those hands with nobody paying them.
-                      disabled={staged.length > 0 && opt === 'tsumo'}
+                      disabled={(staged.length > 0 && opt === 'tsumo') || blocked({ mode: opt })}
                       onClick={() => setMode(opt)}>
                 {opt === 'ron' ? 'Ron' : 'Tsumo'}
               </button>
@@ -310,11 +313,11 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         <div className="field">
           <span className="field__label">Han</span>
           <div className="pills pills--fill" role="group" aria-label="Han">
-            {HAN_STEPS.map((value) => (
+            {MANUAL_HAN.map((value) => (
               <button key={value} type="button"
                       className={`pill${han === value ? ' pill--on' : ''}`}
                       aria-pressed={han === value}
-                      disabled={hanBlocked(value)}
+                      disabled={blocked({ han: value })}
                       onClick={() => pickHan(value)}>
                 {value}
               </button>
@@ -329,7 +332,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               <button key={value} type="button"
                       className={`pill${fu === value ? ' pill--on' : ''}`}
                       aria-pressed={fu === value}
-                      disabled={fuBlocked(value)}
+                      disabled={blocked({ fu: value })}
                       onClick={() => pickFu(value)}>
                 {value}
               </button>
@@ -340,7 +343,7 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
               <button key={value} type="button"
                       className={`pill${fu === value ? ' pill--on' : ''}`}
                       aria-pressed={fu === value}
-                      disabled={fuBlocked(value)}
+                      disabled={blocked({ fu: value })}
                       onClick={() => pickFu(value)}>
                 {value}
               </button>
@@ -364,17 +367,25 @@ export function WinMenu({ state, winner, onRecord, onCancel }: {
         </div>
 
         <div className="field">
-          <span className="field__label">Hand was <span className="field__optional">optional</span></span>
+          <span className="field__label">
+            Hand was{!riichi && <span className="field__optional">optional</span>}
+          </span>
           <div className="segmented" role="group" aria-label="Hand was">
             {[false, true].map((value) => (
               <button key={String(value)} type="button"
-                      className={`segmented__btn${open === value ? ' segmented__btn--on' : ''}`}
-                      aria-pressed={open === value}
+                      className={`segmented__btn${handOpen === value ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={handOpen === value}
+                      disabled={riichi || blocked({ open: value })}
                       onClick={() => setOpen(open === value ? null : value)}>
                 {value ? 'Open' : 'Closed'}
               </button>
             ))}
           </div>
+          {riichi && (
+            <span className="field__hint">
+              {nameOf(current!)} declared riichi, so the hand was closed.
+            </span>
+          )}
         </div>
       </div>
 

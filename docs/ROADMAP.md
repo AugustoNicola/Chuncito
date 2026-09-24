@@ -518,6 +518,19 @@ per item.** Ticked here as they land, with what was decided.
       clears it, and a hand records without it. A manual `HandValue.open` is
       `boolean | null`; null reaches `winner_open` as NULL, which the backend
       and the profile already counted as "not recorded" — no migration.
+- [x] **Invalid button combinations** — `manualReachable` (`scoring.ts`)
+      replaces `hanFuPossible`. It knows the win mode, **the winner's riichi
+      from the table**, open/closed (or unsaid), han and fu, and a win-menu
+      button is disabled when picking it would leave no real hand — so every
+      rule blocks from every side, How and Hand was included. The rules:
+      riichi ⇒ closed (the menu shows Closed locked, with a line saying why);
+      closed tsumo is menzen tsumo, so riichi + tsumo is 2 han at least; 20 fu
+      only as a closed pinfu tsumo (2 han, 3 with riichi); 25 fu only closed
+      (2 han ron / 3 tsumo, +1 with riichi). 30 fu and up constrain nothing —
+      the high end is reachable at 1 han. **Not done as written:** the backlog
+      said tsumo should disable 20 fu, but 20 fu exists *only* on a tsumo:
+      pinfu waives the tsumo's 2 fu (`puntuacion.pl:116`, and riichi.wiki).
+      A closed ron is where 20 fu is impossible, and that was already blocked.
 
 ## Picking this up cold
 

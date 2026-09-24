@@ -443,6 +443,10 @@ try {
       (f) => f.querySelector('.field__label')?.textContent === 'Dealt in');
     [...field.querySelectorAll('.segmented__btn')].find((b) => b.textContent === 'Cami').click();
   });
+  /** [label, disabled, aria-pressed] for each button of a labelled group. */
+  const groupState = (label) => page.evaluate((l) => [...document.querySelector(
+    `[aria-label="${l}"]`).querySelectorAll('button')].map(
+    (b) => [b.textContent.trim(), b.disabled, b.getAttribute('aria-pressed')]), label);
   const pick = async (label, value) => page.evaluate((l, v) => {
     const field = [...document.querySelectorAll('.field')].find(
       (f) => f.querySelector('.field__label')?.textContent === l);
@@ -464,7 +468,7 @@ try {
   check(fuState['40'] === false, '40 fu stays available');
 
   // The block works from the other side too: 25 fu is chiitoitsu, which is
-  // already two han, so one han becomes unreachable.
+  // already two han -- three with Beto's riichi -- so fewer become unreachable.
   await pick('Fu', '25');
   const hanState = await page.evaluate(() => {
     const field = [...document.querySelectorAll('.field')].find(
@@ -473,18 +477,22 @@ try {
       (b) => [b.textContent.trim(), b.disabled]));
   });
   check(hanState['1'] === true, 'picking 25 fu rules out 1 han');
-  check(hanState['2'] === false, '2 han stays available at 25 fu');
+  check(hanState['2'] === true && hanState['3'] === false,
+        `riichi + chiitoitsu is 3 han at least (got ${JSON.stringify(hanState)})`);
   await pick('Fu', '30');
 
-  // Open or closed is optional: nothing is chosen for you, and nothing needs to be.
-  const openState = await page.evaluate(() => {
-    const group = document.querySelector('[aria-label="Hand was"]');
-    const pressed = [...group.querySelectorAll('button')].filter((b) => b.getAttribute('aria-pressed') === 'true');
-    const review = [...document.querySelectorAll('.btn--primary')].find((b) => b.textContent === 'Review');
-    return { pressed: pressed.length, reviewable: !review.disabled };
-  });
-  check(openState.pressed === 0 && openState.reviewable,
-        `open/closed starts unset and is not needed to record (got ${JSON.stringify(openState)})`);
+  // Beto declared riichi, so the hand was closed: said, not asked.
+  const openRiichi = await groupState('Hand was');
+  check(JSON.stringify(openRiichi) === JSON.stringify([['Closed', true, 'true'], ['Open', true, 'false']]),
+        `a riichi hand is shown closed and locked (got ${JSON.stringify(openRiichi)})`);
+  // Riichi plus menzen tsumo is two han, so a 1 han tsumo cannot be picked...
+  await pick('Han', '1');
+  check((await groupState('How'))[1][1] === true, 'a 1 han riichi hand cannot be a tsumo');
+  await pick('Han', '3');
+  // ...and from the other side, a tsumo rules out 1 han.
+  await byText('Tsumo');
+  check((await groupState('Han'))[0][1] === true, 'riichi + tsumo rules out 1 han');
+  await byText('Ron');
 
   await byText('Review');
   await page.waitForSelector('.confirm');
@@ -703,8 +711,22 @@ try {
   check(afterDealIn[2][1] === true && afterDealIn[1][1] === false,
         `only the discarder is ruled out as winner (got ${JSON.stringify(afterDealIn)})`);
 
+  // Open or closed is optional: nothing is chosen for you, and nothing needs to be.
+  check((await groupState('Hand was')).every(([, , pressed]) => pressed === 'false'),
+        'open/closed starts unset');
+  // An open hand is never chiitoitsu or pinfu tsumo, so 25 fu goes (20 already
+  // has, on a ron); and a 25 fu pick rules out Open.
+  await byText('Open');
+  const openFu = Object.fromEntries((await groupState('Fu')).map(([v, d]) => [v, d]));
+  check(openFu['25'] === true && openFu['30'] === false, `open rules out 25 fu (got ${JSON.stringify(openFu)})`);
+  await byText('Open');
+  await pick('Fu', '25');
+  check((await groupState('Hand was'))[1][1] === true, '25 fu rules out an open hand');
   await pick('Han', '2');
   await pick('Fu', '30');
+  const reviewable = await page.$$eval('.btn--primary',
+    (els) => els.some((b) => b.textContent === 'Review' && !b.disabled));
+  check(reviewable, 'a hand records without saying open or closed');
   await byText('Add another winner on this discard');
   const staged = await page.$$eval('.chip--staged', (els) => els.map((e) => e.textContent));
   check(staged.length === 1 && staged[0].includes('Ana'),
