@@ -311,6 +311,10 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     b = unlocked.get(f"/api/players/{beto['slug']}/stats").json()
     assert b['players'] == 4 and b['matchesFour'] == 1 and b['matchesSanma'] == 0
     assert [m['matchId'] for m in b['matches']] == ['stats-4p']
+    # Each placed match carries its whole table, for the placement tooltip.
+    table = b['matches'][0]['table']
+    assert [s['name'] for s in table][:2] == ['Stats Ana', 'Stats Beto']
+    assert [s['placement'] for s in table] == [p['placement'] for p in rows['matchPlayers']]
     assert b['placementCounts'] == [1, 0, 0, 0]
     assert b['umaTotal'] == 20
     assert b['hands'] == 6

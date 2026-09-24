@@ -30,7 +30,8 @@ from sqlalchemy import Connection, delete, exists, func, insert, or_, select
 
 from . import models as m
 from .schemas import (
-    BestHand, MatchRows, MatchSummary, PlacedMatch, Player, PlayerOut, PlayerStats, WinMethods,
+    BestHand, MatchRows, MatchSummary, PlacedMatch, Player, PlayerOut, PlayerStats, TableSeat,
+    WinMethods,
     WinValue, YakuCount,
 )
 
@@ -429,6 +430,17 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         .join(mine, (mine.c.match_id == mp.match_id) & (mine.c.seat == mp.seat))
         .where(mp.placement.is_not(None))
         .order_by(c.started_at)).all()
+    # Who else sat at each of those tables, named as the match shows them.
+    tables: dict[str, list[TableSeat]] = {}
+    for s in conn.execute(
+            select(mp.match_id, mp.player_id, mp.placement, mp.final_score,
+                   func.coalesce(mp.guest_name, m.players.c.display_name, '').label('name'))
+            .select_from(m.match_players.outerjoin(m.players, m.players.c.id == mp.player_id))
+            .where(mp.match_id.in_([p.id for p in placed]))
+            .order_by(mp.match_id, mp.seat)).all():
+        tables.setdefault(s.match_id, []).append(TableSeat(
+            name=s.name, player_id=s.player_id, placement=s.placement, final_score=s.final_score))
+
     counts = [0] * players
     for p in placed:
         if 1 <= p.placement <= players:
@@ -488,7 +500,8 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         matches_four=kinds.get(4, 0), matches_sanma=kinds.get(3, 0),
         matches=[PlacedMatch(match_id=p.id, name=p.name, started_at=_format_time(p.started_at),
                              placement=p.placement, final_score=p.final_score,
-                             uma_points=p.uma_points) for p in placed],
+                             uma_points=p.uma_points, table=tables.get(p.id, []))
+                 for p in placed],
         placement_counts=counts,
         uma_total=sum(p.uma_points or 0 for p in placed),
         hands=hand_totals[0], deal_ins=hand_totals[1], riichis=hand_totals[2],

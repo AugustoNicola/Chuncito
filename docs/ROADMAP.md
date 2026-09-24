@@ -638,6 +638,11 @@ per item.** Ticked here as they land, with what was decided.
       others) divided by wins. That is each hand's value as paid — dealer
       bonus included, honba and riichi sticks not; a nagashi is not a win.
       The desktop tile row now holds any number of tiles in one row.
+- [x] **Better hovers in player profile** — a placement point's tooltip
+      lists the whole table by place, in the place metals, with this
+      player's line bold (the stats' `PlacedMatch` now carries `table`). The
+      value histogram prints no counts; hovering, focusing or tapping a bar
+      shows its range and "2 (50.0%)" of all wins.
 
 ## Picking this up cold
 

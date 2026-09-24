@@ -9,9 +9,16 @@
 import { type Fetched, YAKU_CHOICES, fetchJson } from '../history/history';
 import { isDora, yakuName } from '../hand/yakuNames';
 
+/** Someone at the table of a placed match; `playerId` null for a guest. */
+export interface TableSeat {
+  name: string; playerId: string | null; placement: number | null; finalScore: number;
+}
+
 export interface PlacedMatch {
   matchId: string; name: string; startedAt: string;
   placement: number; finalScore: number; umaPoints: number | null;
+  /** Everyone who sat, in seat order, this player included. */
+  table: TableSeat[];
 }
 
 export interface BestHand {

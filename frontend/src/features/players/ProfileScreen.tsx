@@ -125,7 +125,8 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
       <div className="profile__grid">
       <section className="profile__section">
         <h2 className="home__heading">Placements</h2>
-        <PlacementLine matches={stats.matches} players={stats.players} onOpen={onOpen} />
+        <PlacementLine matches={stats.matches} players={stats.players} me={stats.player.id}
+                       onOpen={onOpen} />
         <Donut slices={placementSlices(stats.placementCounts)} colorOf={PLACE_COLOR}
                caption="matches" unit={(n) => `${n} match${n === 1 ? '' : 'es'}`} />
       </section>

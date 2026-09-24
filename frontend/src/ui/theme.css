@@ -1489,6 +1489,14 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   white-space: nowrap; pointer-events: none;
 }
 .linechart__tipname { color: var(--text); font-weight: 600; }
+.linechart__tiptable { display: grid; grid-template-columns: auto 1fr auto; gap: 1px 8px; margin-top: 3px; }
+.linechart__tipseat { display: contents; }
+.linechart__tipscore { text-align: right; font-variant-numeric: tabular-nums; }
+.linechart__tipseat--me .linechart__tipwho,
+.linechart__tipseat--me .linechart__tipscore { color: var(--text); font-weight: 700; }
+.linechart__tipseat[data-place="1"] .linechart__tipplace { color: var(--place-1); }
+.linechart__tipseat[data-place="2"] .linechart__tipplace { color: var(--place-2); }
+.linechart__tipseat[data-place="3"] .linechart__tipplace { color: var(--place-3); }
 
 .histogram {
   display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px;
@@ -1498,9 +1506,28 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   background: var(--bg-raised);
   border: 1px solid var(--border);
 }
-.histogram__col { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
-.histogram__count { height: 14px; font-size: 0.68rem; text-align: center; color: var(--text-dim);
-                    font-variant-numeric: tabular-nums; }
+.histogram__col { display: flex; flex-direction: column; align-items: stretch; min-width: 0; position: relative; }
+/* Above its bar, like the placement line's tooltip. The edge bars' tips are
+   pinned inward so they never leave the card. */
+.histogram__col { cursor: default; outline: none; }
+.histogram__col:focus-visible .histogram__track { outline: 2px solid var(--accent); outline-offset: 1px; }
+.histogram__tip {
+  position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+  z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  font-size: 0.78rem; color: var(--text-dim);
+  white-space: nowrap; pointer-events: none;
+}
+.histogram__col:first-child .histogram__tip,
+.histogram__col:nth-child(2) .histogram__tip { left: 0; transform: none; align-items: flex-start; }
+.histogram__col:last-child .histogram__tip,
+.histogram__col:nth-last-child(2) .histogram__tip { left: auto; right: 0; transform: none; align-items: flex-end; }
+.histogram__tiptitle { color: var(--text-dim); }
+.histogram__tipcount { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .histogram__track { flex: 1; display: flex; align-items: flex-end;
                     border-bottom: 1px solid var(--border-strong); }
 .histogram__bar { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--limit-none); }

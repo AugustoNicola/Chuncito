@@ -13,6 +13,7 @@
  */
 import { useState } from 'react';
 import type { PlacedMatch, Slice, ValueBin } from './profile';
+import { placeLabel } from '../match/scoring';
 
 // ---------- donut ----------
 
@@ -92,9 +93,11 @@ const PAD = { left: 34, right: 12, top: 12, bottom: 22 };
  * Placement per match, oldest on the left, 1st at the top. Each point is a
  * link to its match; the hit area is well over the dot, for a thumb.
  */
-export function PlacementLine({ matches, players, onOpen }: {
+export function PlacementLine({ matches, players, me, onOpen }: {
   matches: PlacedMatch[];
   players: 3 | 4;
+  /** Whose page this is: their line in the tooltip is bold. */
+  me: string;
   onOpen: (matchId: string) => void;
 }) {
   const [hot, setHot] = useState<number | null>(null);
@@ -162,8 +165,18 @@ export function PlacementLine({ matches, players, onOpen }: {
         <div className="linechart__tip"
              style={{ left: `${(x(hot) / W) * 100}%`, top: `${(y(focus.placement) / H) * 100}%` }}>
           <span className="linechart__tipname">{focus.name || 'Unnamed match'}</span>
-          <span>{when(focus.startedAt)} · {['1st', '2nd', '3rd', '4th'][focus.placement - 1]}</span>
-          <span>{focus.finalScore.toLocaleString()}</span>
+          <span>{when(focus.startedAt)}</span>
+          {/* The whole table, by place, in the place metals; this player bold. */}
+          <span className="linechart__tiptable">
+            {[...focus.table].sort((a, b) => (a.placement ?? 9) - (b.placement ?? 9)).map((s, i) => (
+              <span key={i} className={`linechart__tipseat${s.playerId === me ? ' linechart__tipseat--me' : ''}`}
+                    data-place={s.placement ?? undefined}>
+                <span className="linechart__tipplace">{s.placement ? placeLabel(s.placement) : ''}</span>
+                <span className="linechart__tipwho">{s.name}</span>
+                <span className="linechart__tipscore">{s.finalScore.toLocaleString()}</span>
+              </span>
+            ))}
+          </span>
         </div>
       )}
     </div>
@@ -207,17 +220,30 @@ export function Bars({ rows, limit }: {
 /**
  * Wins by value, one bar per bin, each in its limit's colour: blue below
  * mangan, then the tiers' own green, purple, bronze, silver and gold. Bars are
- * adjacent, so they keep the 2px surface gap; counts sit on the bars that have
- * any, so nothing needs a hover to read.
+ * adjacent, so they keep the 2px surface gap. The bars carry the shape; the
+ * numbers -- how many, and what share of all wins -- are in a tooltip, on
+ * hover, focus, or a tap on a phone.
  */
 export function Histogram({ bins }: { bins: ValueBin[] }) {
+  const [hot, setHot] = useState<string | null>(null);
   const max = Math.max(1, ...bins.map((b) => b.count));
+  const total = bins.reduce((a, b) => a + b.count, 0);
+  const share = (count: number) => (total === 0 ? 0 : (100 * count) / total).toFixed(1);
   return (
-    <div className="histogram" role="img"
+    <div className="histogram" role="group"
          aria-label={bins.map((b) => `${b.title}: ${b.count}`).join(', ')}>
       {bins.map((b) => (
-        <div key={b.key} className="histogram__col" title={`${b.title}: ${b.count}`}>
-          <span className="histogram__count">{b.count || ''}</span>
+        <div key={b.key} className="histogram__col" tabIndex={0}
+             aria-label={`${b.title}: ${b.count} (${share(b.count)}%)`}
+             onPointerEnter={() => setHot(b.key)} onPointerLeave={() => setHot(null)}
+             onFocus={() => setHot(b.key)} onBlur={() => setHot(null)}
+             onClick={() => setHot(hot === b.key ? null : b.key)}>
+          {hot === b.key && (
+            <span className="histogram__tip" role="tooltip">
+              <span className="histogram__tiptitle">{b.title}</span>
+              <span className="histogram__tipcount">{b.count} ({share(b.count)}%)</span>
+            </span>
+          )}
           <span className="histogram__track">
             {b.count > 0 && (
               <span className="histogram__bar" data-tier={b.tier}

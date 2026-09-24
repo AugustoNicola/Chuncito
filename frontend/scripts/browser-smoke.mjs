@@ -86,6 +86,10 @@ try {
         matches: mine.map(([id, { rows: r }]) => ({
           matchId: id, name: r.match.name, startedAt: r.match.startedAt,
           placement: seatOf(r).placement, finalScore: seatOf(r).finalScore, umaPoints: seatOf(r).umaPoints,
+          table: r.matchPlayers.map((p) => ({
+            name: p.guestName ?? api.players.get(p.playerId)?.displayName ?? '',
+            playerId: p.playerId, placement: p.placement, finalScore: p.finalScore,
+          })),
         })),
         placementCounts: Array.from({ length: kind }, (_, i) =>
           mine.filter(([, { rows: r }]) => seatOf(r).placement === i + 1).length),
@@ -1504,7 +1508,8 @@ try {
         `places are gold, silver and bronze (got ${JSON.stringify(placeSwatches)})`);
   const histo = await page.$$eval('.histogram__col', (els) => els.map((c) => ({
     label: c.querySelector('.histogram__label').textContent,
-    count: c.querySelector('.histogram__count').textContent,
+    // No number on the bar; it is in the tooltip, and in the accessible name.
+    count: /: (\d+) \(/.exec(c.getAttribute('aria-label'))?.[1] === '0' ? '' : /: (\d+) \(/.exec(c.getAttribute('aria-label'))?.[1],
     fill: c.querySelector('.histogram__bar') && getComputedStyle(c.querySelector('.histogram__bar')).backgroundColor,
   })));
   check(histo.length === 12, `the value histogram always has twelve bars (got ${histo.length})`);
@@ -1513,6 +1518,12 @@ try {
         && bar('Man')?.fill === 'rgb(78, 205, 138)' && bar('Hane')?.fill === 'rgb(180, 122, 232)'
         && bar('Yaku')?.fill === null,
         `bars are counted and coloured by limit (got ${JSON.stringify(histo.filter((h) => h.count))})`);
+  check(await page.$('.histogram__count') === null, 'no counts printed over the bars');
+  const oneK = histo.findIndex((h) => h.label === '1k') + 1;
+  await page.hover(`.histogram__col:nth-child(${oneK})`);
+  const histoTip = await page.$eval('.histogram__tipcount', (el) => el.textContent).catch(() => null);
+  check(histoTip === '2 (50.0%)', `a bar's tooltip gives its count and share (got ${histoTip})`);
+  await shot('72-histogram-tip.png');
   await page.click('.profile__notyet summary');
   const notYet = await page.$$eval('.profile__notyetlist li', (els) => els.map((e) => e.textContent));
   check(notYet.length > 10 && !notYet.includes('Riichi') && !notYet.includes('Tanyao') && !notYet.includes('Dora'),
@@ -1525,6 +1536,15 @@ try {
   await page.waitForSelector('.linechart__tip');
   check((await page.$eval('.linechart__tipname', (el) => el.textContent)) === 'with Beto',
         'hovering a placement names its match');
+  const tipTable = await page.$$eval('.linechart__tipseat', (els) => els.map((e) => ({
+    place: e.querySelector('.linechart__tipplace').textContent,
+    who: e.querySelector('.linechart__tipwho').textContent,
+    me: e.classList.contains('linechart__tipseat--me'),
+  })));
+  check(tipTable.length === 3 && tipTable[0].place === '1st'
+        && tipTable.filter((s) => s.me).map((s) => s.who).join() === 'Beto',
+        `the tooltip lists the whole table by place, Beto in bold (got ${JSON.stringify(tipTable)})`);
+  await shot('71-placement-tip.png');
   await page.click('.linechart__point');
   await page.waitForSelector('.standings', { timeout: 10_000 });
   check(await at() === '/matches/hist-beto', `a placement opens its match (got ${await at()})`);

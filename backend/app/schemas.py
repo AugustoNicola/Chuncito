@@ -218,6 +218,14 @@ class SessionState(Wire):
     configured: bool
 
 
+class TableSeat(Wire):
+    """Someone at the table of a placed match, for the placement line's tooltip."""
+    name: str
+    player_id: str | None
+    placement: int | None
+    final_score: int
+
+
 class PlacedMatch(Wire):
     """One finished match, from the player's seat: a point on the placement line."""
     match_id: str
@@ -226,6 +234,8 @@ class PlacedMatch(Wire):
     placement: int
     final_score: int
     uma_points: float | None
+    # Everyone who sat, in seat order -- the player included.
+    table: list[TableSeat]
 
 
 class WinMethods(Wire):
