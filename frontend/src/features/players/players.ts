@@ -77,6 +77,21 @@ export function byName(list: readonly Player[]): Player[] {
     a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
 }
 
+/**
+ * The ranking: MAKApoints, highest first, each with its rank. Only players
+ * with a ranked match have one; the rest follow alphabetically, unranked.
+ */
+export function byMakapoints(list: readonly Player[]): { player: Player; rank: number | null }[] {
+  const ranked = list.filter((p) => (p.mpMatches ?? 0) > 0)
+    .sort((a, b) => (b.mpPoints ?? 0) - (a.mpPoints ?? 0)
+      || a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
+  const rest = byName(list.filter((p) => (p.mpMatches ?? 0) === 0));
+  return [
+    ...ranked.map((player, i) => ({ player, rank: i + 1 })),
+    ...rest.map((player) => ({ player, rank: null })),
+  ];
+}
+
 /** Recently seated first, then alphabetical. */
 export function byRecent(list: readonly Player[]): Player[] {
   const recent = readJson<Record<string, string>>(RECENT_KEY, {});

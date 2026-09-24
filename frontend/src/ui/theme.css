@@ -582,17 +582,55 @@ button {
 .players__input:focus { outline: none; border-color: var(--accent); }
 .players__message { margin: 0; font-size: 0.85rem; color: var(--text-dim); }
 .players__message--bad { color: var(--danger); }
+/*
+ * The ranking: one card per player, full width, by MAKApoints. The podium
+ * wears the place metals -- a tinted card, a medal-coloured rank -- the same
+ * gold, silver and bronze as the table's place badges.
+ */
 .players__list {
   list-style: none; margin: 4px 0 0; padding: 0;
-  display: flex; flex-direction: column;
-  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
 }
 .players__row {
-  display: flex; align-items: center; gap: 8px;
-  min-height: 52px;
-  border-bottom: 1px solid var(--border);
+  --metal: var(--border-strong);
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 6px 4px 4px;
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
 }
-.players__name { flex: 1; min-width: 0; font-weight: 550; overflow: hidden; text-overflow: ellipsis; }
+.players__row[data-rank="1"] { --metal: var(--place-1); }
+.players__row[data-rank="2"] { --metal: var(--place-2); }
+.players__row[data-rank="3"] { --metal: var(--place-3); }
+.players__row[data-rank="1"], .players__row[data-rank="2"], .players__row[data-rank="3"] {
+  border-color: color-mix(in srgb, var(--metal) 55%, var(--border));
+  background: linear-gradient(100deg, color-mix(in srgb, var(--metal) 16%, var(--bg-raised)), var(--bg-raised) 70%);
+}
+.players__card {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 6px;
+  color: inherit; text-decoration: none;
+}
+.players__rank {
+  flex: none; width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--metal);
+  color: var(--metal); font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.players__row:not([data-rank]) .players__rank { border-style: dashed; color: var(--text-faint); }
+.players__who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.players__name { font-weight: 600; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.players__card:hover .players__name { color: var(--accent); }
+.players__played { font-size: 0.78rem; color: var(--text-faint); }
+.players__mp {
+  flex: none; font-size: 1.2rem; font-weight: 700; color: var(--gain);
+  font-variant-numeric: tabular-nums;
+}
+.players__mp--loss { color: var(--loss); }
+.players__row:not([data-rank]) .players__mp { color: var(--text-faint); }
+.players__mpunit { margin-left: 3px; font-size: 0.7rem; font-weight: 600; color: var(--text-faint); }
 .players__rename { padding: 8px 10px; }
 
 /* ---------- sync ---------- */

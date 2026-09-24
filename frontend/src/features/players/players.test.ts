@@ -4,7 +4,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  type Player, byName, byRecent, cachedPlayers, findByName, markSeated, nameOf, search, setCachedPlayers,
+  type Player, byMakapoints, byName, byRecent, cachedPlayers, findByName, markSeated, nameOf, search, setCachedPlayers,
   slugOf,
 } from './players';
 
@@ -72,5 +72,16 @@ describe('byName', () => {
     const p = (displayName: string) => ({ id: displayName, displayName, slug: displayName }) as Player;
     expect(byName([p('beto'), p('Álvaro'), p('Ana'), p('Cami')]).map((x) => x.displayName))
       .toEqual(['Álvaro', 'Ana', 'beto', 'Cami']);
+  });
+});
+
+describe('byMakapoints', () => {
+  it('ranks by MP, then lists the unranked alphabetically', () => {
+    const p = (displayName: string, mpPoints?: number, mpMatches?: number) =>
+      ({ id: displayName, displayName, mpPoints, mpMatches }) as Player;
+    const out = byMakapoints([p('Cami', 0, 0), p('Ana', -3000, 2), p('Beto', 14500, 1), p('Dani')]);
+    expect(out.map((r) => [r.player.displayName, r.rank])).toEqual([
+      ['Beto', 1], ['Ana', 2], ['Cami', null], ['Dani', null],
+    ]);
   });
 });

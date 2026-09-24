@@ -1477,10 +1477,22 @@ try {
 
   // ==================== player profiles ====================
 
+  // The Players screen is a ranking by MAKApoints: Beto has some, nobody else.
+  const betoPlayer = [...api.players.values()].find((p) => p.displayName === 'Beto');
+  Object.assign(betoPlayer, { mpPoints: 12500, mpMatches: 1 });
   await page.goto('http://localhost:5199/players', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('a.players__name');
-  await page.evaluate(() => [...document.querySelectorAll('a.players__name')]
-    .find((a) => a.textContent.trim() === 'Beto').click());
+  await page.waitForSelector('a.players__card');
+  const ranking = await page.$$eval('.players__row', (els) => els.map((e) => ({
+    rank: e.dataset.rank ?? null,
+    name: e.querySelector('.players__name')?.textContent,
+    mp: e.querySelector('.players__mp')?.textContent,
+  })));
+  check(ranking[0]?.name === 'Beto' && ranking[0]?.rank === '1' && ranking[0]?.mp === '+12.5MP'
+        && ranking.slice(1).every((r) => r.rank === null),
+        `players are ranked by MAKApoints, the rest unranked (got ${JSON.stringify(ranking)})`);
+  await shot('53-ranking.png');
+  await page.evaluate(() => [...document.querySelectorAll('a.players__card')]
+    .find((a) => a.querySelector('.players__name').textContent.trim() === 'Beto').click());
   await page.waitForSelector('.profile', { timeout: 10_000 });
   await page.waitForSelector('.linechart', { timeout: 10_000 });
   check(await at() === '/players/beto', `a name on the Players screen opens their page (got ${await at()})`);

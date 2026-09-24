@@ -696,6 +696,12 @@ per item.** Ticked here as they land, with what was decided.
       in `GET /api/players` and on the profile's stats, which shows a
       MAKApoints tile. **One total across four-player and sanma**, unlike
       the other stats — the backlog defines MP as the sum of all matches.
+- [x] **Player list should look better** — `/players` is the ranking:
+      one full-width card per player (`byMakapoints`), MP highest first with
+      a rank badge; the top three cards are tinted and ringed in gold, silver
+      and bronze (`--place-1..3`). Players with no ranked match follow,
+      alphabetically, with a dashed badge and "—". The card is the link to
+      the profile; Rename stays beside it.
 
 ## Picking this up cold
 

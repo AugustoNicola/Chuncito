@@ -15,7 +15,8 @@ import {
   createPlayer, refreshPlayers, renamePlayer, sessionLocked, useSyncStatus,
 } from '../match/syncClient';
 import { Link } from 'react-router-dom';
-import { type Player, cachedPlayers, slugOf } from './players';
+import { type Player, byMakapoints, cachedPlayers, slugOf } from './players';
+import { resultLabel } from '../match/scoring';
 
 type Reach = 'checking' | 'online' | 'unreachable';
 
@@ -122,8 +123,8 @@ export function PlayersScreen({ onBack }: { onBack: () => void }) {
           </p>
         ) : (
           <ul className="players__list">
-            {list.map((p) => (
-              <li key={p.id} className="players__row">
+            {byMakapoints(list).map(({ player: p, rank }) => (
+              <li key={p.id} className="players__row" data-rank={rank ?? undefined}>
                 {editing?.id === p.id ? (
                   <form className="players__edit"
                         onSubmit={(e) => { e.preventDefault(); void saveRename(); }}>
@@ -136,8 +137,22 @@ export function PlayersScreen({ onBack }: { onBack: () => void }) {
                   </form>
                 ) : (
                   <>
-                    <Link className="players__name" to={`/players/${slugOf(p.displayName)}`}>
-                      {p.displayName}
+                    <Link className="players__card" to={`/players/${slugOf(p.displayName)}`}>
+                      <span className="players__rank" aria-label={rank ? `Rank ${rank}` : 'Unranked'}>
+                        {rank ?? '–'}
+                      </span>
+                      <span className="players__who">
+                        <span className="players__name">{p.displayName}</span>
+                        <span className="players__played">
+                          {(p.mpMatches ?? 0) > 0
+                            ? `${p.mpMatches} ranked match${p.mpMatches === 1 ? '' : 'es'}`
+                            : 'no ranked matches yet'}
+                        </span>
+                      </span>
+                      <span className={`players__mp${(p.mpPoints ?? 0) < 0 ? ' players__mp--loss' : ''}`}>
+                        {(p.mpMatches ?? 0) > 0 ? resultLabel(p.mpPoints ?? 0) : '—'}
+                        <span className="players__mpunit">MP</span>
+                      </span>
                     </Link>
                     <button type="button" className="btn btn--quiet players__rename"
                             onClick={() => { setEditing({ id: p.id, name: p.displayName }); setMessage(null); }}>
