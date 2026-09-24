@@ -6,7 +6,8 @@
  */
 import type { SituationWind, WinMode } from '../../scorer/types';
 import { SITUATION_WINDS } from '../../scorer/types';
-import { contextIssue, type HandState, type RiichiChoice } from './handState';
+import { contextIssue, firstRoundYakuman, type HandState, type RiichiChoice } from './handState';
+import { yakuName } from './yakuNames';
 
 const WIND_KANJI: Record<SituationWind, string> = {
   este: '東', sur: '南', oeste: '西', norte: '北',
@@ -187,6 +188,13 @@ export function HandContextPanel({
                  hint={issue('firstRound') ?? 'An uninterrupted first go-around'}
                  onChange={(v) => update({ firstRound: v, ...(v ? { ippatsu: false } : {}) })} />
         </div>
+        {/* Said on screen, not only in a tooltip: which yakuman it will be is
+            decided by the seat and the win, and a phone has no hover. */}
+        <span className="field__hint">
+          {issue('firstRound')
+            ? `Unavailable: ${issue('firstRound')}.`
+            : `Scores as ${yakuName(firstRoundYakuman(state)!)}.`}
+        </span>
       </div>
     </div>
   );

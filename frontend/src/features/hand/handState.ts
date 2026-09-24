@@ -490,6 +490,11 @@ export function contextIssue(state: HandState, option:
     case 'firstRound':
       if (riichiDeclared) return 'incompatible with a riichi';
       if (state.melds.length > 0) return 'no calls can have been made';
+      // The engine awards nothing here -- renhou is for non-dealers -- so the
+      // tick would be silently ignored and the plain hand scored instead.
+      if (state.winMode === 'ron' && state.seatWind === 'este') {
+        return "the dealer's only first-round win is tenhou, a tsumo";
+      }
       return null;
   }
 }
@@ -512,6 +517,17 @@ export function reconcile(state: HandState): HandState {
   // on the tile flap, before the riichi is picked. validateQuery reports the
   // combination at score time.
   return s;
+}
+
+/**
+ * The yakuman a first-round win becomes, as the engine derives it from
+ * `primeraRonda`: tenhou for the dealer's tsumo, chiihou for anyone else's,
+ * renhou for a non-dealer's ron. Null for a dealer's ron, which has none.
+ */
+export function firstRoundYakuman(state: HandState): 'tenhou' | 'chiihou' | 'renhou' | null {
+  const dealer = state.seatWind === 'este';
+  if (state.winMode === 'tsumo') return dealer ? 'tenhou' : 'chiihou';
+  return dealer ? null : 'renhou';
 }
 
 export function toFlags(state: HandState): Flag[] {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
-  isComplete, isHandOpen, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
+  firstRoundYakuman, isComplete, isHandOpen, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
   toFlags, toSituation, toggleMode, toggleRed, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
@@ -269,10 +269,21 @@ describe('context rules the engine does not enforce', () => {
     expect(reconcile({ ...initialHandState, chankan: true, winMode: 'tsumo' }).chankan).toBe(false);
   });
 
+  it("rules out a dealer's first-round ron, which the engine would ignore", () => {
+    const dealer = { ...initialHandState, seatWind: 'este' as const };
+    expect(contextIssue({ ...dealer, winMode: 'ron' }, 'firstRound')).toMatch(/tenhou/);
+    expect(contextIssue({ ...dealer, winMode: 'tsumo' }, 'firstRound')).toBeNull();
+    // Switching a ticked tsumo to a ron takes the tick back.
+    expect(reconcile({ ...dealer, winMode: 'ron', firstRound: true }).firstRound).toBe(false);
+    expect(firstRoundYakuman({ ...dealer, winMode: 'tsumo' })).toBe('tenhou');
+    expect(firstRoundYakuman({ ...initialHandState, seatWind: 'oeste', winMode: 'tsumo' })).toBe('chiihou');
+    expect(firstRoundYakuman({ ...initialHandState, seatWind: 'norte', winMode: 'ron' })).toBe('renhou');
+  });
+
   it('rules out a first-round win once any call has been made', () => {
     expect(contextIssue(open(), 'firstRound')).toMatch(/no calls/);
     expect(contextIssue({ ...initialHandState, riichi: 'riichi' }, 'firstRound')).toMatch(/riichi/);
-    expect(contextIssue(initialHandState, 'firstRound')).toBeNull();
+    expect(contextIssue({ ...initialHandState, seatWind: 'sur' }, 'firstRound')).toBeNull();
   });
 });
 

@@ -235,11 +235,24 @@ try {
   // --- details flap: set a non-dealer seat, matching the CLI reference ---
   await page.click('.flaps__tab:nth-child(2)');
   await page.waitForSelector('.context');
+  // A dealer's ron has no first-round yakuman, so the tick is refused there
+  // rather than silently ignored -- and the screen says why.
+  const firstRound = () => page.evaluate(() => {
+    const field = [...document.querySelectorAll('.field')]
+      .find((f) => f.querySelector('.field__label')?.textContent === 'Situational yakuman');
+    return [field.querySelector('.check').disabled, field.querySelector('.field__hint').textContent];
+  });
+  const [dealerOff, dealerWhy] = await firstRound();
+  check(dealerOff && dealerWhy.includes('tenhou'),
+        `a dealer ron cannot claim a first-round win (got ${dealerOff}, "${dealerWhy}")`);
   await page.evaluate(() => {
     const field = [...document.querySelectorAll('.field')]
       .find((f) => f.querySelector('.field__label')?.textContent === 'Seat wind');
     field.querySelectorAll('.segmented__btn')[1].click();   // South
   });
+  const [southOff, southWhat] = await firstRound();
+  check(!southOff && southWhat === 'Scores as Renhou.',
+        `a non-dealer ron's first-round win is renhou (got ${southOff}, "${southWhat}")`);
   const seatWind = await page.$$eval('.field', (fs) => {
     const f = fs.find((x) => x.querySelector('.field__label')?.textContent === 'Seat wind');
     return f.querySelector('.segmented__btn--on')?.textContent;

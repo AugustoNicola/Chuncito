@@ -531,6 +531,15 @@ per item.** Ticked here as they land, with what was decided.
       said tsumo should disable 20 fu, but 20 fu exists *only* on a tsumo:
       pinfu waives the tsumo's 2 fu (`puntuacion.pl:116`, and riichi.wiki).
       A closed ron is where 20 fu is impossible, and that was already blocked.
+- [x] **First round win not working** — the engine was right (renhou for a
+      non-dealer ron, checked against the CLI); the tick was accepted on a
+      *dealer's* ron, where no first-round yakuman exists, and the engine
+      then scored the plain hand as if it had not been ticked. The
+      calculator's seat wind defaults to East, so that was the easy case to
+      hit. Now refused there (`contextIssue`, and `reconcile` takes the tick
+      back on switching to ron), and the panel says on screen what the tick
+      will score as — Tenhou / Chiihou / Renhou (`firstRoundYakuman`) — or
+      why it is unavailable, since the tooltip never shows on a phone.
 
 ## Picking this up cold
 
