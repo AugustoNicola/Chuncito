@@ -531,6 +531,9 @@ try {
   await pick('Han', '3');
   await pick('Fu', '30');
   await shot('12-winmenu.png');
+  const limits = (await groupState('Limit')).map(([label]) => label);
+  check(limits.includes('Double Yakuman') && limits.includes('Triple Yakuman'),
+        `several yakuman can be typed in (got ${JSON.stringify(limits)})`);
 
   // 20 fu is a pinfu tsumo, so it cannot appear on a ron at all.
   const fuState = await page.evaluate(() => {

@@ -952,8 +952,9 @@ button {
 /* A fixed grid, so a wrapped row keeps the same button width as the one above
    it instead of stretching two buttons across the whole panel. */
 .pills--grid { display: grid; grid-template-columns: 1fr 1fr; }
-/* Mangan & Haneman, Baiman & Sanbaiman, then the yakuman filling its own row. */
-.pills--grid > :last-child { grid-column: 1 / -1; }
+/* Mangan & Haneman, Baiman & Sanbaiman, the yakuman filling its own row, then
+   the double and triple. */
+.pills--grid > [data-level="yakuman"] { grid-column: 1 / -1; }
 .pill {
   min-width: 44px;
   padding: 9px 11px;

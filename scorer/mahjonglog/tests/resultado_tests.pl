@@ -194,6 +194,178 @@ test(resultado_5_equivale_a_6_sin_reglas) :-
     % riichi + ippatsu + pinfu + tanyao + sanshokuDoujun(2) + 2 dora (el par m2) + 1 ura dora = 9 han
     R5 = resultado(_, 9, 30, baiman, pago(16000)).
 
+% ---- dobles yakuman ----
+
+manoSuuAnkou(mano([m2,m2,m2,p3,p3,p3,s7,s7,s7,s4,s4,s4,p5,p5], [])).
+manoKokushi(mano([m1,m1,m9,p1,p9,s1,s9,e,s,w,n,wh,g,r], [])).
+manoChuuren(mano([m1,m1,m1,m2,m3,m4,m5,m5,m6,m7,m8,m9,m9,m9], [])).
+
+test(resultado_suuAnkouTanki_doble_yakuman_ron) :-
+    manoSuuAnkou(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, p5, ron, Sit, [], R, D)),
+    R == resultado([yakuHan(suuAnkouTanki, 26)], 26, 0, dobleYakuman, pago(64000)),
+    D == [].
+
+test(resultado_suuAnkouTanki_tsumo_dealer) :-
+    manoSuuAnkou(Mano),
+    once(resultadoDeVictoria(Mano, p5, tsumo, situacion(este, este, [], [], []), R)),
+    R == resultado([yakuHan(suuAnkouTanki, 26)], 26, 0, dobleYakuman, pagoTsumoDealer(32000)).
+
+test(resultado_suuAnkou_shanpon_tsumo_es_simple) :-
+    manoSuuAnkou(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, m2, tsumo, Sit, R)),
+    R == resultado([yakuHan(suuAnkou, 13)], 13, 0, yakuman, pagoTsumo(8000, 16000)).
+
+test(resultado_suuAnkou_shanpon_ron_no_es_yakuman) :-
+    % el ron completa la tripla de m2: quedan tres ocultas (sanAnkou) +
+    % toitoi + tanyao = 5 han. Fu: 20 + 10 + 2 (m2, abierta por el ron) +
+    % 4 + 4 + 4 = 44 -> 50.
+    manoSuuAnkou(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, m2, ron, Sit, [], R, D)),
+    R == resultado([yakuHan(tanyao, 1), yakuHan(toitoi, 2), yakuHan(sanAnkou, 2)], 5, 50, mangan, pago(8000)),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10),
+          fuParte(juegoCompletadoPorRon(triC(m2,m2,m2)), 2), fuParte(juego(triC(p3,p3,p3)), 4),
+          fuParte(juego(triC(s4,s4,s4)), 4), fuParte(juego(triC(s7,s7,s7)), 4),
+          fuParte(redondeo, 6)].
+
+test(resultado_kokushiMusouJuusanmen_doble_yakuman) :-
+    manoKokushi(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, m1, ron, Sit, R)),
+    R == resultado([yakuHan(kokushiMusouJuusanmen, 26)], 26, 0, dobleYakuman, pago(64000)).
+
+test(resultado_kokushiMusou_sin_espera_de_trece_lados_es_simple) :-
+    manoKokushi(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, r, ron, Sit, R)),
+    R == resultado([yakuHan(kokushiMusou, 13)], 13, 0, yakuman, pago(32000)).
+
+test(resultado_junseiChuurenPoutou_doble_yakuman) :-
+    manoChuuren(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, m5, ron, Sit, R)),
+    R == resultado([yakuHan(junseiChuurenPoutou, 26)], 26, 0, dobleYakuman, pago(64000)).
+
+test(resultado_junseiChuurenPoutou_tsumo_dealer) :-
+    manoChuuren(Mano),
+    once(resultadoDeVictoria(Mano, m5, tsumo, situacion(este, este, [], [], []), R)),
+    R == resultado([yakuHan(junseiChuurenPoutou, 26)], 26, 0, dobleYakuman, pagoTsumoDealer(32000)).
+
+test(resultado_chuurenPoutou_sin_nueve_lados_es_simple) :-
+    manoChuuren(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, m2, ron, Sit, R)),
+    R == resultado([yakuHan(chuurenPoutou, 13)], 13, 0, yakuman, pago(32000)).
+
+test(resultado_daisuushii_doble_yakuman) :-
+    % con un pon, solo quedan tres triplas ocultas: no hay suu'ankou.
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([s,s,s,w,w,w,n,n,n,p5,p5], [pon(e,e,e)]), p5, ron, Sit, R)),
+    R == resultado([yakuHan(daisuushii, 26)], 26, 0, dobleYakuman, pago(64000)).
+
+test(resultado_shousuushii_sigue_siendo_simple) :-
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([s,s,s,w,w,w,n,n,p5,p5,p5], [pon(e,e,e)]), p5, ron, Sit, R)),
+    R == resultado([yakuHan(shousuushii, 13)], 13, 0, yakuman, pago(32000)).
+
+test(resultado_daisuushii_mas_tsuuiisou_triple_yakuman) :-
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([s,s,s,w,w,w,n,n,n,wh,wh], [pon(e,e,e)]), wh, ron, Sit, R)),
+    R == resultado([yakuHan(daisuushii, 26), yakuHan(tsuuiisou, 13)], 39, 0, tripleYakuman, pago(96000)).
+
+test(resultado_dos_dobles_yakuman_4x) :-
+    % cuatro triplas ocultas de viento con espera tanki: suuAnkouTanki +
+    % daisuushii = 4 yakuman.
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([e,e,e,s,s,s,w,w,w,n,n,n,p5,p5], []), p5, ron, Sit, R)),
+    R == resultado([yakuHan(suuAnkouTanki, 26), yakuHan(daisuushii, 26)], 52, 0, '4xYakuman', pago(128000)).
+
+test(resultado_doble_yakuman_mas_regla_de_la_casa) :-
+    manoSuuAnkou(Mano),
+    once(resultadoDeVictoria(Mano, p5, ron, situacion(este, sur, [], [], [riichiAbierto]),
+        [riichiAbiertoRonYakuman], R)),
+    R == resultado([yakuHan(suuAnkouTanki, 26), yakuHan(riichiAbiertoRon, 13)], 39, 0, tripleYakuman, pago(96000)).
+
+% ---- resultadoDeVictoria/7: desglose de fu ----
+
+%! sumaDeFu(+Desglose, -Suma) is det.
+sumaDeFu(Desglose, Suma) :-
+    findall(F, member(fuParte(_, F), Desglose), Fus),
+    sum_list(Fus, Suma).
+
+test(resultado_7_mismo_resultado_que_6) :-
+    Mano = mano([m2,m2,m3,m4,p3,p4,p5,s3,s4,s5,m6,m7,m8,m5], []),
+    Sit = situacion(este, sur, [m2], [s4], [riichi, ippatsu]),
+    once(resultadoDeVictoria(Mano, m5, ron, Sit, [], R6)),
+    once(resultadoDeVictoria(Mano, m5, ron, Sit, [], R7, D)),
+    R6 == R7,
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10)].
+
+test(resultado_desglose_kanchan_con_redondeo) :-
+    manoSoloRiichi(Mano),
+    once(resultadoDeVictoria(Mano, m7, ron, situacion(este, sur, [], [], [riichiAbierto]), [],
+        resultado(_, _, 40, _, _), D)),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(espera(kanchan), 2), fuParte(redondeo, 8)].
+
+test(resultado_desglose_tanki_en_par_de_dragon) :-
+    once(resultadoDeVictoria(mano([wh,wh,m2,m3,m4,p3,p4,p5,s6,s7,s8,s2,s3,s4], []), wh, ron,
+        situacion(este, sur, [], [], [riichi]), [], resultado(_, _, Fu, _, _), D)),
+    Fu == 40,
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(par(wh), 2), fuParte(espera(tanki), 2),
+          fuParte(redondeo, 6)].
+
+test(resultado_desglose_pinfu_tsumo) :-
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([p5,p5,m2,m3,m4,p6,p7,p8,s2,s3,s4,s6,s7,s8], []), m2, tsumo,
+        Sit, [], resultado(_, _, 20, _, _), D)),
+    D == [fuParte(pinfuTsumo, 20)].
+
+test(resultado_desglose_chiitoitsu) :-
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([m1,m1,m4,m4,p2,p2,p5,p5,s3,s3,s7,s7,n,n], []), n, ron,
+        Sit, [], resultado(_, _, 25, _, _), D)),
+    D == [fuParte(chiitoitsu, 25)].
+
+test(resultado_desglose_es_de_la_descomposicion_elegida) :-
+    % m1 m2 m3 m3 m3 m3: el ron en m3 puede leerse como penchan en la
+    % escalera (triC m3 cerrada: 4) o como shanpon en la tripla (abierta
+    % por el ron: 2). Gana la primera (44 -> 50), y el desglose es el suyo.
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([p5,p5,m3,m3,m3,m1,m2,m3,s2,s3,s4,wh,wh,wh], []), m3, ron,
+        Sit, [], resultado(_, _, Fu, _, _), D)),
+    Fu == 50,
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(juego(triC(m3,m3,m3)), 4),
+          fuParte(juego(triC(wh,wh,wh)), 8), fuParte(espera(penchan), 2), fuParte(redondeo, 6)],
+    sumaDeFu(D, Fu).
+
+test(resultado_desglose_elige_entre_descomposiciones) :-
+    % mismas fichas que resultado_elige_la_descomposicion_de_mayor_pago:
+    % gana la lectura estándar (ryanpeikou + pinfu, 30 fu) sobre la de
+    % chiitoitsu, y el desglose es el de esa lectura, no fuParte(chiitoitsu, 25).
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([m2,m2,m3,m3,m4,m4,m5,m5,m6,m6,m7,m7,m8,m8], []), m2, ron,
+        Sit, [], resultado(_, _, 30, _, _), D)),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10)].
+
+test(resultado_desglose_pinfu_abierto) :-
+    sinFlags(Sit),
+    once(resultadoDeVictoria(mano([m5,m5,s5,s6,s7,m6,m7,m8,m2,m3,m4], [chii(p2,p3,p4)]), m6, ron,
+        Sit, [], resultado(_, _, 30, _, _), D)),
+    D == [fuParte(fuBase, 20), fuParte(pinfuAbierto, 2), fuParte(redondeo, 8)].
+
+test(resultado_desglose_yakuman_vacio) :-
+    manoKokushi(Mano), sinFlags(Sit),
+    once(resultadoDeVictoria(Mano, r, ron, Sit, [], resultado(_, _, 0, _, _), D)),
+    D == [].
+
+test(resultado_desglose_suma_el_fu_en_manos_variadas) :-
+    forall(
+        member(Mano-Ganadora-Modo-Sit, [
+            mano([m2,m2,m3,m4,m5,p3,p4,p5,s3,s4,s5,m6,m7,m8], [])-m5-ron-situacion(este, sur, [], [], []),
+            mano([m1,m1,m2,m3,m4,p2,p3,p4,s6,s7,s8,m6,m7,m8], [])-m7-tsumo-situacion(este, sur, [], [], [riichi]),
+            mano([m2,m2,m3,m4,m5,p3,p4,p5,s3,s4,s5], [kanC(wh,wh,wh,wh)])-m3-ron-situacion(este, sur, [], [], []),
+            mano([e,e,m2,m3,m4,p3,p4,p5], [pon(wh,wh,wh), kanA(s9,s9,s9,s9)])-e-ron-situacion(este, este, [], [], []),
+            mano([n,n,n,m2,m3,m4,p7,p8,p9,s1,s2,s3,g,g], [])-p7-tsumo-situacion(sur, norte, [], [], [riichi])
+        ]),
+        ( once(resultadoDeVictoria(Mano, Ganadora, Modo, Sit, [], resultado(_, _, Fu, _, _), D)),
+          sumaDeFu(D, Fu) )).
+
 test(resultado_falla_con_regla_desconocida) :-
     manoSoloRiichi(Mano),
     \+ resultadoDeVictoria(Mano, m7, ron, situacion(este, sur, [], [], [riichiAbierto]),

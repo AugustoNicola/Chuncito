@@ -1,6 +1,6 @@
-/** Prolog `resultado/5` term -> ScoreResult. */
+/** Prolog `resultado/5` term (+ its fu breakdown) -> ScoreResult. */
 import { asAtom, asCompound, asInt, asList, parseTerm, TermParseError, describe, type Term } from './term';
-import type { Payment, ScoreOutcome, ScoreResult, YakuHan } from './types';
+import type { FuPart, Payment, ScoreOutcome, ScoreResult, Tile, YakuHan } from './types';
 
 function decodePayment(term: Term): Payment {
   if (term.t !== 'compound') throw new TermParseError(`expected a payment term, got ${describe(term)}`);
@@ -21,7 +21,36 @@ function decodeYaku(term: Term): YakuHan {
   return { yaku: asAtom(name!), han: asInt(han!) };
 }
 
-export function decodeResultTerm(term: Term): ScoreResult {
+const FIXED_FU = new Set(['fuBase', 'menzenRon', 'tsumo', 'redondeo', 'chiitoitsu', 'pinfuTsumo', 'pinfuAbierto']);
+const WAITS = new Set(['tanki', 'kanchan', 'penchan']);
+
+function decodeSet(term: Term): { set: string; tiles: Tile[] } {
+  if (term.t !== 'compound') throw new TermParseError(`expected a set, got ${describe(term)}`);
+  return { set: term.name, tiles: term.args.map((a) => asAtom(a) as Tile) };
+}
+
+function decodeFuPart(term: Term): FuPart {
+  const [concept, fuTerm] = asCompound(term, 'fuParte', 2);
+  const fu = asInt(fuTerm!);
+  if (concept!.t === 'atom' && FIXED_FU.has(concept!.name)) {
+    return { concept: concept!.name as 'fuBase', fu };
+  }
+  if (concept!.t === 'compound' && concept!.args.length === 1) {
+    const arg = concept!.args[0]!;
+    switch (concept!.name) {
+      case 'juego': return { concept: 'juego', ...decodeSet(arg), fu };
+      case 'juegoCompletadoPorRon': return { concept: 'juegoCompletadoPorRon', ...decodeSet(arg), fu };
+      case 'par': return { concept: 'par', tile: asAtom(arg) as Tile, fu };
+      case 'espera': {
+        const wait = asAtom(arg);
+        if (WAITS.has(wait)) return { concept: 'espera', wait: wait as 'tanki', fu };
+      }
+    }
+  }
+  throw new TermParseError(`unknown fu part ${describe(term)}`);
+}
+
+export function decodeResultTerm(term: Term, fuParts: Term = { t: 'list', items: [] }): ScoreResult {
   const [yakus, han, fu, level, payment] = asCompound(term, 'resultado', 5);
   return {
     yakus: asList(yakus!).map(decodeYaku),
@@ -31,13 +60,15 @@ export function decodeResultTerm(term: Term): ScoreResult {
     // asAtom handles both since the parser unquotes.
     level: asAtom(level!),
     payment: decodePayment(payment!),
+    fuParts: asList(fuParts).map(decodeFuPart),
   };
 }
 
 /** Decodes what serializeScoreGoal produced: either "fail" or a canonical term. */
 export function decodeScoreOutcome(canonical: string): ScoreOutcome {
   if (canonical === 'fail') return { ok: false, reason: 'noWinningHand' };
-  return { ok: true, result: decodeResultTerm(parseTerm(canonical)) };
+  const [result, fuParts] = asCompound(parseTerm(canonical), 'desglosado', 2);
+  return { ok: true, result: decodeResultTerm(result!, fuParts!) };
 }
 
 /** Total points changing hands, for tracker bookkeeping. Excludes honba/sticks. */

@@ -5,7 +5,8 @@ import {
   recordHand, toggleRiichi, undoLastHand,
 } from './matchState';
 import {
-  type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, basePoints, levelFor, manualReachable,
+  type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, baseFromResult, basePoints, levelFor,
+  manualReachable,
   paymentFor, placeLabel, placements, placesOf,
 } from './scoring';
 import { dealerOf, seatWindOf } from './seats';
@@ -89,6 +90,12 @@ describe('seats and winds', () => {
 });
 
 describe('scoring arithmetic', () => {
+  it('prices every yakuman multiple, the open tail included', () => {
+    expect(baseFromResult('yakuman', 13, 0)).toBe(8000);
+    expect(baseFromResult('dobleYakuman', 26, 0)).toBe(16000);
+    expect(baseFromResult('4xYakuman', 52, 0)).toBe(32000);
+  });
+
   it('computes base points from han and fu', () => {
     expect(basePoints(1, 30)).toBe(240);
     expect(basePoints(3, 30)).toBe(960);

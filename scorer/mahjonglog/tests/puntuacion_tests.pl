@@ -143,6 +143,54 @@ test(fu_toma_la_interpretacion_de_mayor_fu) :-
     % de p3) da 48, menos que esta, así que no se elige:
     FuTotal =:= 60.
 
+test(fuDesglosado_es_de_la_interpretacion_elegida) :-
+    % mismo caso que fu_toma_la_interpretacion_de_mayor_fu: el desglose
+    % tiene que describir la interpretación que da 60 (ron en la escalera,
+    % kanchan; triC p3 cerrada), no la otra (ron en la tripla).
+    Formas = [pareja(m5, m5), triC(p3, p3, p3), triC(s1, s1, s1), triC(s9, s9, s9), escC(p2, p3, p4)],
+    fuDesglosado(Formas, p3, ron, true, [], situacion(este, sur, [], [], []), 60, Desglose),
+    Desglose == [fuParte(fuBase, 20), fuParte(menzenRon, 10),
+                 fuParte(juego(triC(p3, p3, p3)), 4), fuParte(juego(triC(s1, s1, s1)), 8),
+                 fuParte(juego(triC(s9, s9, s9)), 8), fuParte(espera(kanchan), 2),
+                 fuParte(redondeo, 8)].
+
+test(fuDesglosado_tripla_completada_por_ron) :-
+    % el ron en s7 (espera shanpon) abre la triC: se lista aparte.
+    Formas = [pareja(p5, p5), triC(m2, m2, m2), triC(p3, p3, p3), triC(s7, s7, s7), pon(s4, s4, s4)],
+    fuDesglosado(Formas, s7, ron, false, [], situacion(este, sur, [], [], []), 40, Desglose),
+    Desglose == [fuParte(fuBase, 20),
+                 fuParte(juego(triC(m2, m2, m2)), 4), fuParte(juego(triC(p3, p3, p3)), 4),
+                 fuParte(juegoCompletadoPorRon(triC(s7, s7, s7)), 2), fuParte(juego(pon(s4, s4, s4)), 2),
+                 fuParte(redondeo, 8)].
+
+test(fuDesglosado_casos_fijos) :-
+    manoPinfuDePrueba(Formas), sinFlags(Sit),
+    fuDesglosado([pareja(m1,m1)], m1, ron, true, [chiitoitsu], Sit, 25, [fuParte(chiitoitsu, 25)]),
+    fuDesglosado(Formas, m2, tsumo, true, [pinfu], Sit, 20, [fuParte(pinfuTsumo, 20)]),
+    fuDesglosado(Formas, m2, ron, true, [pinfu], Sit, 30, [fuParte(fuBase, 20), fuParte(menzenRon, 10)]).
+
+test(tipoDeEspera_nombres) :-
+    tipoDeEspera(pareja(p5, p5), pareja(p5, p5), p5, tanki),
+    tipoDeEspera(escC(m2, m3, m4), pareja(p5, p5), m2, ryanmen),
+    tipoDeEspera(escC(m2, m3, m4), pareja(p5, p5), m3, kanchan),
+    tipoDeEspera(escC(m1, m2, m3), pareja(p5, p5), m3, penchan),
+    tipoDeEspera(escC(m7, m8, m9), pareja(p5, p5), m7, penchan),
+    tipoDeEspera(triC(m2, m2, m2), pareja(p5, p5), m2, shanpon).
+
+test(puntuacion_yakuman_desglose_vacio) :-
+    Formas = [pareja(p5,p5), triC(m2,m2,m2), triC(p3,p3,p3), triC(s7,s7,s7), triC(s4,s4,s4)],
+    Sit = situacion(este, sur, [], [], []),
+    yakusAplicables(victoria(Formas, m2, tsumo), Sit, Yakus),
+    once(puntuacion(Formas, m2, tsumo, Yakus, Sit, puntuacion(13, 0, yakuman, _), Desglose)),
+    Desglose == [].
+
+test(puntuacion_suuAnkouTanki_doble_yakuman_tsumo_no_dealer) :-
+    Formas = [pareja(p5,p5), triC(m2,m2,m2), triC(p3,p3,p3), triC(s7,s7,s7), triC(s4,s4,s4)],
+    Sit = situacion(este, sur, [], [], []),
+    yakusAplicables(victoria(Formas, p5, tsumo), Sit, Yakus),
+    Yakus == [suuAnkouTanki],
+    once(puntuacion(Formas, p5, tsumo, Yakus, Sit, puntuacion(26, 0, dobleYakuman, pagoTsumo(16000, 32000)))).
+
 % ---- nivelDePuntuacion / basePuntos ----
 
 test(nivel_mangan_exacto) :- nivelDePuntuacion(5, 0, mangan).
@@ -203,16 +251,19 @@ test(puntuacion_chinitsu_abierto_mangan_ron_no_dealer) :-
     once(puntuacion(Formas, m1, ron, Yakus, Sit, puntuacion(5, 30, mangan, pago(8000)))).
 
 test(puntuacion_kokushi_tenhou_doble_yakuman_tsumo_dealer) :-
+    % gana con m9 (kokushi simple); con el m1 repetido sería juusanmen.
     Forma = huerfanos(m1,m1,m9,p1,p9,s1,s9,e,s,w,n,wh,g,r),
     Sit = situacion(este, este, [], [], [primeraRonda]),
-    yakusAplicables(victoria([Forma], m1, tsumo), Sit, Yakus),
-    once(puntuacion([Forma], m1, tsumo, Yakus, Sit, puntuacion(26, 0, dobleYakuman, pagoTsumoDealer(32000)))).
+    yakusAplicables(victoria([Forma], m9, tsumo), Sit, Yakus),
+    once(puntuacion([Forma], m9, tsumo, Yakus, Sit, puntuacion(26, 0, dobleYakuman, pagoTsumoDealer(32000)))).
 
 test(puntuacion_suuAnkou_yakuman_tsumo_no_dealer) :-
+    % tsumo en m2 (espera shanpon): suuAnkou simple. Con p5 (el par) sería
+    % tanki, suuAnkouTanki, doble yakuman.
     Formas = [pareja(p5,p5), triC(m2,m2,m2), triC(p3,p3,p3), triC(s7,s7,s7), triC(s4,s4,s4)],
     Sit = situacion(este, sur, [], [], []),
-    yakusAplicables(victoria(Formas, p5, tsumo), Sit, Yakus),
-    once(puntuacion(Formas, p5, tsumo, Yakus, Sit, puntuacion(13, 0, yakuman, pagoTsumo(8000, 16000)))).
+    yakusAplicables(victoria(Formas, m2, tsumo), Sit, Yakus),
+    once(puntuacion(Formas, m2, tsumo, Yakus, Sit, puntuacion(13, 0, yakuman, pagoTsumo(8000, 16000)))).
 
 test(puntuacion_chiitoitsu_usa_25_fu) :-
     Formas = [

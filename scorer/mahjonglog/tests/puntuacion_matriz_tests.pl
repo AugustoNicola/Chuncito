@@ -211,10 +211,122 @@ test(chiitoitsu_5_han_mangan_mas_honitsu) :-
 test(yakuman_doble_suuAnkou_y_chinroutou_a_la_vez) :-
     % Cuatro triplas ocultas de fichas terminales (1 y 9) más un par
     % terminal: suuAnkou (yakuman) y chinroutou (yakuman) aplican a la vez.
+    % Gana por tsumo en m1 (espera shanpon): con s9, el par, sería tanki
+    % (suuAnkouTanki, doble), y la mano sería triple yakuman.
+    Formas = [pareja(s9,s9), triC(m1,m1,m1), triC(m9,m9,m9), triC(p1,p1,p1), triC(p9,p9,p9)],
+    Sit = situacion(este, sur, [], [], []),
+    once(yakusAplicables(victoria(Formas, m1, tsumo), Sit, Yakus)),
+    Yakus == [chinroutou, suuAnkou],
+    once(puntuacion(Formas, m1, tsumo, Yakus, Sit, puntuacion(26, 0, dobleYakuman, pagoTsumo(16000, 32000)))).
+
+% ===================== Desglose de fu (puntuacion/7) =====================
+%* Las mismas manos de la escalera de fu, pidiendo además el desglose: en
+%* cada una, las partes suman exactamente el Fu (ya redondeado; el
+%* redondeo es su propia parte) y describen la interpretación elegida.
+
+%! desgloseDeFu(+Formas, +Ganadora, +Modo, +Sit, -Fu, -Desglose) is semidet.
+%* Puntúa por puntuacion/7 y corrobora que la suma de Desglose sea Fu.
+desgloseDeFu(Formas, Ganadora, Modo, Sit, Fu, Desglose) :-
+    once(yakusAplicables(victoria(Formas, Ganadora, Modo), Sit, Yakus)),
+    once(puntuacion(Formas, Ganadora, Modo, Yakus, Sit, puntuacion(_, Fu, _, _), Desglose)),
+    findall(F, member(fuParte(_, F), Desglose), Fus),
+    sum_list(Fus, Fu).
+
+test(desglose_fu_30_pinfu_abierto_ron) :-
+    desgloseDeFu([pareja(m5,m5), chii(p2,p3,p4), escC(s5,s6,s7), escC(m6,m7,m8), escC(m2,m3,m4)],
+        m6, ron, situacion(este, sur, [], [], []), 30, D),
+    D == [fuParte(fuBase, 20), fuParte(pinfuAbierto, 2), fuParte(redondeo, 8)].
+
+test(desglose_fu_30_pinfu_abierto_tsumo) :-
+    % mismo desglose: los +2 fijos reemplazan al fu de tsumo (ver fu/7).
+    desgloseDeFu([pareja(m5,m5), chii(p2,p3,p4), escC(s5,s6,s7), escC(m6,m7,m8), escC(m2,m3,m4)],
+        m6, tsumo, situacion(este, sur, [], [], []), 30, D),
+    D == [fuParte(fuBase, 20), fuParte(pinfuAbierto, 2), fuParte(redondeo, 8)].
+
+test(desglose_fu_30_abierto_haku_ryanmen_tsumo) :-
+    desgloseDeFu([pareja(m5,m5), pon(wh,wh,wh), escC(s2,s3,s4), escC(p6,p7,p8), escC(m2,m3,m4)],
+        m2, tsumo, situacion(este, sur, [], [], []), 30, D),
+    D == [fuParte(fuBase, 20), fuParte(tsumo, 2), fuParte(juego(pon(wh,wh,wh)), 4), fuParte(redondeo, 4)].
+
+test(desglose_fu_40_haku_cerrado_ryanmen_ron) :-
+    desgloseDeFu([pareja(m5,m5), triC(wh,wh,wh), escC(s2,s3,s4), escC(p6,p7,p8), escC(m2,m3,m4)],
+        m2, ron, situacion(este, sur, [], [], []), 40, D),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(juego(triC(wh,wh,wh)), 8), fuParte(redondeo, 2)].
+
+test(desglose_fu_50_haku_mas_tripla_simple_kanchan_ron) :-
+    desgloseDeFu([pareja(m5,m5), triC(wh,wh,wh), triC(m2,m2,m2), escC(p2,p3,p4), escC(s6,s7,s8)],
+        p3, ron, situacion(este, sur, [], [], []), 50, D),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(juego(triC(wh,wh,wh)), 8),
+          fuParte(juego(triC(m2,m2,m2)), 4), fuParte(espera(kanchan), 2), fuParte(redondeo, 6)].
+
+test(desglose_fu_60_par_de_viento_doble) :-
+    sitDealer(Sit),
+    desgloseDeFu([pareja(e,e), triC(wh,wh,wh), triC(p9,p9,p9), escC(m2,m3,m4), escC(s2,s3,s4)],
+        m3, ron, Sit, 60, D),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(juego(triC(wh,wh,wh)), 8),
+          fuParte(juego(triC(p9,p9,p9)), 8), fuParte(par(e), 4), fuParte(espera(kanchan), 2),
+          fuParte(redondeo, 8)].
+
+test(desglose_fu_70_kan_abierto_y_kan_cerrado_tsumo) :-
+    sitDealer(Sit),
+    desgloseDeFu([pareja(e,e), triC(wh,wh,wh), kanA(p9,p9,p9,p9), kanC(m2,m2,m2,m2), escC(s2,s3,s4)],
+        s3, tsumo, Sit, 70, D),
+    D == [fuParte(fuBase, 20), fuParte(tsumo, 2), fuParte(juego(triC(wh,wh,wh)), 8),
+          fuParte(juego(kanA(p9,p9,p9,p9)), 16), fuParte(juego(kanC(m2,m2,m2,m2)), 16),
+          fuParte(par(e), 4), fuParte(espera(kanchan), 2), fuParte(redondeo, 2)].
+
+test(desglose_fu_80_quad_terminal_cerrado) :-
+    sitDealer(Sit),
+    desgloseDeFu([pareja(e,e), triC(wh,wh,wh), kanC(p9,p9,p9,p9), escC(m2,m3,m4), escC(s2,s3,s4)],
+        s3, ron, Sit, 80, D),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10), fuParte(juego(triC(wh,wh,wh)), 8),
+          fuParte(juego(kanC(p9,p9,p9,p9)), 32), fuParte(par(e), 4), fuParte(espera(kanchan), 2),
+          fuParte(redondeo, 4)].
+
+test(desglose_fu_90_sin_parte_de_espera_ryanmen) :-
+    % ryanmen en m2-m3-m4: la espera no suma y no se lista.
+    sitDealer(Sit),
+    desgloseDeFu([pareja(e,e), triC(wh,wh,wh), kanA(p9,p9,p9,p9), kanC(s9,s9,s9,s9), escC(m2,m3,m4)],
+        m2, tsumo, Sit, 90, D),
+    D == [fuParte(fuBase, 20), fuParte(tsumo, 2), fuParte(juego(triC(wh,wh,wh)), 8),
+          fuParte(juego(kanA(p9,p9,p9,p9)), 16), fuParte(juego(kanC(s9,s9,s9,s9)), 32),
+          fuParte(par(e), 4), fuParte(redondeo, 8)].
+
+test(desglose_fu_100_y_110) :-
+    sitDealer(Sit),
+    desgloseDeFu([pareja(e,e), triC(wh,wh,wh), kanC(p9,p9,p9,p9), kanC(m2,m2,m2,m2), escC(s2,s3,s4)],
+        s3, ron, Sit, 100, D100),
+    last(D100, fuParte(redondeo, 8)),
+    desgloseDeFu([pareja(e,e), triC(wh,wh,wh), kanC(p9,p9,p9,p9), kanC(m9,m9,m9,m9), escC(s2,s3,s4)],
+        s3, ron, Sit, 110, D110),
+    last(D110, fuParte(redondeo, 2)).
+
+test(desglose_escalera_de_han_pinfu_ron_sin_redondeo) :-
+    % 20 + 10 = 30 exacto: no hay parte de redondeo.
+    manoEscaleraHanDePrueba(Formas),
+    desgloseDeFu(Formas, m2, ron, situacion(este, sur, [m2], [], [riichi, ippatsu]), 30, D),
+    D == [fuParte(fuBase, 20), fuParte(menzenRon, 10)].
+
+test(desglose_chiitoitsu_25_fijo) :-
+    desgloseDeFu([pareja(m1, m1), pareja(m4, m4), pareja(p2, p2), pareja(p5, p5),
+                  pareja(s3, s3), pareja(s7, s7), pareja(n, n)],
+        m1, ron, situacion(este, sur, [], [], []), 25, D),
+    D == [fuParte(chiitoitsu, 25)].
+
+test(desglose_yakuman_vacio) :-
+    Formas = [pareja(s9,s9), triC(m1,m1,m1), triC(m9,m9,m9), triC(p1,p1,p1), triC(p9,p9,p9)],
+    desgloseDeFu(Formas, m1, tsumo, situacion(este, sur, [], [], []), 0, D),
+    D == [].
+
+% ===================== Dobles yakuman =====================
+
+test(yakuman_triple_suuAnkouTanki_y_chinroutou) :-
+    % la misma mano de yakuman_doble_suuAnkou_y_chinroutou_a_la_vez, pero
+    % ganada en el par (tanki): suuAnkouTanki (26) + chinroutou (13).
     Formas = [pareja(s9,s9), triC(m1,m1,m1), triC(m9,m9,m9), triC(p1,p1,p1), triC(p9,p9,p9)],
     Sit = situacion(este, sur, [], [], []),
     once(yakusAplicables(victoria(Formas, s9, tsumo), Sit, Yakus)),
-    Yakus == [chinroutou, suuAnkou],
-    once(puntuacion(Formas, s9, tsumo, Yakus, Sit, puntuacion(26, 0, dobleYakuman, pagoTsumo(16000, 32000)))).
+    Yakus == [chinroutou, suuAnkouTanki],
+    once(puntuacion(Formas, s9, tsumo, Yakus, Sit, puntuacion(39, 0, tripleYakuman, pagoTsumo(24000, 48000)))).
 
 :- end_tests(puntuacion_matriz).

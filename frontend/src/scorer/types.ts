@@ -106,12 +106,29 @@ export type KnownLevel =
   | 'kazoeYakuman' | 'yakuman' | 'dobleYakuman' | 'tripleYakuman';
 export type Level = KnownLevel | (string & {});
 
+/**
+ * One line of how the fu were counted (`fuParte/2` upstream), for the
+ * decomposition the engine actually scored. The parts sum to `fu`; `redondeo`
+ * is the round-up to the next 10. Empty for a yakuman. Sets and waits worth
+ * nothing are not listed.
+ */
+export type FuPart =
+  | { concept: 'fuBase' | 'menzenRon' | 'tsumo' | 'redondeo'
+      | 'chiitoitsu' | 'pinfuTsumo' | 'pinfuAbierto'; fu: number }
+  /** A triplet or kan: `triC`, `pon`, `kanA` or `kanC`, with its tiles. */
+  | { concept: 'juego'; set: string; tiles: Tile[]; fu: number }
+  /** A concealed triplet completed by the ron, and so paid as an open one. */
+  | { concept: 'juegoCompletadoPorRon'; set: string; tiles: Tile[]; fu: number }
+  | { concept: 'par'; tile: Tile; fu: number }
+  | { concept: 'espera'; wait: 'tanki' | 'kanchan' | 'penchan'; fu: number };
+
 export interface ScoreResult {
   yakus: YakuHan[];
   han: number;
   fu: number;
   level: Level;
   payment: Payment;
+  fuParts: FuPart[];
 }
 
 /**

@@ -66,5 +66,7 @@ export function withNukidora(result: ScoreResult, state: HandState): ScoreResult
     fu: result.fu,
     level: levelFor(han, result.fu),
     payment: paymentFor(basePoints(han, result.fu), isDealer, state.winMode),
+    // Kita are han, never fu.
+    fuParts: result.fuParts,
   };
 }

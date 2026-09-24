@@ -286,6 +286,23 @@ test(kokushi_falla_con_mano_estandar) :-
     manoTanyaoDePrueba(Formas), sinFlags(Sit),
     \+ yaku(kokushiMusou, victoria(Formas, p5, tsumo), Sit).
 
+% ---- kokushi musou juusanmen (doble yakuman) ----
+
+test(kokushiMusouJuusanmen_aplica_si_la_ganadora_es_la_repetida) :-
+    % con m1, la mano tenía los trece huérfanos antes de ganar:
+    manoKokushiDePrueba(Forma), sinFlags(Sit),
+    once(yaku(kokushiMusouJuusanmen, victoria([Forma], m1, ron), Sit)).
+
+test(kokushiMusouJuusanmen_falla_si_la_ganadora_no_es_la_repetida) :-
+    % con m9, la mano esperaba solo m9 (ya tenía el par de m1):
+    manoKokushiDePrueba(Forma), sinFlags(Sit),
+    \+ yaku(kokushiMusouJuusanmen, victoria([Forma], m9, ron), Sit),
+    once(yaku(kokushiMusou, victoria([Forma], m9, ron), Sit)).
+
+test(kokushiMusouJuusanmen_falla_con_mano_estandar) :-
+    manoTanyaoDePrueba(Formas), sinFlags(Sit),
+    \+ yaku(kokushiMusouJuusanmen, victoria(Formas, p5, tsumo), Sit).
+
 % ---- chiitoitsu ----
 
 manoChiitoitsuDePrueba([
@@ -362,6 +379,35 @@ test(suuAnkou_aplica_si_el_ron_completa_el_par_no_una_pierna) :-
     % cuatro triplas siguen siendo concealed.
     manoSuuAnkouDePrueba(Formas),
     once(yaku(suuAnkou, victoria(Formas, p5, ron), situacion(este, sur, [], [], []))).
+
+% ---- suu'ankou tanki (doble yakuman) ----
+
+test(suuAnkouTanki_aplica_por_tsumo_en_el_par) :-
+    manoSuuAnkouDePrueba(Formas), sinFlags(Sit),
+    once(yaku(suuAnkouTanki, victoria(Formas, p5, tsumo), Sit)).
+
+test(suuAnkouTanki_aplica_por_ron_en_el_par) :-
+    manoSuuAnkouDePrueba(Formas), sinFlags(Sit),
+    once(yaku(suuAnkouTanki, victoria(Formas, p5, ron), Sit)).
+
+test(suuAnkouTanki_falla_con_espera_shanpon_por_tsumo) :-
+    % tsumo en una de las triplas: sigue siendo suuAnkou, pero simple.
+    manoSuuAnkouDePrueba(Formas), sinFlags(Sit),
+    \+ yaku(suuAnkouTanki, victoria(Formas, s7, tsumo), Sit),
+    once(yaku(suuAnkou, victoria(Formas, s7, tsumo), Sit)).
+
+test(suuAnkouTanki_falla_con_una_llamada) :-
+    manoSanAnkouDePrueba(Formas), sinFlags(Sit),
+    \+ yaku(suuAnkouTanki, victoria(Formas, p5, tsumo), Sit).
+
+test(suuAnkouTanki_no_corta_los_yakus_siguientes) :-
+    % regresión: yaku/3 es un único predicado con una cláusula por yaku;
+    % un corte en la cláusula de un yaku nuevo haría perder a los que se
+    % definen después (p. ej. riichi, tenhou).
+    manoSuuAnkouDePrueba(Formas),
+    findall(Y, yaku(Y, victoria(Formas, p5, tsumo), situacion(este, sur, [], [], [riichi])), Yakus),
+    memberchk(suuAnkouTanki, Yakus),
+    memberchk(riichi, Yakus).
 
 test(sanAnkou_falla_si_el_ron_completa_una_de_las_piernas_ocultas) :-
     % de las tres triplas ocultas de manoSanAnkouDePrueba, s7 gana por ron:
@@ -472,6 +518,24 @@ test(chuurenPoutou_falla_con_varios_palos) :-
 test(chuurenPoutou_falla_con_llamada) :-
     manoConLlamadaDePrueba(Formas), sinFlags(Sit),
     \+ yaku(chuurenPoutou, victoria(Formas, n, ron), Sit).
+
+% ---- junsei chuuren poutou (doble yakuman) ----
+
+test(junseiChuurenPoutou_aplica_si_la_ganadora_es_la_extra) :-
+    % 1112345678999 + m5: antes de ganar esperaba cualquiera de los nueve.
+    manoChuurenPoutouDePrueba(Formas), sinFlags(Sit),
+    once(yaku(junseiChuurenPoutou, victoria(Formas, m5, ron), Sit)).
+
+test(junseiChuurenPoutou_falla_si_la_ganadora_no_es_la_extra) :-
+    % ganando con m2, antes de ganar la mano era 111345567899 9 (sin m2):
+    % chuuren poutou, pero no de nueve lados.
+    manoChuurenPoutouDePrueba(Formas), sinFlags(Sit),
+    \+ yaku(junseiChuurenPoutou, victoria(Formas, m2, ron), Sit),
+    once(yaku(chuurenPoutou, victoria(Formas, m2, ron), Sit)).
+
+test(junseiChuurenPoutou_falla_con_varios_palos) :-
+    manoHonitsuDePrueba(Formas), sinFlags(Sit),
+    \+ yaku(junseiChuurenPoutou, victoria(Formas, n, ron), Sit).
 
 % ---- espera ryanmen ----
 

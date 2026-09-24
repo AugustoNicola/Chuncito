@@ -26,13 +26,14 @@ export function serializeSituation(s: Situation): string {
 }
 
 /**
- * The bare `resultadoDeVictoria/6` goal, with `R` as the output variable. The
- * rules are always passed, as `[]` when there are none -- `/5` is the same
- * thing upstream, so there is one shape of query rather than two.
+ * The bare `resultadoDeVictoria/7` goal, with `R` as the result and `D` as the
+ * fu breakdown. The rules are always passed, as `[]` when there are none --
+ * `/5` and `/6` are the same thing upstream, so there is one shape of query.
  */
-export function serializeQuery(q: ScoreQuery, outVar = 'R'): string {
+export function serializeQuery(q: ScoreQuery, outVar = 'R', fuVar = 'D'): string {
   return `resultadoDeVictoria(${serializeHand(q.hand)},${q.winningTile},` +
-    `${q.mode},${serializeSituation(q.situation)},[${(q.rules ?? []).join(',')}],${outVar})`;
+    `${q.mode},${serializeSituation(q.situation)},[${(q.rules ?? []).join(',')}],` +
+    `${outVar},${fuVar})`;
 }
 
 /**
@@ -41,7 +42,9 @@ export function serializeQuery(q: ScoreQuery, outVar = 'R'): string {
  * is a normal outcome, so the query itself must always succeed.
  */
 export function serializeScoreGoal(q: ScoreQuery): string {
-  return `( ${serializeQuery(q)} -> with_output_to(string(S), write_canonical(R)) ; S = "fail" )`;
+  // Both outputs travel as one term, `desglosado(Resultado, DesgloseFu)`.
+  return `( ${serializeQuery(q)} -> with_output_to(string(S), write_canonical(desglosado(R,D)))` +
+    ' ; S = "fail" )';
 }
 
 export const tileAtom = (t: Tile): string => t;

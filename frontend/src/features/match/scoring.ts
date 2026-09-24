@@ -110,7 +110,13 @@ export function paymentFor(base: number, isDealer: boolean, mode: WinMode): Paym
  * and the han formula would flatten it back to a single yakuman's 8000.
  */
 export function baseFromResult(level: Level, han: number, fu: number): number {
-  return LIMIT_BASE[level] ?? basePoints(han, fu);
+  return LIMIT_BASE[level] ?? yakumanTailBase(level) ?? basePoints(han, fu);
+}
+
+/** '4xYakuman', '5xYakuman', ...: the engine's open tail, 8000 per yakuman. */
+function yakumanTailBase(level: Level): number | null {
+  const m = /^(\d+)xYakuman$/.exec(level);
+  return m ? Number(m[1]) * 8000 : null;
 }
 
 /**

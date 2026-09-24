@@ -45,9 +45,12 @@ const FU_REST = MANUAL_FU.filter((fu) => fu > 50);
 
 /**
  * Limits offered directly, for when nobody counted the fu. Two to a row, in
- * ascending pairs, with the yakuman alone across the bottom.
+ * ascending pairs, with the yakuman alone across its own row and the double
+ * and triple below it -- a double yakuman hand, or two yakuman at once.
  */
-const LIMITS = ['mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman'] as const;
+const LIMITS = [
+  'mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman', 'dobleYakuman', 'tripleYakuman',
+] as const;
 
 
 type Route = 'menu' | 'tiles';
@@ -396,6 +399,7 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
               <button key={value} type="button"
                       className={`pill pill--limit${limit === value ? ' pill--on' : ''}`}
                       data-tier={levelTier(value)}
+                      data-level={value}
                       aria-pressed={limit === value}
                       onClick={() => pickLimit(value)}>
                 {levelName(value) ?? value}

@@ -51,8 +51,34 @@ describe('scoring, end to end', () => {
         ],
         han: 4, fu: 30, level: 'sinNombre',
         payment: { kind: 'ron', total: 7700 },
+        // Pinfu on a ron: the base and the closed ron, rounded 30 already.
+        fuParts: [{ concept: 'fuBase', fu: 20 }, { concept: 'menzenRon', fu: 10 }],
       },
     });
+  });
+
+  it('explains the fu set by set, summing to the total', () => {
+    const out = scorer.score(q({
+      hand: { concealed: T('m1 m1 m1 m2 m3 p4 p5 p6 s7 s8 s9 wh wh m4'), melds: [] },
+      winningTile: 'm4',
+      situation: { roundWind: 'este', seatWind: 'sur', dora: [], uraDora: [], flags: ['riichi'] },
+    }));
+    expect(out.ok && out.result.fuParts).toEqual([
+      { concept: 'fuBase', fu: 20 },
+      { concept: 'menzenRon', fu: 10 },
+      { concept: 'juego', set: 'triC', tiles: T('m1 m1 m1'), fu: 8 },
+      { concept: 'par', tile: 'wh', fu: 2 },
+    ]);
+    expect(out.ok && out.result.fuParts.reduce((a, p) => a + p.fu, 0)).toBe(out.ok && out.result.fu);
+  });
+
+  it('scores the standard double yakuman as two', () => {
+    const out = scorer.score(q({
+      hand: { concealed: T('m1 m9 p1 p9 s1 s9 e s w n wh g r r'), melds: [] }, winningTile: 'r',
+    }));
+    expect(out.ok && out.result.yakus).toEqual([{ yaku: 'kokushiMusouJuusanmen', han: 26 }]);
+    expect(out.ok && out.result.level).toBe('dobleYakuman');
+    expect(out.ok && out.result.fuParts).toEqual([]);
   });
 
   it('reports a yaku-less hand as a normal outcome, not an exception', () => {
@@ -111,8 +137,9 @@ describe('scoring, end to end', () => {
 
   it('parses a stacked yakuman level (suuankou + chinroutou)', () => {
     const out = scorer.score(q({
+      // Won on a triplet, not the pair: plain suuankou, not the tanki double.
       hand: { concealed: T('m1 m1 m1 m9 m9 m9 p1 p1 p1 p9 p9 p9 s1 s1'), melds: [] },
-      winningTile: 's1', mode: 'tsumo',
+      winningTile: 'm1', mode: 'tsumo',
     }));
     expect(out.ok).toBe(true);
     if (!out.ok) return;
@@ -271,7 +298,7 @@ describe('serialization', () => {
     }));
     expect(goal).toBe(
       'resultadoDeVictoria(mano([m2,m2,m3,m4,m5,p3,p4,p5],[chii(s6,s7,s8)]),' +
-      'm5,ron,situacion(este,sur,[],[],[]),[],R)',
+      'm5,ron,situacion(este,sur,[],[],[]),[],R,D)',
     );
   });
 
@@ -280,7 +307,7 @@ describe('serialization', () => {
       hand: { concealed: T('m2 m2 m3 m4 m5 m6 m7 m8 p3 p4 p5 s3 s4 s5'), melds: [] },
       winningTile: 'm5', rules: ['riichiAbiertoRonYakuman'],
     }));
-    expect(goal).toMatch(/,\[riichiAbiertoRonYakuman\],R\)$/);
+    expect(goal).toMatch(/,\[riichiAbiertoRonYakuman\],R,D\)$/);
   });
 
   it('sorts concealed tiles so goals are stable', () => {

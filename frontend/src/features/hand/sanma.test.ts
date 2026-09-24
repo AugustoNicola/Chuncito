@@ -83,7 +83,7 @@ describe('nukidora', () => {
   const result = (over: Partial<ScoreResult> = {}): ScoreResult => ({
     yakus: [{ yaku: 'riichi', han: 1 }, { yaku: 'dora', han: 1 }],
     han: 2, fu: 30, level: 'sinNombre',
-    payment: { kind: 'ron', total: 2000 },
+    payment: { kind: 'ron', total: 2000 }, fuParts: [],
     ...over,
   });
 

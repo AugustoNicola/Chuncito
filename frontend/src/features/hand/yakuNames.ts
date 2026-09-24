@@ -27,6 +27,9 @@ export const YAKU_NAMES: Readonly<Record<string, string>> = {
   shousuushii: 'Shousuushii', daisuushii: 'Daisuushii', tsuuiisou: 'Tsuuiisou',
   chinroutou: 'Chinroutou', ryuuiisou: 'Ryuuiisou', chuurenPoutou: 'Chuuren Poutou',
   suuKantsu: 'Suu Kantsu', tenhou: 'Tenhou', chiihou: 'Chiihou', renhou: 'Renhou',
+  // double yakuman (26 han), each replacing its single form
+  kokushiMusouJuusanmen: 'Kokushi Musou 13-wait', suuAnkouTanki: 'Suu Ankou Tanki',
+  junseiChuurenPoutou: 'Junsei Chuuren Poutou',
   // a house rule: ron on an open riichi (`riichiAbiertoRonYakuman`)
   riichiAbiertoRon: 'Open Riichi Ron',
   // appended last by the engine, counted rather than fixed

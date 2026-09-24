@@ -97,12 +97,26 @@ See `SCORER_CONTRACT.md`. Noticed while doing it, not changed:
   files by hand, so every query failed until it was added.
   `prologSource.test.ts` now compares the bundle with the directory.
 
+### Double yakuman and the fu breakdown — DONE upstream 2026-09-24
+Also in the uncommitted Mahjonglog working tree: the four standard double
+yakuman (26 han; unconditional — a table playing them as single would need a
+house rule) and `resultadoDeVictoria/7` with `DesgloseFu`. See
+`SCORER_CONTRACT.md`.
+
+### A called chii can be taken as the winning tile's meld — OPEN upstream
+Found while adding the fu breakdown, not fixed (it would change `/5`'s
+answers): when the fu decide which set received the winning tile, a *called*
+chii is a candidate. `mano([p5,p5,m3,m4,m5,wh,wh,wh],[chii(m1,m2,m3),pon(s4,s4,s4)])`
+ron on m3 scores 40 fu off a "penchan" on the chii; it should be 30 (ryanmen
+on m3-m4-m5). The likely fix is `\+ llamada(FormaGanadora)` in `fuIntento/7`,
+the guard `victoriaValida/1` already uses. The breakdown shows the wrong
+`espera(penchan)` faithfully. **Reported to the user.**
+
 ## Known behaviour worth knowing (not bugs)
 
 | Behaviour | Note |
 |---|---|
 | `renhou` scored as a full yakuman | Upstream comment flags it as adjustable. Many rulesets score it as mangan. A likely future config knob. |
 | Fu and yaku not *jointly* optimised | Deliberate upstream simplification. When the winning tile fits several melds, yaku and fu are maximised independently, so rare edge cases may differ slightly from a reference calculator. |
-| No double-yakuman variants | suuankou tanki, kokushi 13-wait, junsei chuuren are flat 13 han. Stacked yakuman *do* combine (suuankou + chinroutou = `dobleYakuman`, 26 han). |
 | `kazoeYakuman` is a level, never a yaku | Caps at one yakuman regardless of han. |
 | Ron tile ambiguity resolved in the winner's favour | `FormasGanadoras` records the winning tile's value, not which meld received it. |

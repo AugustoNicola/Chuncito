@@ -216,6 +216,18 @@ yaku(tsuuiisou, victoria(Formas, _, _), _) :-
 yaku(kokushiMusou, victoria([FormaHuerfanos], _, _), _) :- 
     kokushi(FormaHuerfanos).
 
+%* ===================== Kokushi Musou Juusanmen (Thirteen-Sided Wait) =====================
+%* Doble yakuman (ver yakumanDoble/1 en yakus_aplicables.pl): antes de la
+%* ficha ganadora la mano ya tenía los trece huérfanos, uno de cada uno,
+%* así que esperaba cualquiera de los trece. Equivale a que la ficha
+%* ganadora sea justamente la repetida de huerfanos/14. Reemplaza a
+%* kokushiMusou (ver anula/2).
+yaku(kokushiMusouJuusanmen, victoria([FormaHuerfanos], FichaGanadora, _), _) :-
+    once(kokushi(FormaHuerfanos)),
+    fichasDeForma(FormaHuerfanos, Fichas),
+    once(( select(FichaGanadora, Fichas, FichasSinGanadora),
+           memberchk(FichaGanadora, FichasSinGanadora) )).
+
 %* ===================== Chiitoitsu (Seven Pairs) =====================
 yaku(chiitoitsu, victoria(Formas, _, _), _) :- 
     length(Formas, 7),
@@ -234,6 +246,23 @@ yaku(sanAnkou, victoria(Formas, FichaGanadora, ModoVictoria), _) :-
 %* ===================== Suu'Ankou (Four Concealed Triplets) =====================
 yaku(suuAnkou, victoria(Formas, FichaGanadora, ModoVictoria), _) :-
     piernasOcultasParaAnkou(Formas, FichaGanadora, ModoVictoria, PiernasOcultas),
+    length(PiernasOcultas, 4).
+
+%* ===================== Suu'Ankou Tanki (Four Concealed Triplets, Single Wait) =====================
+%* Doble yakuman (ver yakumanDoble/1 en yakus_aplicables.pl): las cuatro
+%* piernas ya estaban ocultas y completas antes de ganar, y la ficha
+%* ganadora completó el par (espera tanki). Como la ficha ganadora entra al
+%* par, ninguna pierna se completa con ella, así que da igual si fue ron o
+%* tsumo. No hay ambigüedad posible sobre a qué Forma entró: si el valor
+%* de la ficha ganadora estuviera también en una pierna, la mano tendría
+%* cinco fichas iguales. Reemplaza a suuAnkou (ver anula/2); un suu'ankou
+%* por tsumo con espera shanpon sigue siendo suuAnkou simple, y por ron con
+%* espera shanpon ni siquiera es suuAnkou (ver piernasOcultasParaAnkou/4).
+yaku(suuAnkouTanki, victoria(Formas, FichaGanadora, _), _) :-
+    once(( member(Par, Formas), par(Par) )),
+    fichasDeForma(Par, FichasPar),
+    memberchk(FichaGanadora, FichasPar),
+    findall(F, (member(F, Formas), pierna(F), oculta(F)), PiernasOcultas),
     length(PiernasOcultas, 4).
 
 %* ===================== Sanshoku Doukou (Three Colored Triplets) =====================
@@ -283,6 +312,20 @@ yaku(chuurenPoutou, victoria(Formas, _, _), _) :-
     % (cualquier número del 1 al 9, la decimocuarta ficha ganadora):
     member(NumeroExtra, [1,2,3,4,5,6,7,8,9]),
     msort([NumeroExtra, 1,1,1,2,3,4,5,6,7,8,9,9,9], NumerosFichasOrdenados).
+
+%* ===================== Junsei Chuuren Poutou (Pure Nine Gates) =====================
+%* Doble yakuman (ver yakumanDoble/1 en yakus_aplicables.pl): chuuren
+%* poutou en el que la ficha extra (la decimocuarta, ver arriba) es
+%* justamente la ganadora, es decir, antes de ganar la mano era
+%* exactamente 1112345678999 y esperaba cualquiera de los nueve números.
+%* Reemplaza a chuurenPoutou (ver anula/2).
+yaku(junseiChuurenPoutou, victoria(Formas, FichaGanadora, ModoVictoria), Situacion) :-
+    once(yaku(chuurenPoutou, victoria(Formas, FichaGanadora, ModoVictoria), Situacion)),
+    todasLasFichas(Formas, Fichas),
+    maplist(numero, NumerosFichas, Fichas),
+    msort(NumerosFichas, NumerosFichasOrdenados),
+    numero(NumeroGanador, FichaGanadora),
+    msort([NumeroGanador, 1,1,1,2,3,4,5,6,7,8,9,9,9], NumerosFichasOrdenados).
 
 
 

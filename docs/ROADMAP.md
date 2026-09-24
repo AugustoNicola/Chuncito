@@ -614,6 +614,16 @@ per item.** Ticked here as they land, with what was decided.
       the best-hand box is itself the button (with a quiet "Open the match ›"
       line). `HandSummary`'s dora and kita rows no longer render their tiles
       as no-op buttons, which would have nested buttons inside it.
+- [x] **Double yakuman** — upstream by a subagent (uncommitted there, 487
+      tests): kokushi 13-wait, suuankou tanki and junsei chuuren replace
+      their single forms at 26 han, and daisuushii is 26; stacking, levels
+      and payments follow the total (`'4xYakuman'`… priced by
+      `baseFromResult` too now). Gold theme as for any yakuman. The typed
+      value offers Double and Triple Yakuman under Yakuman. The same round
+      moved the client to `resultadoDeVictoria/7` (fu breakdown, next item);
+      `decode.ts` reads `desglosado(Resultado, DesgloseFu)`. Found and
+      logged, not fixed: a called chii can be taken as the winning meld for
+      fu (`SCORER_GAPS.md`).
 
 ## Picking this up cold
 

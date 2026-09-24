@@ -48,6 +48,31 @@ yakuman(renhou).
 % solo existe bajo la regla riichiAbiertoRonYakuman (ver yakuDeRegla/4 en
 % yakus.pl): el riichi abierto ganado por ron.
 yakuman(riichiAbiertoRon).
+% dobles yakuman (ver yakumanDoble/1):
+yakuman(kokushiMusouJuusanmen).
+yakuman(suuAnkouTanki).
+yakuman(junseiChuurenPoutou).
+
+%! yakumanDoble(?Yaku) is nondet.
+%* Yakuman que valen por dos (26 han en vez de 13), según la convención
+%* más difundida (Mahjong Soul, riichi.wiki). Tres de ellos son la versión
+%* "de espera perfecta" de un yakuman simple, que reemplazan (ver anula/2):
+%* kokushiMusouJuusanmen (espera de trece lados), suuAnkouTanki (espera
+%* tanki) y junseiChuurenPoutou (espera de nueve lados). daisuushii no
+%* tiene versión simple: vale doble siempre. Como cualquier otro yakuman,
+%* se suman entre sí y con los demás yakuman (p. ej. daisuushii +
+%* tsuuiisou = triple yakuman). Ajustar acá si el reglamento de la mesa
+%* los cuenta como yakuman simples.
+yakumanDoble(daisuushii).
+yakumanDoble(kokushiMusouJuusanmen).
+yakumanDoble(suuAnkouTanki).
+yakumanDoble(junseiChuurenPoutou).
+
+%! multiplicadorYakuman(+Yaku, -Multiplicador) is semidet.
+%* Cuántos yakuman vale Yaku: 2 si es yakumanDoble/1, 1 si es cualquier
+%* otro yakuman/1. Falla si Yaku no es yakuman.
+multiplicadorYakuman(Yaku, 2) :- yakumanDoble(Yaku), !.
+multiplicadorYakuman(Yaku, 1) :- yakuman(Yaku).
 
 %! anula(?YakuSuperior, ?YakuInferior) is nondet.
 %* Relaciona un yaku con otro que queda anulado cuando el superior también
@@ -55,10 +80,16 @@ yakuman(riichiAbiertoRon).
 %* contenida en la del superior. Las tres primeras cláusulas cubren
 %* solapamientos entre yakus normales; la última cubre a cualquier yaku
 %* no-yakuman frente a un yakuman, sin necesidad de enumerar cada
-%* combinación posible (dora incluida, ver nota arriba).
+%* combinación posible (dora incluida, ver nota arriba). Entre yakuman
+%* solo se anulan los que se declaran explícitamente (la versión doble
+%* frente a la simple); el resto se suman.
 anula(ryanpeikou, iipeikou). % dos pares de escaleras iguales también son un par de escaleras iguales
 anula(chinitsu, honitsu).   % un solo palo puro también satisface "un palo más honores"
 anula(junchan, chanta).     % terminal en cada forma también satisface "terminal u honor en cada forma"
+% la versión doble de un yakuman reemplaza a la simple (ver yakumanDoble/1):
+anula(kokushiMusouJuusanmen, kokushiMusou).
+anula(suuAnkouTanki, suuAnkou).
+anula(junseiChuurenPoutou, chuurenPoutou).
 anula(Yakuman, Yaku) :- yakuman(Yakuman), \+ yakuman(Yaku), Yaku \== Yakuman.
 
 %! yakusAplicables(+Victoria, +Situacion, -YakusFinales) is det.

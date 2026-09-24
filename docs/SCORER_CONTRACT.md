@@ -8,7 +8,8 @@ Implementation: `frontend/src/scorer/`. Vendored engine: `scorer/mahjonglog/`.
 
 ## The one rule that bites
 
-`resultadoDeVictoria/6` (and `/5`, which is `/6` with no rules) is **semidet**. For a non-winning hand, a yaku-less win,
+`resultadoDeVictoria/7` (and `/6` and `/5`, the same without the fu breakdown
+and without rules) is **semidet**. For a non-winning hand, a yaku-less win,
 *or a malformed input*, it simply **fails** — no exception, no message. All three
 look identical from JavaScript.
 
@@ -106,6 +107,30 @@ requires a riichi; non-empty `UraDoras` requires a riichi. The engine checks
 none of this at query time (`situacionValida/1` exists but the entry point
 does not call it), so `validate.ts` does.
 
+### The goal the client sends
+
+```prolog
+( resultadoDeVictoria(Mano, Ficha, Modo, Situacion, Reglas, R, D)
+  -> with_output_to(string(S), write_canonical(desglosado(R, D))) ; S = "fail" )
+```
+
+`D` is the **fu breakdown**, a list of `fuParte(Concepto, Fu)` for the
+decomposition the engine actually scored. The parts sum to `Fu`; `[]` for a
+yakuman. Sets, waits and pairs worth 0 are not listed. `Concepto` is one of:
+
+| Concepto | Fu |
+|---|---|
+| `fuBase` | 20 |
+| `menzenRon` / `tsumo` | 10 / 2 (absent on an open ron) |
+| `juego(Set)` — `triC`, `pon`, `kanA`, `kanC` with its tiles | 2–32 |
+| `juegoCompletadoPorRon(triC(...))` — a concealed triplet the ron completed, paid as open | 2 or 4 |
+| `par(Tile)` | 2, or 4 for a double wind |
+| `espera(tanki \| kanchan \| penchan)` | 2 |
+| `redondeo` | the round-up to the next 10, when > 0 |
+| `chiitoitsu` | 25, alone |
+| `pinfuTsumo` | 20, alone |
+| `pinfuAbierto` | 2, with `fuBase` and `redondeo` 8: the open all-runs 30 |
+
 ### Rules (the sixth argument)
 
 ```prolog
@@ -134,10 +159,12 @@ every hand scored in it; the plain calculator offers them as toggles.
 resultado(Yakus, Han, Fu, Nivel, Pago)
 ```
 
-- `Yakus` — `yakuHan(Name, Han)`, pre-sorted in client display order. 49 possible
+- `Yakus` — `yakuHan(Name, Han)`, pre-sorted in client display order. 52 possible
   names: 31 regular yaku (with `riichiAbierto`, sorted right after
-  `dobleRiichi`), 14 yakuman (always 13 han each; `riichiAbiertoRon` sorts
-  last), and 3 pseudo-yaku
+  `dobleRiichi`), 17 yakuman (13 han each; `riichiAbiertoRon` sorts last) of
+  which four are **double yakuman, 26 han**: `kokushiMusouJuusanmen`,
+  `suuAnkouTanki`, `junseiChuurenPoutou` (each replacing its single form, and
+  sorted where it would be) and `daisuushii`; and 3 pseudo-yaku
   (`dora`, `akaDora`, `uraDora`) appended **last**, whose han is a count. Render
   the pseudo-yaku visually apart from real yaku.
 - `Fu` is `0` whenever a yakuman applies; `25` for chiitoitsu; `20` pinfu tsumo.

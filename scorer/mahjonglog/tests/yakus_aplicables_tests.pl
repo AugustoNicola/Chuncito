@@ -99,10 +99,42 @@ test(daisuushii_anula_a_riichi) :-
 manoKokushiDePrueba(huerfanos(m1, m1, m9, p1, p9, s1, s9, e, s, w, n, wh, g, r)).
 
 test(dos_yakuman_simultaneos_no_se_anulan_entre_si) :-
+    % gana con m9, no con el m1 repetido: con m1 sería la espera de trece
+    % lados (kokushiMusouJuusanmen, que reemplaza a kokushiMusou).
     manoKokushiDePrueba(Forma),
-    yakusAplicables(victoria([Forma], m1, tsumo), situacion(este, este, [], [], [primeraRonda]), Yakus),
+    yakusAplicables(victoria([Forma], m9, tsumo), situacion(este, este, [], [], [primeraRonda]), Yakus),
     memberchk(kokushiMusou, Yakus),
     memberchk(tenhou, Yakus).
+
+% ---- dobles yakuman: reemplazan a su versión simple ----
+
+test(kokushiMusouJuusanmen_anula_a_kokushiMusou) :-
+    manoKokushiDePrueba(Forma), sinFlags(Sit),
+    yakusAplicables(victoria([Forma], m1, ron), Sit, Yakus),
+    Yakus == [kokushiMusouJuusanmen].
+
+test(suuAnkouTanki_anula_a_suuAnkou_y_se_suma_a_otro_yakuman) :-
+    % cuatro triplas ocultas de viento y par tanki: suuAnkouTanki (no
+    % suuAnkou) + daisuushii, ambos dobles.
+    Formas = [pareja(p5, p5), triC(e, e, e), triC(s, s, s), triC(w, w, w), triC(n, n, n)],
+    sinFlags(Sit),
+    yakusAplicables(victoria(Formas, p5, ron), Sit, Yakus),
+    msort(Yakus, Ordenados),
+    Ordenados == [daisuushii, suuAnkouTanki].
+
+test(junseiChuurenPoutou_anula_a_chuurenPoutou) :-
+    Formas = [pareja(m5, m5), triC(m1, m1, m1), escC(m2, m3, m4), escC(m6, m7, m8), triC(m9, m9, m9)],
+    sinFlags(Sit),
+    yakusAplicables(victoria(Formas, m5, tsumo), Sit, Yakus),
+    Yakus == [junseiChuurenPoutou].
+
+test(multiplicador_yakuman) :-
+    multiplicadorYakuman(daisangen, 1),
+    multiplicadorYakuman(daisuushii, 2),
+    multiplicadorYakuman(kokushiMusouJuusanmen, 2),
+    multiplicadorYakuman(suuAnkouTanki, 2),
+    multiplicadorYakuman(junseiChuurenPoutou, 2),
+    \+ multiplicadorYakuman(chinitsu, _).
 
 % ---- yakus independientes (sin solapamiento) siguen apareciendo juntos ----
 

@@ -101,51 +101,134 @@ contarDoras(Formas, Situacion, HanDora) :-
 
 %* ===================== Fu =====================
 %! fu(+Formas, +FichaGanadora, +ModoVictoria, +ManoCerrada, +YakusFinales, +Situacion, -Fu) is det.
+%* fuDesglosado/8 sin el desglose.
+fu(Formas, FichaGanadora, ModoVictoria, ManoCerrada, YakusFinales, Situacion, Fu) :-
+    fuDesglosado(Formas, FichaGanadora, ModoVictoria, ManoCerrada, YakusFinales, Situacion, Fu, _).
+
+%! fuDesglosado(+Formas, +FichaGanadora, +ModoVictoria, +ManoCerrada, +YakusFinales, +Situacion, -Fu, -DesgloseFu) is det.
 %* Chiitoitsu vale 25 fu fijo. Pinfu por tsumo vale 20 fu fijo (no suma el
 %* fu de tsumo habitual). El resto se calcula normalmente y se redondea
 %* hacia arriba al múltiplo de 10 más cercano.
+%*
+%* DesgloseFu es la lista de fuParte(Concepto, Fu) que explica de dónde
+%* sale Fu, para mostrarla igual que la lista de yakus (ver
+%* resultadoDeVictoria/7 en resultado.pl). La suma de sus Fu es siempre
+%* igual a Fu: el redondeo aparece como su propia parte,
+%* fuParte(redondeo, N), solo si N > 0. Los casos fijos son una única
+%* parte (fuParte(chiitoitsu, 25), fuParte(pinfuTsumo, 20)); el resto
+%* sigue el orden de fuIntento/7.
 %*
 %* Nota sobre ambigüedad: igual que en piernasOcultasParaAnkou/4 (ver
 %* yakus.pl), FormasGanadoras no registra a qué Forma "entró" realmente la
 %* ficha ganadora cuando dos formas comparten un valor de ficha. Acá se
 %* prueba, de forma nondet, cada Forma candidata a haberla recibido y se
 %* toma la que da más fu (el jugador se queda con la interpretación que
-%* más le convenga). Esto se decide de forma independiente de qué
-%* interpretación hizo aplicar cada yaku en yakusAplicables/3: no se busca
-%* una asignación conjunta óptima entre yakus y fu, es una simplificación
-%* consciente.
-fu(_, _, _, _, YakusFinales, _, 25) :- memberchk(chiitoitsu, YakusFinales), !.
-fu(_, _, tsumo, _, YakusFinales, _, 20) :- memberchk(pinfu, YakusFinales), !.
+%* más le convenga); DesgloseFu es el de esa misma interpretación (la
+%* primera, si varias empatan). Esto se decide de forma independiente de
+%* qué interpretación hizo aplicar cada yaku en yakusAplicables/3: no se
+%* busca una asignación conjunta óptima entre yakus y fu, es una
+%* simplificación consciente.
+fuDesglosado(_, _, _, _, YakusFinales, _, 25, [fuParte(chiitoitsu, 25)]) :-
+    memberchk(chiitoitsu, YakusFinales), !.
+fuDesglosado(_, _, tsumo, _, YakusFinales, _, 20, [fuParte(pinfuTsumo, 20)]) :-
+    memberchk(pinfu, YakusFinales), !.
 %* ===================== Pinfu abierto =====================
 %* Pinfu deja de ser yaku en una mano abierta (ver yaku(pinfu, ...) en
 %* yakus.pl), pero su forma (solo secuencias, par sin valor, espera
 %* ryanmen) igual produce 0 fu de composición. Por regla especial (ver
 %* riichi.wiki), a esa forma se le otorgan +2 fu fijos —en vez de los que
 %* saldrían de fuMomentoDeGanar/3— para que redondee a 30 en lugar de 20.
-fu(Formas, FichaGanadora, _, false, _, Situacion, 30) :-
+fuDesglosado(Formas, FichaGanadora, _, false, _, Situacion, 30,
+        [fuParte(fuBase, 20), fuParte(pinfuAbierto, 2), fuParte(redondeo, 8)]) :-
     formaDePinfu(Formas, FichaGanadora, Situacion), !.
-fu(Formas, FichaGanadora, ModoVictoria, ManoCerrada, _, Situacion, FuFinal) :-
-    aggregate_all(max(FuIntento),
-        fuIntento(Formas, FichaGanadora, ModoVictoria, ManoCerrada, Situacion, FuIntento),
-        FuMax),
-    FuFinal is ceiling(FuMax / 10) * 10.
+fuDesglosado(Formas, FichaGanadora, ModoVictoria, ManoCerrada, _, Situacion, FuFinal, DesgloseFu) :-
+    findall(FuIntento-Partes,
+        fuIntento(Formas, FichaGanadora, ModoVictoria, ManoCerrada, Situacion, FuIntento, Partes),
+        Intentos),
+    aggregate_all(max(FuIntento), member(FuIntento-_, Intentos), FuMax),
+    memberchk(FuMax-PartesMax, Intentos),
+    FuFinal is ceiling(FuMax / 10) * 10,
+    Redondeo is FuFinal - FuMax,
+    ( Redondeo > 0
+    -> append(PartesMax, [fuParte(redondeo, Redondeo)], DesgloseFu)
+    ;  DesgloseFu = PartesMax
+    ).
 
 %! fuIntento(+Formas, +FichaGanadora, +ModoVictoria, +ManoCerrada, +Situacion, -FuTotal) is nondet.
+%* fuIntento/7 sin el desglose.
+fuIntento(Formas, FichaGanadora, ModoVictoria, ManoCerrada, Situacion, FuTotal) :-
+    fuIntento(Formas, FichaGanadora, ModoVictoria, ManoCerrada, Situacion, FuTotal, _).
+
+%! fuIntento(+Formas, +FichaGanadora, +ModoVictoria, +ManoCerrada, +Situacion, -FuTotal, -Partes) is nondet.
+%* Fu sin redondear de una interpretación (qué Forma recibió la ficha
+%* ganadora), y las Partes que lo componen, en este orden y omitiendo las
+%* que valen 0: fuParte(fuBase, 20); fuParte(menzenRon, 10) o
+%* fuParte(tsumo, 2); una por cada pierna que dé fu, en el orden de Formas
+%* (fuParte(juego(Pierna), Fu), o fuParte(juegoCompletadoPorRon(Pierna),
+%* Fu) si es la triC que se completó por ron y por eso se paga como
+%* abierta; ver fuJuego/4); fuParte(par(Ficha), Fu) si el par da fu; y
+%* fuParte(espera(Espera), 2) con Espera in {tanki, kanchan, penchan}.
 %* FormaGanadora nunca puede ser un quad: un kan siempre está completo
 %* antes de ganar (se declara aparte, nunca se termina de formar con la
 %* ficha ganadora), así que no es candidato válido a haberla recibido.
-fuIntento(Formas, FichaGanadora, ModoVictoria, ManoCerrada, Situacion, FuTotal) :-
+fuIntento(Formas, FichaGanadora, ModoVictoria, ManoCerrada, Situacion, FuTotal, Partes) :-
     Formas = [Par | Juegos],
     member(FormaGanadora, Formas),
     \+ quad(FormaGanadora),
     fichasDeForma(FormaGanadora, FichasFormaGanadora),
     memberchk(FichaGanadora, FichasFormaGanadora),
     fuPar(Par, Situacion, FuPar),
-    findall(FuJ, (member(J, Juegos), fuJuego(J, FormaGanadora, ModoVictoria, FuJ)), FusJuegos),
+    findall(fuParte(Concepto, FuJ),
+        ( member(J, Juegos),
+          fuJuego(J, FormaGanadora, ModoVictoria, FuJ),
+          FuJ > 0,
+          conceptoDeJuego(J, FormaGanadora, ModoVictoria, Concepto)
+        ),
+        PartesJuegos),
+    findall(FuJ, member(fuParte(_, FuJ), PartesJuegos), FusJuegos),
     sum_list(FusJuegos, FuJuegos),
     fuEspera(FormaGanadora, Par, FichaGanadora, FuEspera),
     fuMomentoDeGanar(ModoVictoria, ManoCerrada, FuMomento),
-    FuTotal is 20 + FuPar + FuJuegos + FuEspera + FuMomento.
+    FuTotal is 20 + FuPar + FuJuegos + FuEspera + FuMomento,
+    fichasDeForma(Par, [FichaPar | _]),
+    tipoDeEspera(FormaGanadora, Par, FichaGanadora, Espera),
+    conceptoDeMomento(ModoVictoria, ConceptoMomento),
+    PartesCandidatas = [fuParte(fuBase, 20), fuParte(ConceptoMomento, FuMomento) | PartesJuegos],
+    append(PartesCandidatas, [fuParte(par(FichaPar), FuPar), fuParte(espera(Espera), FuEspera)], TodasLasPartes),
+    exclude(fuParteNula, TodasLasPartes, Partes).
+
+%! fuParteNula(+FuParte) is semidet.
+fuParteNula(fuParte(_, 0)).
+
+%! conceptoDeJuego(+Juego, +FormaGanadora, +ModoVictoria, -Concepto) is det.
+%* juegoCompletadoPorRon(Juego) si Juego es una pierna oculta que recibió
+%* la ficha ganadora por ron (ver fuJuego/4: se paga como abierta),
+%* juego(Juego) en cualquier otro caso.
+conceptoDeJuego(Juego, FormaGanadora, ron, juegoCompletadoPorRon(Juego)) :-
+    Juego == FormaGanadora, \+ llamada(Juego), !.
+conceptoDeJuego(Juego, _, _, juego(Juego)).
+
+%! conceptoDeMomento(+ModoVictoria, -Concepto) is det.
+%* Concepto de la parte de fuMomentoDeGanar/3 (que vale 0, y por lo tanto
+%* no se lista, en un ron con mano abierta).
+conceptoDeMomento(tsumo, tsumo).
+conceptoDeMomento(ron, menzenRon).
+
+%! tipoDeEspera(+FormaGanadora, +Par, +FichaGanadora, -Espera) is det.
+%* Nombre de la espera según la Forma que recibió la ficha ganadora, con
+%* el mismo criterio que fuEspera/4: tanki (completó el par), ryanmen (ver
+%* esperaRyanmenEnEscalera/2), kanchan (completó el medio de una
+%* escalera), penchan (una escalera que no es ryanmen ni kanchan: 1-2
+%* esperando 3, u 8-9 esperando 7) o shanpon (completó una pierna).
+tipoDeEspera(FormaGanadora, Par, _, tanki) :- FormaGanadora == Par, !.
+tipoDeEspera(FormaGanadora, _, FichaGanadora, ryanmen) :-
+    escalera(FormaGanadora), esperaRyanmenEnEscalera(FormaGanadora, FichaGanadora), !.
+tipoDeEspera(FormaGanadora, _, FichaGanadora, kanchan) :-
+    escalera(FormaGanadora),
+    fichasDeForma(FormaGanadora, [_, FichaMedio, _]),
+    FichaMedio == FichaGanadora, !.
+tipoDeEspera(FormaGanadora, _, _, penchan) :- escalera(FormaGanadora), !.
+tipoDeEspera(_, _, _, shanpon).
 
 %! fuPar(+Par, +Situacion, -Fu) is det.
 %* +2 si el par es de dragón, +2 más por cada viento (ronda/jugador) que
@@ -249,26 +332,33 @@ redondearArriba100(X, R) :- R is integer(ceiling(X / 100)) * 100.
 
 %* ===================== Punto de entrada =====================
 %! puntuacion(+Formas, +FichaGanadora, +ModoVictoria, +YakusFinales, +Situacion, -Puntuacion) is det.
+%* puntuacion/7 sin el desglose de fu.
+puntuacion(Formas, FichaGanadora, ModoVictoria, YakusFinales, Situacion, Puntuacion) :-
+    puntuacion(Formas, FichaGanadora, ModoVictoria, YakusFinales, Situacion, Puntuacion, _).
+
+%! puntuacion(+Formas, +FichaGanadora, +ModoVictoria, +YakusFinales, +Situacion, -Puntuacion, -DesgloseFu) is det.
 %* Puntuacion = puntuacion(Han, Fu, Nivel, Pago). EsDealerGanador se
 %* deriva de Situacion: el jugador es repartidor si VientoJugador = este
 %* (misma convención que tenhou/chiihou en yakus.pl).
 %* Si YakusFinales contiene algún yakuman (ver yakuman/1 en
-%* yakus_aplicables.pl), Han es 13 por cada uno (pueden darse varios a la
-%* vez) y no se suma nada más: un yakuman anula tanto a los demás yakus
-%* como a la dora (ver la nota en yakus_aplicables.pl), y Fu no se calcula
-%* (queda en 0, no se usa para puntuar yakuman).
-puntuacion(Formas, FichaGanadora, ModoVictoria, YakusFinales, Situacion, puntuacion(Han, Fu, Nivel, Pago)) :-
+%* yakus_aplicables.pl), Han es 13 por cada yakuman que valga (pueden
+%* darse varios a la vez, y los de yakumanDoble/1 valen por dos; ver
+%* multiplicadorYakuman/2) y no se suma nada más: un yakuman anula tanto a
+%* los demás yakus como a la dora (ver la nota en yakus_aplicables.pl), y
+%* Fu no se calcula (queda en 0, no se usa para puntuar yakuman, y
+%* DesgloseFu queda en []). Si no, DesgloseFu es el de fuDesglosado/8.
+puntuacion(Formas, FichaGanadora, ModoVictoria, YakusFinales, Situacion, puntuacion(Han, Fu, Nivel, Pago), DesgloseFu) :-
     Situacion = situacion(_, VientoJugador, _, _, _),
     ( VientoJugador == este -> EsDealer = true ; EsDealer = false ),
     ( manoCerrada(Formas) -> ManoCerrada = true ; ManoCerrada = false ),
-    findall(Y, (member(Y, YakusFinales), yakuman(Y)), Yakumans),
-    length(Yakumans, MultYakuman),
+    findall(M, (member(Y, YakusFinales), multiplicadorYakuman(Y, M)), Multiplicadores),
+    sum_list(Multiplicadores, MultYakuman),
     ( MultYakuman > 0
-    -> Han is 13 * MultYakuman, Fu = 0
+    -> Han is 13 * MultYakuman, Fu = 0, DesgloseFu = []
     ;  hanYakusRegulares(YakusFinales, ManoCerrada, HanYakus),
        contarDoras(Formas, Situacion, HanDora),
        Han is HanYakus + HanDora,
-       fu(Formas, FichaGanadora, ModoVictoria, ManoCerrada, YakusFinales, Situacion, Fu)
+       fuDesglosado(Formas, FichaGanadora, ModoVictoria, ManoCerrada, YakusFinales, Situacion, Fu, DesgloseFu)
     ),
     nivelDePuntuacion(Han, MultYakuman, Nivel),
     puntosDeVictoria(EsDealer, ModoVictoria, Han, Fu, MultYakuman, Pago).
