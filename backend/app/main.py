@@ -148,10 +148,12 @@ def list_matches(include_test: bool = False, status: str | None = None,
                  q: str | None = None, player: Annotated[list[str], Query()] = [],
                  min_level: Annotated[int | None, Query(ge=0)] = None,
                  yaku: str | None = None,
-                 players: Annotated[int | None, Query(ge=3, le=4)] = None) -> list[MatchSummary]:
+                 players: Annotated[int | None, Query(ge=3, le=4)] = None,
+                 ranked: bool | None = None) -> list[MatchSummary]:
     with get_engine().connect() as conn:
         return store.list_matches(conn, include_test, status, text=q, player_ids=player,
-                                  min_level_rank=min_level, yaku=yaku, players=players)
+                                  min_level_rank=min_level, yaku=yaku, players=players,
+                                  ranked=ranked)
 
 
 @app.get('/api/matches/{match_id}', response_model=MatchWithRevision,

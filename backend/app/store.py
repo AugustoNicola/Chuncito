@@ -363,7 +363,7 @@ def _like(text: str) -> str:
 def list_matches(conn: Connection, include_test: bool = False, status: str | None = None, *,
                  text: str | None = None, player_ids: Sequence[str] = (),
                  min_level_rank: int | None = None, yaku: str | None = None,
-                 players: int | None = None) -> list[MatchSummary]:
+                 players: int | None = None, ranked: bool | None = None) -> list[MatchSummary]:
     """
     Newest first. Scores are the stored `final_score`, current as of the last save.
 
@@ -377,6 +377,7 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
     - `yaku`: some winner's hand had it. A join through `hand_yakus`, which is
       why the filters are here and not on the phone.
     - `players`: 4, or 3 for sanma.
+    - `ranked`: played for MAKApoints (true) or just for fun (false).
     """
     c = m.matches.c
     mp = m.match_players.c
@@ -389,6 +390,8 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
         query = query.where(c.status == status)
     if players is not None:
         query = query.where(c.players == players)
+    if ranked is not None:
+        query = query.where(c.ranked.is_(ranked))
     if min_level_rank is not None:
         query = query.where(c.max_level_rank >= min_level_rank)
     for player_id in dict.fromkeys(player_ids):
@@ -427,6 +430,7 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
         scores=[s.final_score for s in by_match.get(t.id, [])],
         placements=[s.placement for s in by_match.get(t.id, [])],
         max_level=t.max_level,
+        ranked=t.ranked,
         revision=t.revision,
     ) for t in matches]
 

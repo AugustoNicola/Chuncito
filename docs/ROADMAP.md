@@ -725,6 +725,9 @@ Feedback on the round (2026-09-24):
       and the calls came back. `clearHand` now empties only the tiles (hand,
       calls, dora, ura, kita) and keeps the riichi, circumstances and rules,
       reconciling what an empty hand cannot support (a rinshan without kan).
+- [x] History filters by **All / For MPs / For fun** (`mp=1|0` in the URL,
+      `ranked=true|false` to the API, filtered on the server like the rest);
+      a ranked match's card says "· For MPs".
 
 ## Picking this up cold
 

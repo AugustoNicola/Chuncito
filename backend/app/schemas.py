@@ -204,6 +204,7 @@ class MatchSummary(Wire):
     # The best limit reached in the match, as the engine's atom; null if nobody
     # has won a hand.
     max_level: str | None
+    ranked: bool
     revision: int
 
 

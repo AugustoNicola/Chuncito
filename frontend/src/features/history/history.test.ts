@@ -4,6 +4,7 @@ import { NO_FILTERS, YAKU_CHOICES, apiPath, filtersFrom, isFiltered, paramsOf } 
 describe('history filters', () => {
   const full = {
     text: 'double ron', playerIds: ['p-1', 'p-2'], minLevel: 3, yaku: 'pinfu', players: 3 as const,
+    ranked: false,
   };
 
   it('survive the URL', () => {
@@ -19,7 +20,7 @@ describe('history filters', () => {
   });
 
   it('drop what the URL cannot mean rather than guess', () => {
-    const f = filtersFrom(new URLSearchParams('level=9&yaku=dora&players=5&player=a&player=a'));
+    const f = filtersFrom(new URLSearchParams('level=9&yaku=dora&players=5&mp=maybe&player=a&player=a'));
     expect(f).toEqual({ ...NO_FILTERS, playerIds: ['a'] });
   });
 
@@ -31,6 +32,7 @@ describe('history filters', () => {
     expect(path.searchParams.getAll('player')).toEqual(['p-1', 'p-2']);
     expect(path.searchParams.get('q')).toBe('double ron');
     expect(path.searchParams.get('players')).toBe('3');
+    expect(path.searchParams.get('ranked')).toBe('false');
   });
 
   it('offer yaku, not dora', () => {

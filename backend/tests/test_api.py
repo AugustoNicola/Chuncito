@@ -264,6 +264,9 @@ def test_the_list_filters_for_history(unlocked):
     assert ids(players=4) == {'filter-4p'}
     assert ids(players=3) == {'filter-3p'}
     assert ids(status='finished') == {'filter-4p'}
+    # The four-player fixture was played for MAKApoints; the sanma one was not.
+    assert ids(ranked=True) == {'filter-4p'}
+    assert ids(ranked=False) == {'filter-3p'}
 
     # By name, and by who sat: a registered player or a guest.
     assert ids(q='DOUBLE ron') == {'filter-4p'}

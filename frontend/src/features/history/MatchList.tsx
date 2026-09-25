@@ -98,6 +98,16 @@ export function MatchList({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
+        <div className="segmented" role="group" aria-label="MAKApoints">
+          {([[null, 'All'], [true, 'For MPs'], [false, 'For fun']] as const).map(([r, label]) => (
+            <button key={label} type="button"
+                    className={`segmented__btn${filters.ranked === r ? ' segmented__btn--on' : ''}`}
+                    onClick={() => change({ ranked: r })}>
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div className="history__selects">
           <select className="history__select" aria-label="Best hand"
                   value={filters.minLevel ?? ''}
@@ -171,6 +181,7 @@ function MatchItem({ match }: { match: ServerMatch }) {
       <span className="history__meta">
         {matchDate(match.startedAt)}
         {match.players === 3 && ' · Sanma'}
+        {match.ranked && ' · For MPs'}
         {` · ${match.hands} hand${match.hands === 1 ? '' : 's'}`}
       </span>
       <span className="history__standings">

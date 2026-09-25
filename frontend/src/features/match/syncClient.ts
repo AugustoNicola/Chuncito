@@ -110,6 +110,8 @@ export interface ServerMatch {
   scores: number[];
   /** Per seat; null until the match is finished. */
   placements: (number | null)[];
+  /** Played for MAKApoints. */
+  ranked: boolean;
   /** The best limit reached, as the engine's atom; null if nobody has won. */
   maxLevel: string | null;
   revision: number;

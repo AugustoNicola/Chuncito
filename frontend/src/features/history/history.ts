@@ -27,10 +27,12 @@ export interface HistoryFilters {
   yaku: string | null;
   /** 4, or 3 for sanma. */
   players: 3 | 4 | null;
+  /** Played for MAKApoints (true) or just for fun (false). */
+  ranked: boolean | null;
 }
 
 export const NO_FILTERS: HistoryFilters = {
-  text: '', playerIds: [], minLevel: null, yaku: null, players: null,
+  text: '', playerIds: [], minLevel: null, yaku: null, players: null, ranked: null,
 };
 
 /**
@@ -68,6 +70,7 @@ export function filtersFrom(params: URLSearchParams): HistoryFilters {
     minLevel: rankOf(params.get('level')),
     yaku: yaku && YAKU_CHOICES.some((y) => y.atom === yaku) ? yaku : null,
     players: players === '3' ? 3 : players === '4' ? 4 : null,
+    ranked: params.get('mp') === '1' ? true : params.get('mp') === '0' ? false : null,
   };
 }
 
@@ -79,6 +82,7 @@ export function paramsOf(f: HistoryFilters): URLSearchParams {
   if (f.minLevel !== null) p.set('level', String(f.minLevel));
   if (f.yaku) p.set('yaku', f.yaku);
   if (f.players) p.set('players', String(f.players));
+  if (f.ranked !== null) p.set('mp', f.ranked ? '1' : '0');
   return p;
 }
 
@@ -92,6 +96,7 @@ export function apiPath(f: HistoryFilters): string {
   if (f.minLevel !== null) p.set('min_level', String(f.minLevel));
   if (f.yaku) p.set('yaku', f.yaku);
   if (f.players) p.set('players', String(f.players));
+  if (f.ranked !== null) p.set('ranked', String(f.ranked));
   return `/matches?${p}`;
 }
 

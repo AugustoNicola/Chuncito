@@ -126,6 +126,7 @@ try {
       return reply(200, [...api.matches.entries()]
         .filter(([, { rows: r }]) => !q.get('status') || r.match.status === q.get('status'))
         .filter(([, { rows: r }]) => !q.get('players') || String(r.match.players) === q.get('players'))
+        .filter(([, { rows: r }]) => !q.get('ranked') || String(r.match.ranked) === q.get('ranked'))
         .filter(([, { rows: r }]) => !q.get('min_level')
           || (rank(r.match.maxLevel) ?? -1) >= Number(q.get('min_level')))
         .filter(([, { rows: r }]) => q.getAll('player')
@@ -142,7 +143,7 @@ try {
           playerIds: m.rows.matchPlayers.map((p) => p.playerId),
           scores: m.rows.matchPlayers.map((p) => p.finalScore),
           placements: m.rows.matchPlayers.map((p) => p.placement),
-          maxLevel: m.rows.match.maxLevel, revision: m.revision,
+          maxLevel: m.rows.match.maxLevel, ranked: m.rows.match.ranked, revision: m.revision,
         })));
     }
     const id = decodeURIComponent(path.replace('/matches/', ''));
@@ -1387,9 +1388,14 @@ try {
     rows.match = { ...rows.match, id, name, maxLevel, startedAt };
     api.matches.set(id, { revision: 1, rows: edit(rows) });
   };
-  seed('hist-kita', 'the kita one', 'haneman', '2026-09-10T20:00:00.000Z');
+  // One played just for fun, one for MPs.
+  seed('hist-kita', 'the kita one', 'haneman', '2026-09-10T20:00:00.000Z', (r) => {
+    r.match.ranked = false;
+    return r;
+  });
   seed('hist-beto', 'with Beto', 'sinNombre', '2026-09-12T20:00:00.000Z', (r) => {
     r.matchPlayers[1] = { ...r.matchPlayers[1], playerId: beto.id, guestName: null };
+    r.match.ranked = true;
     return r;
   });
   const listed = () => page.$$eval('.history__name', (els) => els.map((e) => e.textContent));
@@ -1462,6 +1468,19 @@ try {
   await byText('Sanma');
   await waitListed(() => document.querySelectorAll('.history__item').length > 0);
   check((await page.evaluate(() => location.search)) === '?players=3', 'sanma only is in the URL too');
+  await byText('Clear filters');
+  await byText('For fun');
+  await page.waitForFunction(() => location.search === '?mp=0');
+  await new Promise((r) => setTimeout(r, 300));
+  const funMetas = await page.$$eval('.history__meta', (els) => els.map((e) => e.textContent));
+  check(funMetas.length > 0 && funMetas.every((m) => !m.includes('For MPs')),
+        `the list filters to matches played just for fun (got ${JSON.stringify(funMetas)})`);
+  await byText('For MPs');
+  await page.waitForFunction(() => location.search === '?mp=1');
+  await new Promise((r) => setTimeout(r, 300));
+  const mpMetas = await page.$$eval('.history__meta', (els) => els.map((e) => e.textContent));
+  check(mpMetas.length > 0 && mpMetas.every((m) => m.includes('For MPs')),
+        `and to those played for MPs (got ${JSON.stringify(mpMetas)})`);
   // Filters replace the history entry, so Back leaves the list rather than
   // stepping back through every filter. (One entry was added by the review.)
   check(await page.evaluate(() => history.length) === entriesBefore + 1,
