@@ -1137,7 +1137,7 @@ button {
 .standings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .standings__row {
   display: grid;
-  grid-template-columns: 2.4rem 1fr auto 3.6rem;
+  grid-template-columns: 2.4rem 1fr auto auto;
   align-items: center;
   gap: 10px;
   padding: 12px 10px;
@@ -1192,7 +1192,7 @@ button {
   background: var(--bg-sunken); border: 1px solid var(--border);
 }
 .mpgain__row {
-  display: grid; grid-template-columns: minmax(0, 1fr) 3.6rem auto; gap: 8px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 5rem auto; gap: 8px;
   align-items: baseline; padding: 3px 0; font-variant-numeric: tabular-nums;
 }
 .mpgain__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

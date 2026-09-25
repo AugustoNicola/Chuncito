@@ -728,6 +728,10 @@ Feedback on the round (2026-09-24):
 - [x] History filters by **All / For MPs / For fun** (`mp=1|0` in the URL,
       `ranked=true|false` to the API, filtered on the server like the rest);
       a ranked match's card says "· For MPs".
+- [x] **A number of MAKApoints always says "MP"** (`mpLabel`): the end
+      screen's gains and totals, the profile tile, and the standings'
+      results when the match is played for MPs (on the end screen, following
+      the toggle before it is saved). The Players ranking already had it.
 
 ## Picking this up cold
 

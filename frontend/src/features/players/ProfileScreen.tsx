@@ -19,7 +19,7 @@ import type { Fetched } from '../history/history';
 import { matchDate } from '../history/MatchList';
 import { PinForm } from '../match/SyncPanel';
 import { type Round, roundLabel } from '../match/seats';
-import { resultLabel } from '../match/scoring';
+import { mpLabel } from '../match/scoring';
 import { Bars, Donut, Histogram, PlacementLine } from './charts';
 import {
   type PlayerStats, averagePlacement, fetchStats, percent, placementSlices, winMethodSlices,
@@ -108,7 +108,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
     <>
       {/* The match count is on the toggle above. */}
       <div className="stats">
-        <Stat label="MAKApoints" value={`${resultLabel(stats.mpPoints)} MP`}
+        <Stat label="MAKApoints" value={mpLabel(stats.mpPoints)}
               detail={`${stats.mpMatches} ranked match${stats.mpMatches === 1 ? '' : 'es'}, all kinds`} />
         <Stat label="Average place" value={avg === null ? '–' : avg.toFixed(2)} />
         <Stat label="Uma" value={`${stats.umaTotal > 0 ? '+' : ''}${stats.umaTotal}`} />

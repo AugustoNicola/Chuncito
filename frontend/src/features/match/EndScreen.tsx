@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import type { MatchState } from './matchState';
 import { MatchOutcome } from './MatchOutcome';
-import { matchResults, resultLabel } from './scoring';
+import { matchResults, mpLabel } from './scoring';
 import { cachedPlayers, type Player } from '../players/players';
 import { refreshPlayers } from './syncClient';
 
@@ -45,7 +45,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
       </header>
 
       <div className="endscreen">
-        <MatchOutcome state={state} />
+        <MatchOutcome state={state} ranked={ranked} />
 
         <div className="field">
           <span className="field__label">MAKApoints</span>
@@ -69,12 +69,12 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
                   ) : (
                     <>
                       <span className={`mpgain__gained${gained < 0 ? ' mpgain__gained--loss' : ''}`}>
-                        {resultLabel(gained)}
+                        {mpLabel(gained)}
                       </span>
                       <span className="mpgain__total">
                         {before === undefined
                           ? 'total when online'
-                          : `${resultLabel(before)} → ${resultLabel(before + gained)} MP`}
+                          : `${mpLabel(before)} → ${mpLabel(before + gained)}`}
                       </span>
                     </>
                   )}

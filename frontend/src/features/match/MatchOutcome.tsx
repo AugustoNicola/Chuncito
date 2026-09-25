@@ -7,7 +7,7 @@ import type { MatchState } from './matchState';
 import { bestHand } from './matchState';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
-import { matchResults, okaOf, placeLabel, resultLabel } from './scoring';
+import { matchResults, mpLabel, okaOf, placeLabel, resultLabel } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel, seatWindOf } from './seats';
 import { WindMark } from './WindMark';
@@ -22,7 +22,12 @@ const END_REASON: Record<string, string> = {
 const START = { wind: 'este', number: 1 } as const;
 
 /** `linkPlayers` in a match review; never on the night, inside the match. */
-export function MatchOutcome({ state, linkPlayers = false }: { state: MatchState; linkPlayers?: boolean }) {
+export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked }: {
+  state: MatchState;
+  linkPlayers?: boolean;
+  /** Whether the results are MAKApoints: the end screen's choice before it is saved. */
+  ranked?: boolean;
+}) {
   const standings = matchResults(state.scores, state.config);
   const oka = okaOf(state.config);
   const sum = standings.reduce((a, p) => a + p.total, 0);
@@ -54,7 +59,8 @@ export function MatchOutcome({ state, linkPlayers = false }: { state: MatchState
               {p.score.toLocaleString()}
             </span>
             <span className={`standings__uma${p.total < 0 ? ' standings__uma--negative' : ''}`}>
-              {resultLabel(p.total)}
+              {/* A ranked match's results are MAKApoints, and say so. */}
+              {ranked ? mpLabel(p.total) : resultLabel(p.total)}
             </span>
             {/* The working, so the result can be checked at the table. */}
             <span className="standings__working">

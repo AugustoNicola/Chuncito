@@ -427,6 +427,9 @@ export function matchResults(scores: Delta, config: {
 export const resultLabel = (points: number): string =>
   `${points > 0 ? '+' : points < 0 ? '−' : ''}${(Math.abs(points) / 1000).toFixed(1)}`;
 
+/** The same, as MAKApoints: "+14.5 MP". A number of MP always says so. */
+export const mpLabel = (points: number): string => `${resultLabel(points)} MP`;
+
 /** "1st", "2nd", ... -- a place as the table says it. */
 export const placeLabel = (place: number): string =>
   `${place}${['st', 'nd', 'rd'][place - 1] ?? 'th'}`;
