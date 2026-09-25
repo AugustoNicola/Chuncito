@@ -715,6 +715,12 @@ per item.** Ticked here as they land, with what was decided.
       menus, the review screen, the end screen; the tile scorer's result
       pins its Edit / Record the same way (`.score__actions`).
 
+Feedback on the round (2026-09-24):
+
+- [x] The three yakuman limits share one row at one width (a six-column
+      grid: pairs span three, yakuman two), labelled Yakuman / 2x Yakuman /
+      3x Yakuman.
+
 ## Picking this up cold
 
 **State at the end of 2026-09-24's session** (the Backlog section above has

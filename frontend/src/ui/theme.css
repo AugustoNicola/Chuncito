@@ -1027,10 +1027,11 @@ button {
 .pills--fill .pill { flex: 1; min-width: 0; text-align: center; }
 /* A fixed grid, so a wrapped row keeps the same button width as the one above
    it instead of stretching two buttons across the whole panel. */
-.pills--grid { display: grid; grid-template-columns: 1fr 1fr; }
-/* Mangan & Haneman, Baiman & Sanbaiman, the yakuman filling its own row, then
-   the double and triple. */
-.pills--grid > [data-level="yakuman"] { grid-column: 1 / -1; }
+.pills--grid { display: grid; grid-template-columns: repeat(6, 1fr); }
+/* Mangan & Haneman, Baiman & Sanbaiman, then the three yakuman multiples on
+   one row: six columns, two limits a row at three each or three at two. */
+.pills--grid > * { grid-column: span 3; }
+.pills--grid > [data-tier="yakuman"] { grid-column: span 2; }
 .pill {
   min-width: 44px;
   padding: 9px 11px;

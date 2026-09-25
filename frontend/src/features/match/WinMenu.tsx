@@ -45,9 +45,14 @@ const FU_REST = MANUAL_FU.filter((fu) => fu > 50);
 
 /**
  * Limits offered directly, for when nobody counted the fu. Two to a row, in
- * ascending pairs, with the yakuman alone across its own row and the double
- * and triple below it -- a double yakuman hand, or two yakuman at once.
+ * ascending pairs, then the three yakuman multiples sharing the last row -- a
+ * double yakuman hand, or two yakuman at once.
  */
+/** Short enough for three to a row. */
+const LIMIT_LABEL: Partial<Record<string, string>> = {
+  dobleYakuman: '2x Yakuman', tripleYakuman: '3x Yakuman',
+};
+
 const LIMITS = [
   'mangan', 'haneman', 'baiman', 'sanbaiman', 'yakuman', 'dobleYakuman', 'tripleYakuman',
 ] as const;
@@ -402,7 +407,7 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
                       data-level={value}
                       aria-pressed={limit === value}
                       onClick={() => pickLimit(value)}>
-                {levelName(value) ?? value}
+                {LIMIT_LABEL[value] ?? levelName(value) ?? value}
               </button>
             ))}
           </div>

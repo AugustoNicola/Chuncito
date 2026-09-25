@@ -545,8 +545,13 @@ try {
   await pick('Fu', '30');
   await shot('12-winmenu.png');
   const limits = (await groupState('Limit')).map(([label]) => label);
-  check(limits.includes('Double Yakuman') && limits.includes('Triple Yakuman'),
+  check(limits.includes('2x Yakuman') && limits.includes('3x Yakuman'),
         `several yakuman can be typed in (got ${JSON.stringify(limits)})`);
+  const yakumanRow = await page.$$eval('[aria-label="Limit"] [data-tier="yakuman"]',
+    (els) => els.map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.width)]; }));
+  check(yakumanRow.length === 3 && new Set(yakumanRow.map(([t]) => t)).size === 1
+        && new Set(yakumanRow.map(([, w]) => w)).size === 1,
+        `the three yakuman share one row at one width (got ${JSON.stringify(yakumanRow)})`);
 
   // 20 fu is a pinfu tsumo, so it cannot appear on a ron at all.
   const fuState = await page.evaluate(() => {
