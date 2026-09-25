@@ -455,10 +455,17 @@ export const removeDora = (state: HandState, index: number, ura = false): HandSt
 export const removeKita = (state: HandState): HandState =>
   reconcile({ ...state, kita: Math.max(0, state.kita - 1) });
 
-export const clearHand = (state: HandState): HandState => ({
-  ...initialHandState,
-  winMode: state.winMode, roundWind: state.roundWind, seatWind: state.seatWind,
-  sanma: state.sanma, redFives: state.redFives, rules: state.rules,
+/**
+ * Clear empties the tiles -- hand, calls, dora, kita -- and nothing else. What
+ * was set around the hand stays: the winds, the win and the riichi (which the
+ * tracker set from the table, and which decides whether calls or ura dora are
+ * allowed at all), the circumstances and the rules. Anything the empty hand
+ * can no longer support (a rinshan with no kan) goes the usual way.
+ */
+export const clearHand = (state: HandState): HandState => reconcile({
+  ...state,
+  concealed: [], melds: [], doraIndicators: [], uraIndicators: [], kita: 0,
+  mode: null, red: false,
 });
 
 /**

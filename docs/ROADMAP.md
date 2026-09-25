@@ -720,6 +720,11 @@ Feedback on the round (2026-09-24):
 - [x] The three yakuman limits share one row at one width (a six-column
       grid: pairs span three, yakuman two), labelled Yakuman / 2x Yakuman /
       3x Yakuman.
+- [x] **Clear keeps what was set around the hand.** It used to reset to a
+      blank hand but for the winds and win, so a riichi hand lost its riichi
+      and the calls came back. `clearHand` now empties only the tiles (hand,
+      calls, dora, ura, kita) and keeps the riichi, circumstances and rules,
+      reconciling what an empty hand cannot support (a rinshan without kan).
 
 ## Picking this up cold
 

@@ -2,7 +2,7 @@ import { fuPartName } from './yakuNames';
 import { describe, expect, it } from 'vitest';
 import {
   concealedForDisplay, contextIssue, copiesUsed, disabledReason, initialHandState,
-  firstRoundYakuman, isComplete, isHandOpen, modeIssue, startingHand, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
+  clearHand, firstRoundYakuman, isComplete, isHandOpen, modeIssue, startingHand, pressTile, reconcile, redAvailable, removeConcealed, setRedFives,
   toFlags, toSituation, toggleMode, toggleRed, winningTile, type HandState,
 } from './handState';
 import type { Tile } from '../../scorer/types';
@@ -404,5 +404,23 @@ describe('fu breakdown lines', () => {
     expect(fuPartName({ concept: 'espera', wait: 'kanchan', fu: 2 })).toBe('Kanchan wait');
     expect(fuPartName({ concept: 'juegoCompletadoPorRon', set: 'triC', tiles: T('wh wh wh'), fu: 4 }))
       .toBe('Triplet of Haku, completed by ron');
+  });
+});
+
+describe('clearing the hand', () => {
+  it('empties the tiles but keeps the riichi, so calls stay off and ura stay on', () => {
+    const s: HandState = {
+      ...initialHandState, riichi: 'riichi', ippatsu: true, winMode: 'tsumo', seatWind: 'sur',
+      concealed: T('m1 m2 m3'), uraIndicators: T('p1'), doraIndicators: T('s1'),
+      melds: [{ kind: 'kanC', tiles: T('m9 m9 m9 m9') as never }], rinshan: true,
+    };
+    const cleared = clearHand(s);
+    expect([cleared.concealed, cleared.melds, cleared.uraIndicators, cleared.doraIndicators])
+      .toEqual([[], [], [], []]);
+    expect([cleared.riichi, cleared.ippatsu, cleared.winMode, cleared.seatWind])
+      .toEqual(['riichi', true, 'tsumo', 'sur']);
+    expect(cleared.rinshan).toBe(false);          // no kan left to draw after
+    expect(modeIssue(cleared, 'pon')).toMatch(/riichi/);
+    expect(modeIssue(cleared, 'uraDora')).toBeNull();
   });
 });
