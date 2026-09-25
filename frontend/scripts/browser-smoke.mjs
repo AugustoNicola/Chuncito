@@ -405,7 +405,7 @@ try {
   await page.evaluate(() => {
     [...document.querySelectorAll('button')].find((x) => x.textContent === 'Clear').click();
   });
-  await arm('Dora'); await page.click('.keyboard [data-key="m9"]');
+  await arm('Dora indicator'); await page.click('.keyboard [data-key="m9"]');
   const indicators = await page.$$eval('.dorarow .tile', (els) => els.map((e) => e.dataset.face));
   check(JSON.stringify(indicators) === JSON.stringify(['m9']),
         `the dora row shows the indicator itself (got ${JSON.stringify(indicators)})`);
@@ -414,7 +414,7 @@ try {
   const modes = () => page.$$eval('.modebar__btn',
     (els) => Object.fromEntries(els.map((e) => [e.textContent, e.disabled])));
   const noRiichi = await modes();
-  check(noRiichi['Ura Dora'] && !noRiichi.Pon, `ura dora needs a riichi (got ${JSON.stringify(noRiichi)})`);
+  check(noRiichi['Ura Dora indicator'] && !noRiichi.Pon, `ura dora needs a riichi (got ${JSON.stringify(noRiichi)})`);
   await page.click('.flaps__tab:nth-child(2)');
   await page.waitForSelector('.context');
   await page.evaluate(() => {
@@ -424,9 +424,9 @@ try {
   });
   await page.click('.flaps__tab:nth-child(1)');
   const inRiichi = await modes();
-  check(inRiichi.Chii && inRiichi.Pon && inRiichi.Kan && !inRiichi['Closed kan'] && !inRiichi['Ura Dora'],
+  check(inRiichi.Chii && inRiichi.Pon && inRiichi.Kan && !inRiichi['Closed kan'] && !inRiichi['Ura Dora indicator'],
         `a riichi rules out the open calls and allows ura (got ${JSON.stringify(inRiichi)})`);
-  await arm('Ura Dora'); await page.click('.keyboard [data-key="s1"]');
+  await arm('Ura Dora indicator'); await page.click('.keyboard [data-key="s1"]');
   const uraCount = await page.$$eval('.dorarow', (rows) => rows.length);
   check(uraCount === 2, `ura accepted in riichi (got ${uraCount} indicator rows)`);
 
@@ -1264,8 +1264,10 @@ try {
   await page.waitForSelector('.setup');
   await page.type('.setup__name', 'be');
   const offered = await page.$$eval('.setup__option', (els) => els.map((e) => e.textContent));
-  check(JSON.stringify(offered) === JSON.stringify(['Beto', 'Seat “be” as a guest']),
-        `typing searches the players and offers a guest (got ${JSON.stringify(offered)})`);
+  check(JSON.stringify(offered)
+          === JSON.stringify(['Beto', 'Add “be” as a new player', 'Seat “be” as a guest']),
+        `typing searches the players and offers to add one or a guest (got ${JSON.stringify(offered)})`);
+  check(api.players.size === 4, 'typing alone adds nobody');
   await byText('Beto');
   for (const name of ['Ana', 'Cami']) {
     await page.type('.setup__name', name.slice(0, 2));
@@ -1287,6 +1289,18 @@ try {
   await page.waitForSelector('.manual');
   await byText('Discard this match');
   await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
+
+  // A new name can be added as a player from setup -- on the tap that says so.
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  await page.type('.setup__name', 'Eli');
+  await byText('Add “Eli” as a new player');
+  await page.waitForFunction(() => document.querySelector('.setup__chosen')?.textContent === 'Eli×',
+    { timeout: 10_000 });
+  check([...api.players.values()].some((p) => p.displayName === 'Eli') && api.players.size === 5,
+        'setup adds a new player on the server and seats them');
+  await byText('Back');
   await page.waitForSelector('.home');
 
   // Another phone's match in progress, offered on the home screen.
