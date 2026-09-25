@@ -10,9 +10,11 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const SRC = new URL('..', import.meta.url).pathname;
+// fileURLToPath, not .pathname: on Windows the latter is /C:/..., which join mangles.
+const SRC = fileURLToPath(new URL('..', import.meta.url));
 
 function tsxFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
