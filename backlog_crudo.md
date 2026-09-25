@@ -1,0 +1,36 @@
+- Opengraph y cosas graficas web
+- pantalla de scoring debería decir quién roneo a quien o quien ganó
+- combinaciones imposiblles
+  - riichi y open hand
+  - 25 fu y open
+  - tener en cuenta riichi + tsumo para botones de han/fu
+- hacer opcional el open/closed y que no se trackee para stats
+- open riichi
+- first round win no anda
+- que se guarde la mano al hacer go back
+- deshabilitar boton de ura doras
+- dora y ura dora: marcar que son los indicadores en algún lado
+- ordenar jugadores por placement
+- botón para borrar players?
+- hacer más emocionante el listado de players: rankear por MAKApoints
+- hipervínculo a perfil cuando estás viendo placements en history
+- mejorar hover de timeline placements, todos los placements y colorinches
+- histograma de hand values: mejor hover con la cantidad y capaz porcentaje
+- ranking en base a (hand - target) + uma + oka
+- botón de "see that match" en best hand, cambiarlo por hacer clickeable la mano
+- double yakumans!!!!
+- botón para descartar match en pantalla final
+- arreglar reglas de south 4
+- target score != oka.
+- riichi sticks sobrantes van al primero cuando termina la partida
+- agregar user stat: average point score (sin normalizar dealer)
+- mostrar más fácil every match en user stats
+- ordenar player selector alfabeticamente
+- cambiar de orden rinshan y chankan para que estén juntos
+- algo marca "south 4 -> west" en vez de "south 4 -> end"
+- falta un botón de back al terminar la partida
+- "back" en history te deshace filtros; debería mandarte al menú sin máscómo
+- poner machete de manes en la pantalla principal
+- separar fichas de vientos con dragones en el keyboard; mandar a los costados
+- botones importantes no deben estár scrolleables! start match
+- desglose de fu en hand scorer
