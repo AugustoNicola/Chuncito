@@ -59,6 +59,15 @@ phase refuses, and nothing changes until the database catches up.
 
 `main` was first migrated on 2026-09-23, empty; it had no data to back up.
 
+**Not every migration is additive.** `0003` renames `return_score` to
+`goal_score` and `0004` adds a required `target_score`, so from the moment
+`main` is migrated until the new code is live, the old code cannot save a
+match. Nothing is lost -- saves queue on the phone and retry -- but a phone
+still running the old page keeps sending the old shape, which the new server
+refuses (422) until the app is reloaded; the reload upgrades its mirror by
+itself (`persistence.ts`). So: push when nobody is mid-match, and reload the
+app on each phone afterwards.
+
 ## Config vars
 
 | Var | Value |
