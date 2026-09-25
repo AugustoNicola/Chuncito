@@ -1,10 +1,11 @@
 /**
  * Match setup: who is playing, where they sit, and the rules.
  *
- * Each seat is chosen from the group's players (`players.ts`), who are created
- * on purpose on the Players screen -- typing here only searches, so a typo
- * cannot invent a person. Someone who is not a player sits as a guest: a name
- * on this match only, marked as such. Works offline from the cached list.
+ * Each seat is chosen from the group's players (`players.ts`). Typing only
+ * searches; a name nobody has can be added as a player, but only by tapping
+ * the option that says so -- Enter never creates one, so a typo cannot invent
+ * a person. Adding needs the server; offline, or instead, the name sits as a
+ * guest: on this match only, marked as such. Works offline from the cached list.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { MatchConfig, SeatPlayer } from './matchState';
@@ -15,7 +16,7 @@ import { SITUATION_WINDS, type Rule } from '../../scorer/types';
 import {
   type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
 } from '../players/players';
-import { refreshPlayers } from './syncClient';
+import { createPlayer, refreshPlayers } from './syncClient';
 import { okaOf, placeLabel } from './scoring';
 
 const umaFields = (players: PlayerCount): string[] => DEFAULTS[players].uma.map(String);
@@ -56,6 +57,9 @@ export function SetupScreen({ onStart, onCancel }: {
   const [targetScore, setTargetScore] = useState(DEFAULTS[4].targetScore);
   const [goalScore, setGoalScore] = useState(DEFAULTS[4].goalScore);
   const [uma, setUma] = useState<string[]>(() => umaFields(4));
+  /** A player being added from a seat, and why the last attempt failed. */
+  const [adding, setAdding] = useState<Seat | null>(null);
+  const [addError, setAddError] = useState<{ seat: Seat; text: string } | null>(null);
 
   // The cache is enough to start with; the server's list replaces it if it answers.
   useEffect(() => {
@@ -67,8 +71,21 @@ export function SetupScreen({ onStart, onCancel }: {
   const seats = seatsOf(players);
   const seated = allSeats.slice(0, players);
 
-  const setQuery = (seat: Seat, value: string) =>
+  const setQuery = (seat: Seat, value: string) => {
     setQueries((q) => q.map((v, i) => (i === seat ? value : v)));
+    setAddError(null);
+  };
+
+  /** Creates the player on the server, then seats them. */
+  async function addAndSeat(seat: Seat, name: string) {
+    if (adding !== null) return;
+    setAdding(seat);
+    const result = await createPlayer(name);
+    setAdding(null);
+    if (!result.ok) { setAddError({ seat, text: result.message }); return; }
+    setRoster(byName(cachedPlayers()));
+    choose(seat, { playerId: result.player.id, name: result.player.displayName });
+  }
 
   function choose(seat: Seat, choice: SeatPlayer | null) {
     const next = allSeats.map((v, i) => (i === seat ? choice : v));
@@ -225,6 +242,16 @@ export function SetupScreen({ onStart, onCancel }: {
                       </button>
                     ))}
                     {options.guest && (
+                      <button type="button" className="setup__option"
+                              disabled={adding !== null}
+                              onClick={() => void addAndSeat(seat, options.guest!)}>
+                        {adding === seat ? 'Adding…' : `Add “${options.guest}” as a new player`}
+                      </button>
+                    )}
+                    {addError?.seat === seat && (
+                      <span className="setup__warn">{addError.text}</span>
+                    )}
+                    {options.guest && (
                       <button type="button" className="setup__option setup__option--guest"
                               onClick={() => choose(seat, { playerId: null, name: options.guest! })}>
                         Seat “{options.guest}” as a guest
@@ -233,8 +260,8 @@ export function SetupScreen({ onStart, onCancel }: {
                     {options.players.length === 0 && !options.guest && (
                       <span className="setup__hint">
                         {roster.length === 0
-                          ? 'No players yet. Add them on the Players screen, or type a name to seat a guest.'
-                          : 'Everyone is seated. Type a name to seat a guest.'}
+                          ? 'No players yet. Type a name to add one, or to seat a guest.'
+                          : 'Everyone is seated. Type a name to add a player or seat a guest.'}
                       </span>
                     )}
                   </div>

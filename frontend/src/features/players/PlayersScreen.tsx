@@ -1,8 +1,8 @@
 /**
  * The Players screen: where people are added to the group, on purpose.
  *
- * Deliberately the only place a player is created, so that a typo at the
- * table cannot invent one. Each name opens that player's stats
+ * The other place a player is created is setup's explicit "Add … as a new
+ * player" option; neither lets a typo invent one by accident. Each name opens that player's stats
  * (`ProfileScreen`); a profile's extras (a tile avatar, an accent colour) are
  * still to come.
  *

@@ -40,7 +40,8 @@ function IndicatorRow({ label, indicators, sanma, onRemove }: {
   if (indicators.length === 0) return null;
   return (
     <div className="dorarow">
-      <span className="dorarow__label">{label}</span>
+      {/* "indicators" on a line of its own, so the tiles keep the row's width. */}
+      <span className="dorarow__label">{label} <span className="dorarow__sub">indicators</span></span>
       {indicators.map((tile, i) => (
         <Tile key={i} face={tile} onClick={onRemove && (() => onRemove(i))}
               label={`${label} indicator ${tile} — points at ${doraFromIndicator(tile, sanma)}`} />
@@ -93,7 +94,7 @@ export function HandSummary({ state }: { state: HandState }) {
         ))}
       </div>
       <IndicatorRow label="Dora" indicators={state.doraIndicators} sanma={state.sanma} />
-      <IndicatorRow label="Ura" indicators={state.uraIndicators} sanma={state.sanma} />
+      <IndicatorRow label="Ura dora" indicators={state.uraIndicators} sanma={state.sanma} />
       <KitaRow count={state.kita} />
     </div>
   );
@@ -136,7 +137,7 @@ export function HandDisplay({
 
       <IndicatorRow label="Dora" indicators={state.doraIndicators} sanma={state.sanma}
                     onRemove={(i) => onRemoveDora(i, false)} />
-      <IndicatorRow label="Ura" indicators={state.uraIndicators} sanma={state.sanma}
+      <IndicatorRow label="Ura dora" indicators={state.uraIndicators} sanma={state.sanma}
                     onRemove={(i) => onRemoveDora(i, true)} />
       <KitaRow count={state.kita} onRemove={onRemoveKita} />
     </div>

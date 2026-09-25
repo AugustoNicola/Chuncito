@@ -236,6 +236,7 @@ button {
   text-transform: uppercase; letter-spacing: 0.07em;
   min-width: 34px;
 }
+.dorarow__sub { display: block; font-size: 0.58rem; text-transform: none; letter-spacing: 0; }
 
 /* ---------- status ---------- */
 
@@ -291,6 +292,7 @@ button {
   color: var(--text);
 }
 .modebar__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.modebar__sub { display: block; font-size: 0.66rem; font-weight: 400; }
 
 /* ---------- keyboard ---------- */
 
