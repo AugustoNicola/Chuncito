@@ -750,6 +750,24 @@ From `backlog_crudo.md` (2026-09-25):
   Merged as PR #1 (a friend's, 2026-09-26) after a look on the LAN; the
   smoke test then passed on `main` on Linux, 242 checks.
 
+Asked for on 2026-09-26:
+
+- [x] **The PIN is asked for once, up front.** It used to be asked by
+      whichever screen first reached the server (History, Players, a
+      profile, the home panel), in the middle of what you were doing. Now
+      `App.tsx` asks `GET /api/session` on load, and on a device the server
+      says is locked a gate (`.gate`, the `PinForm` autofocused) stands in
+      front of every screen — the calculator and setup included — until the
+      PIN is in; the cookie then keeps the device in for ~400 days. Decided
+      with the user: an **unreachable server lets everyone in** (the tracker
+      never waits on the server), and **the table is never covered** (its dot
+      asks instead). The app shows while the check is out, so an unlocked
+      device never waits. The screens keep their own PIN form as a fallback,
+      for a server locked since (a changed PIN). `sessionLocked()` no longer
+      counts a server with no PIN configured as locked. The smoke test's fake
+      server fails the session check as if offline until its server section,
+      which then tests the gate.
+
 ## Picking this up cold
 
 **State as of 2026-09-26** (the Backlog section above has the detail):
@@ -780,7 +798,7 @@ From `backlog_crudo.md` (2026-09-25):
   **MAKApoints** are its results, if it was saved as "Played for MPs".
 - Every end of a match settles the table: leftover riichi sticks to 1st, as
   an adjustment row. A match-ending hand leaves the round where it was.
-- 266 unit tests, 242 browser checks, 52 backend tests.
+- 266 unit tests, 247 browser checks, 52 backend tests.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:

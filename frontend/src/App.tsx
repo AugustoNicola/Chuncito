@@ -18,6 +18,12 @@
  *
  * On load the IndexedDB mirror is checked first, so a phone that died mid-hanchan
  * comes back to the table rather than to the home screen.
+ *
+ * The PIN is asked for once, up front: a device the server says is locked sees
+ * the gate instead of any screen, and the cookie keeps it unlocked for about a
+ * year. Two exceptions, both so that the table never waits on the server: an
+ * unreachable server lets everyone in (offline at the table is normal), and the
+ * table itself is never covered -- its sync dot asks for the PIN instead.
  */
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -27,13 +33,14 @@ import { SetupScreen } from './features/match/SetupScreen';
 import { createMatch, type MatchConfig, type MatchState } from './features/match/matchState';
 import { clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
-import { SyncPanel } from './features/match/SyncPanel';
+import { PinForm, SyncPanel } from './features/match/SyncPanel';
 import { PlayersScreen } from './features/players/PlayersScreen';
 import { ProfileScreen } from './features/players/ProfileScreen';
 import { MatchList } from './features/history/MatchList';
 import { MatchReview } from './features/history/MatchReview';
 import {
-  type ServerMatch, matchesInProgress, resumeFromServer, startSync, sync, useSyncStatus,
+  type ServerMatch, matchesInProgress, resumeFromServer, sessionLocked, startSync, sync,
+  useSyncStatus,
 } from './features/match/syncClient';
 
 export function App() {
@@ -43,6 +50,9 @@ export function App() {
   const [restoring, setRestoring] = useState(true);
   const [elsewhere, setElsewhere] = useState<ServerMatch[]>([]);
   const [fetching, setFetching] = useState<string | null>(null);
+  // Not known until the server answers, so the app shows meanwhile: an unlocked
+  // device, the usual case, never waits for the check.
+  const [gated, setGated] = useState(false);
   const syncState = useSyncStatus().state;
   const atHome = pathname === '/';
   // Where the app was opened, before any redirect: the restore below reads the
@@ -64,6 +74,7 @@ export function App() {
   const leaveMatch = () => navigate('/', { replace: true });
 
   useEffect(() => { void startSync(); }, []);
+  useEffect(() => { void sessionLocked().then(setGated); }, []);
 
   // Matches being played on other phones, offered for carrying on here. Asked
   // again whenever home is shown or the server comes unlocked.
@@ -103,15 +114,31 @@ export function App() {
     navigate('/match');
   }
 
+  const title = (
+    <header className="app__bar app__bar--home">
+      <h1 className="app__title app__title--home">
+        {/* The centre box's wordmark, so the app is branded one way. */}
+        <span className="brand__logo" aria-hidden="true" />
+        Chuncito
+      </h1>
+    </header>
+  );
+
+  if (gated && pathname !== '/match') {
+    return (
+      <div className="app">
+        {title}
+        <div className="gate">
+          <PinForm autoFocus onUnlocked={() => setGated(false)}
+                   reason="Enter the group's PIN. This device will remember it." />
+        </div>
+      </div>
+    );
+  }
+
   const home = (
     <div className="app">
-      <header className="app__bar app__bar--home">
-        <h1 className="app__title app__title--home">
-          {/* The centre box's wordmark, so the app is branded one way. */}
-          <span className="brand__logo" aria-hidden="true" />
-          Chuncito
-        </h1>
-      </header>
+      {title}
 
       <div className="home">
         {resumable && (

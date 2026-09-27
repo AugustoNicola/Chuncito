@@ -10,8 +10,14 @@ import { refreshPlayers, sync, useSyncStatus } from './syncClient';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** The group's PIN, asked for wherever the server has said it wants it. */
-export function PinForm({ reason, onUnlocked }: { reason: string; onUnlocked?: () => void }) {
+/**
+ * The group's PIN. Asked for up front by the gate (`App.tsx`); the screens keep
+ * their own copy for when the server wants it again after that, such as when
+ * the PIN has been changed.
+ */
+export function PinForm({ reason, onUnlocked, autoFocus }: {
+  reason: string; onUnlocked?: () => void; autoFocus?: boolean;
+}) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,6 +39,7 @@ export function PinForm({ reason, onUnlocked }: { reason: string; onUnlocked?: (
       <div className="sync__row">
         <input className="sync__input" type="password" inputMode="numeric"
                autoComplete="current-password" aria-label="PIN" placeholder="PIN"
+               autoFocus={autoFocus}
                value={pin} onChange={(e) => setPin(e.target.value)} />
         <button type="submit" className="btn btn--primary" disabled={!pin || busy}>
           {busy ? 'Checking…' : 'Unlock'}

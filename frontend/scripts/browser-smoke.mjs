@@ -42,9 +42,12 @@ try {
 
   // A stand-in for the backend, so the run stays hermetic: it starts locked,
   // takes the PIN, and keeps what it is sent. The real server's rules are the
-  // backend's own tests; this only has to be the right shape.
+  // backend's own tests; this only has to be the right shape. Until the server
+  // section, asking whether the device is unlocked fails as if offline, so the
+  // PIN gate lets the tracker in, as it does at a table with no signal.
   const api = {
     pin: '2468', unlocked: false, matches: new Map(), players: new Map(), requests: [],
+    sessionOffline: true,
   };
   await page.setRequestInterception(true);
   page.on('request', async (req) => {
@@ -61,6 +64,7 @@ try {
     const raw = req.hasPostData() ? await req.fetchPostData() : undefined;
     const body = raw ? JSON.parse(raw) : undefined;
     if (path === '/session') {
+      if (method === 'GET' && api.sessionOffline) { void req.abort(); return; }
       if (method === 'GET') return reply(200, { unlocked: api.unlocked, configured: true });
       api.unlocked = body?.pin === api.pin;
       return api.unlocked ? reply(204) : reply(401, { detail: 'wrong PIN' });
@@ -1164,12 +1168,24 @@ try {
 
   // ==================== the server ====================
 
-  // Everything so far was recorded against a locked server: the tracker never
-  // noticed, and the home screen asks for the PIN.
+  // Where the app is, after any redirect.
+  const at = () => page.evaluate(() => location.pathname);
+
+  // Everything so far was recorded against a locked server the app could not
+  // ask about: the gate let it in and the tracker never noticed. Once the
+  // server answers that it is locked, the PIN stands in front of home.
+  api.sessionOffline = false;
   await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.sync[data-state="locked"]', { timeout: 10_000 });
+  await page.waitForSelector('.gate', { timeout: 10_000 });
+  check(!(await page.$('.home__grid')), 'a locked device sees the PIN gate, not the menu');
+  check(await page.evaluate(() => document.activeElement?.classList.contains('sync__input')),
+        'and the PIN field has the focus');
   check(api.matches.size === 0, 'nothing reaches a locked server');
-  await shot('50-sync-locked.png');
+  await shot('50-pin-gate.png');
+
+  await page.goto('http://localhost:5199/calculator', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.gate', { timeout: 10_000 });
+  check(!(await page.$('.keyboard')), 'the gate stands in front of every screen, the calculator too');
 
   await page.type('.sync__input', '1111');
   await byText('Unlock');
@@ -1182,8 +1198,13 @@ try {
   await page.keyboard.press('Backspace');
   await page.type('.sync__input', api.pin);
   await byText('Unlock');
+  await page.waitForSelector('.keyboard', { timeout: 10_000 });
+  check(await at() === '/calculator', `the right PIN opens the screen it stood in front of (got ${await at()})`);
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home__grid');
+  check(!(await page.$('.gate')), 'and it is not asked for again');
   await page.waitForFunction(() => !document.querySelector('.sync'), { timeout: 10_000 });
-  check(true, 'the right PIN unlocks, and the panel goes quiet once everything is saved');
+  check(true, 'the panel goes quiet once everything is saved');
 
   const uploaded = [...api.matches.values()].map((m) => m.rows);
   const finished = uploaded.find((r) => r.match.status === 'finished' && r.hands.length === 2);
@@ -1328,7 +1349,6 @@ try {
 
   // ==================== routes ====================
 
-  const at = () => page.evaluate(() => location.pathname);
   // Firefox fires popstate asynchronously; give the guard a moment to answer.
   const settle = () => new Promise((r) => setTimeout(r, 300));
   check(await at() === '/match', `the table is /match (got ${await at()})`);
@@ -1509,11 +1529,13 @@ try {
   await page.waitForSelector('.history__filters');
   check(await at() === '/matches', `Back from a linked match goes to the list (got ${await at()})`);
 
-  // Locked, the history asks for the PIN rather than showing nothing.
+  // Locked after the gate (the PIN changed, say), the history asks for it
+  // itself rather than showing nothing.
   api.unlocked = false;
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.sync__pin', { timeout: 10_000 });
-  check(true, 'a locked server asks for the PIN on the history');
+  await byText('Back');
+  await byText('History');
+  await page.waitForSelector('.history .sync__pin', { timeout: 10_000 });
+  check(!(await page.$('.gate')), 'a server locked since the gate asks for the PIN on the history');
   await page.type('.sync__input', api.pin);
   await byText('Unlock');
   await page.waitForSelector('.history__item', { timeout: 10_000 });

@@ -574,6 +574,15 @@ button {
 
 .home__resumemeta { font-size: 0.78rem; color: var(--text-dim); font-weight: 400; }
 .home__hint { color: var(--text-faint); font-size: 0.85rem; text-align: center; margin: 0; }
+/* The PIN, in front of home on a locked device: the sync panel's card, set in
+   the upper third where the thumb and the keyboard leave it in sight. */
+.gate {
+  margin: 12vh 0 0;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+}
 .home__elsewhere { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .home__heading {
   margin: 0; font-size: 0.78rem; font-weight: 600;

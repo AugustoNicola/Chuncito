@@ -54,11 +54,15 @@ export async function refreshPlayers(): Promise<Player[] | null> {
   }
 }
 
-/** True when the server answered and wants the PIN; false if unlocked or unreachable. */
+/**
+ * True when the server answered and wants the PIN; false if unlocked or
+ * unreachable, or if it has no PIN set up (no PIN could unlock it then).
+ */
 export async function sessionLocked(): Promise<boolean> {
   try {
     const response = await fetchTransport('GET', '/session');
-    return response.status === 200 && !(response.body as { unlocked: boolean }).unlocked;
+    const body = response.body as { unlocked: boolean; configured: boolean };
+    return response.status === 200 && body.configured && !body.unlocked;
   } catch {
     return false;
   }
