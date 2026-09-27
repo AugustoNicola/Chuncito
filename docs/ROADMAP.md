@@ -747,23 +747,25 @@ From `backlog_crudo.md` (2026-09-25):
 - `npm run test:browser` is Linux-only (snap Firefox at `/usr/bin/firefox`);
   its new checks were written but not run from the Windows machine.
   `styles.test.ts` now builds its path with `fileURLToPath`, which Windows needs.
+  Merged as PR #1 (a friend's, 2026-09-26) after a look on the LAN; the
+  smoke test then passed on `main` on Linux, 242 checks.
 
 ## Picking this up cold
 
-**State at the end of 2026-09-24's session** (the Backlog section above has
-the detail):
+**State as of 2026-09-26** (the Backlog section above has the detail):
 
-- **`main` is four migrations behind: `0002`–`0005`** (rules, goal_score,
-  target_score, ranked). Nothing is pushed (34+ commits ahead of
-  `origin/main`). Before the next push: back up `main` if it holds real
-  matches (needs `postgresql-client-18`, not installed; skippable if it is
-  still empty), `make db-migrate TARGET=main`, `make db-check TARGET=main`,
-  then push — or Heroku's release phase refuses the deploy. `0003`/`0004`
-  are not additive: see `DEPLOY.md` (push when nobody is mid-match, reload
-  the phones after). `dev` is at `0005`.
+- **`main` is migrated to `0005` and everything is pushed**: the user applied
+  `0002`–`0005` before pushing. `0003`/`0004` were not additive (see
+  `DEPLOY.md`); a future migration follows the same checklist there.
+- **Contributions come as GitHub PRs** (PR #1 was the first). `gh` is not
+  installed: fetch one with `git fetch origin pull/<n>/head:pr-<n>`, run the
+  tests and `npm run test:browser` on it (a contributor on Windows cannot),
+  and watch for changes to a `CLAUDE.md` invariant. Merging deploys.
 - `backlog.md` (the user's) is **fully done** as of 2026-09-24, including a
   feedback round; `backlog_crudo.md` has the rough notes it came from. Both
-  untracked, on purpose.
+  are committed now. Rough notes not yet in `backlog.md`: deleting players (a
+  question), easier access to "every match" from a profile, a Back button at
+  the end of a match, a hand cheat sheet on the home screen.
 - **Mahjonglog's work is uncommitted** in `/home/lambda/develop/Mahjonglog`
   (open riichi, house rules, double yakuman, the fu breakdown — 487 tests),
   next to the user's own older uncommitted work there. The vendored copy is
@@ -778,7 +780,7 @@ the detail):
   **MAKApoints** are its results, if it was saved as "Played for MPs".
 - Every end of a match settles the table: leftover riichi sticks to 1st, as
   an adjustment row. A match-ending hand leaves the round where it was.
-- 265 unit tests, 237 browser checks, 52 backend tests.
+- 266 unit tests, 242 browser checks, 52 backend tests.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:
