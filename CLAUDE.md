@@ -142,10 +142,11 @@ before any migration on it.
 needs a migration needs `main` migrated (by hand, backup first) before the push,
 or the release phase refuses it.
 
-**Players are created on purpose, never as a side effect.** Only the Players
-screen adds or renames one; setup chooses from the list or seats a guest, and
-the server refuses a match seating a player it does not have. A typo at the
-table must not be able to invent a person.
+**Players are created on purpose, never as a side effect.** The Players screen
+adds or renames one; setup chooses from the list, seats a guest, or adds a
+player only on a tap of the option that says "Add … as a new player" (Enter
+never does), and the server refuses a match seating a player it does not have.
+A typo at the table must not be able to invent a person silently.
 
 **The tracker never waits on the server.** Saves are queued (`sync.ts`) and
 the table plays from local state; a missing, locked or failing server must

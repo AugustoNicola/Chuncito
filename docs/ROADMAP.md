@@ -733,6 +733,21 @@ Feedback on the round (2026-09-24):
       results when the match is played for MPs (on the end screen, following
       the toggle before it is saved). The Players ranking already had it.
 
+From `backlog_crudo.md` (2026-09-25):
+
+- [x] **Dora are indicators.** The marker buttons read "Dora / indicator" and
+      "Ura Dora / indicator", the second word on a small second line
+      (`.modebar__sub`) so the row still fits 360 px; the hand's rows say
+      "Dora / Ura dora" with "indicators" under them.
+- [x] **Add a player from setup.** Typing a name nobody has offers "Add “X” as
+      a new player" above the guest option; a tap creates them on the server
+      (`createPlayer`) and seats them. Enter still seats a guest, never
+      creates anyone. Offline or locked, the server's message shows beside it
+      and the guest option stands. `CLAUDE.md`'s invariant says so now.
+- `npm run test:browser` is Linux-only (snap Firefox at `/usr/bin/firefox`);
+  its new checks were written but not run from the Windows machine.
+  `styles.test.ts` now builds its path with `fileURLToPath`, which Windows needs.
+
 ## Picking this up cold
 
 **State at the end of 2026-09-24's session** (the Backlog section above has

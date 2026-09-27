@@ -8,7 +8,11 @@
  */
 import { modeIssue, redAvailable, type CallMode, type HandState } from './handState';
 
-type ModeSpec = { mode: CallMode; label: string; hint: string };
+/**
+ * `sub` is a second, smaller line: "indicator" says the tile to tap is the one
+ * turned over, not the dora itself, and on one line it would not fit a phone.
+ */
+type ModeSpec = { mode: CallMode; label: string; sub?: string; hint: string };
 
 /** Calls on their own row; the tile-marking modifiers on a second. */
 const CALLS: readonly ModeSpec[] = [
@@ -19,8 +23,9 @@ const CALLS: readonly ModeSpec[] = [
 ];
 
 const MARKERS: readonly ModeSpec[] = [
-  { mode: 'dora', label: 'Dora', hint: 'Mark the tapped tile as a dora indicator' },
-  { mode: 'uraDora', label: 'Ura Dora', hint: 'Mark the tapped tile as an ura dora indicator' },
+  { mode: 'dora', label: 'Dora', sub: 'indicator', hint: 'Mark the tapped tile as a dora indicator' },
+  { mode: 'uraDora', label: 'Ura Dora', sub: 'indicator',
+    hint: 'Mark the tapped tile as an ura dora indicator' },
 ];
 
 const KITA: ModeSpec =
@@ -32,7 +37,7 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
   onToggleRed: () => void;
 }) {
   // data-mode drives the armed colour; idle buttons all look alike.
-  const modeButton = ({ mode, label, hint }: ModeSpec) => {
+  const modeButton = ({ mode, label, sub, hint }: ModeSpec) => {
     // Calls in riichi, ura without one: see `modeIssue`.
     const issue = modeIssue(state, mode);
     return (
@@ -47,6 +52,7 @@ export function CallModeBar({ state, onToggle, onToggleRed }: {
         onClick={() => onToggle(mode)}
       >
         {label}
+        {sub && <> <span className="modebar__sub">{sub}</span></>}
       </button>
     );
   };
