@@ -4,7 +4,7 @@ TARGET ?= dev
 PY := backend/.venv/bin/python
 export CHUNCITO_TARGET := $(TARGET)
 
-.PHONY: backend-setup backend-dev backend-test db-backup db-migrate db-status db-check
+.PHONY: backend-setup backend-dev backend-test db-backup backup-timer db-migrate db-status db-check
 
 backend-setup:          ## Python venv with runtime + test dependencies
 	python3 -m venv backend/.venv
@@ -16,13 +16,22 @@ backend-dev:            ## API on :8000, which Vite proxies /api to (needs CHUNC
 backend-test:           ## pytest against a throwaway schema on the dev branch
 	cd backend && .venv/bin/pytest -q
 
-db-backup:              ## pg_dump the target into backups/
-	cd backend && .venv/bin/python -m scripts.db_backup
+# KEEP=N marks a scheduled dump and keeps only the newest N of those; dumps
+# without it (by hand, before a migration) are never pruned.
+db-backup:              ## pg_dump the target into backups/ (needs postgresql-client-18)
+	cd backend && .venv/bin/python -m scripts.db_backup $(if $(KEEP),--keep $(KEEP))
 
-# No automatic backup yet: main is empty, and Neon's restore window covers the
-# early days. Once real matches are in, run `make db-backup` first (it needs
-# postgresql-client-18), or make this target depend on it again.
-db-migrate:             ## bring the target to the latest migration
+backup-timer:           ## install the daily backup of main as a systemd user timer
+	mkdir -p $(HOME)/.config/systemd/user
+	for unit in backend/systemd/*; do \
+		sed 's|@REPO@|$(CURDIR)|g' $$unit > $(HOME)/.config/systemd/user/$$(basename $$unit); \
+	done
+	systemctl --user daemon-reload
+	systemctl --user enable --now chuncito-backup.timer
+	systemctl --user list-timers chuncito-backup.timer
+
+# Production data is never lost to a migration: on main, no backup, no migration.
+db-migrate: $(if $(filter main,$(TARGET)),db-backup)  ## bring the target to the latest migration
 	cd backend && .venv/bin/alembic upgrade head
 
 db-status:              ## which migration the target is at

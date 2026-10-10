@@ -1,0 +1,12 @@
+# Installed by `make backup-timer`. Daily; Persistent catches up on a day the
+# laptop was off or asleep at that hour, as soon as it is back.
+[Unit]
+Description=Daily backup of Chuncito's production database
+
+[Timer]
+OnCalendar=*-*-* 13:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

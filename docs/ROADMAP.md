@@ -293,14 +293,17 @@ wakes itself.
       wrong tries per address per 15 minutes. Plus `robots.txt` (frontend and
       backend), `X-Robots-Tag: noindex` on every API response, and the
       `noindex` meta tag.
-- [ ] **Backups — deferred by choice (2026-09-21).** `make db-backup`
-      (`pg_dump` of the target into `backups/`) exists but is not wired into
-      `make db-migrate`, and needs `postgresql-client-18`, which is not
-      installed; it refuses an older `pg_dump` rather than making a dump that
-      cannot be restored. Fine while `main` is empty. Revisit once real matches
-      are on it: install the client, make `db-migrate` depend on
-      `db-backup` again, and consider a scheduled dump, since Neon's free
-      restore window is short.
+- [x] **Backups — enabled 2026-10-09**, once the group had played real
+      matches. Production data is never deleted (a `CLAUDE.md` invariant).
+      `postgresql-client-18` is installed (PGDG apt repo). `make db-migrate
+      TARGET=main` runs `make db-backup` first and stops if it fails; a
+      systemd user timer (`make backup-timer`, units in `backend/systemd/`)
+      dumps `main` daily at 13:00, catching up after the laptop was off,
+      retrying, and notifying the desktop on failure. Every dump is read back
+      with `pg_restore --list`. The daily ones keep the newest 14; the ones
+      before a migration or by hand are never pruned. All on this laptop's
+      disk only — see `DEPLOY.md`'s Backups section, which also says how to
+      restore (into a new Neon branch).
 - [x] **Players are created on purpose** (revised 2026-09-21, after a first
       version made them on the fly from typed names). The Players screen
       (`features/players/`) is the only place a player is added or renamed —
@@ -770,8 +773,13 @@ Asked for on 2026-09-26:
 
 ## Picking this up cold
 
-**State as of 2026-09-26** (the Backlog section above has the detail):
+**State as of 2026-10-09** (the Backlog section above has the detail):
 
+- **`main` holds the group's real matches and is backed up daily**
+  (2026-10-09; `DEPLOY.md`'s Backups section). Never delete or rewrite its
+  data by hand. On 2026-10-09 it had 7 matches; nine of the ten in the
+  2026-10-01 JSON export (`backups/`) were no longer there, short finished
+  matches from 2026-09-23/25 — asked the user whether that was a cleanup.
 - **`main` is migrated to `0005` and everything is pushed**: the user applied
   `0002`–`0005` before pushing. `0003`/`0004` were not additive (see
   `DEPLOY.md`); a future migration follows the same checklist there.

@@ -1,0 +1,18 @@
+# Installed by `make backup-timer`, which fills in @REPO@. Edit this copy, not
+# the one in ~/.config/systemd/user, and run the target again.
+[Unit]
+Description=Chuncito: pg_dump the production database into backups/
+OnFailure=chuncito-backup-failed.service
+# Retries below give up after four tries; the next day's run starts afresh.
+StartLimitIntervalSec=3h
+StartLimitBurst=4
+
+[Service]
+Type=oneshot
+# A laptop waking from sleep is often not online yet. The leading "-" lets the
+# dump try anyway, and fail visibly, if the network never comes up.
+ExecStartPre=-/usr/bin/nm-online -q -t 120
+# The newest 14 daily dumps are kept; older ones are pruned.
+ExecStart=/usr/bin/make -C @REPO@ db-backup TARGET=main KEEP=14
+Restart=on-failure
+RestartSec=20min

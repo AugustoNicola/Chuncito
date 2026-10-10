@@ -29,7 +29,8 @@ From the repo root:
 | `make backend-dev` | API on `:8000` (Vite proxies `/api` to it); needs `CHUNCITO_PIN` |
 | `make backend-test` | pytest against a throwaway schema on the Neon **dev** branch |
 | `make db-backup` | `pg_dump` into `backups/` (needs `postgresql-client-18`) |
-| `make db-migrate` | `alembic upgrade head`. Add `TARGET=main` for real data |
+| `make backup-timer` | Install the daily backup of `main` (systemd user timer) |
+| `make db-migrate` | `alembic upgrade head`. Add `TARGET=main` for real data (backs up first) |
 | `make db-check` | Is the target at the code's migration? (Heroku's release phase) |
 
 ## Layout
@@ -134,8 +135,16 @@ in seat order.
 **The dev branch unless told otherwise.** `.env` holds URLs for both Neon
 branches; `backend/app/settings.py` uses `dev` unless `CHUNCITO_TARGET=main`.
 Never run anything against `main` without the user asking; the tests refuse to.
-Backups are deferred for now; once `main` holds real matches, `make db-backup`
-before any migration on it.
+
+**Production data is never deleted.** `main` holds the group's real matches.
+Nothing run by hand deletes, truncates, drops or rewrites its rows, not even
+to tidy up a test match; ask the user instead. A migration on it may add and
+copy but not drop a column or table that holds data. The app's own discard of
+a match is the one deletion, by design. `make db-migrate TARGET=main` makes a
+backup first and stops if it cannot, and a daily timer backs `main` up as
+well, keeping its newest 14 (`docs/DEPLOY.md`). Only those daily dumps are
+ever pruned. `backups/` is gitignored, so never `git clean -x` here: that
+would delete them.
 
 **A push to `main` is a deploy.** Heroku builds every push to GitHub's `main`
 (`docs/DEPLOY.md`). Commit freely; push only when the user asks. A change that

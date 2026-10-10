@@ -43,12 +43,11 @@ integration. Committing locally does not; pushing does.
 
 ## Changes with a migration
 
-Migrations on `main` are run by hand, backup first, **before** pushing the
-code that needs them:
+Migrations on `main` are run by hand **before** pushing the code that needs
+them. On `main`, `db-migrate` runs `db-backup` first and stops if that fails:
 
 ```sh
-make db-backup TARGET=main     # needs postgresql-client-18
-make db-migrate TARGET=main
+make db-migrate TARGET=main    # backs up first; needs postgresql-client-18
 make db-check TARGET=main      # what the release phase will say
 git push                       # now the release check passes
 ```
@@ -67,6 +66,40 @@ still running the old page keeps sending the old shape, which the new server
 refuses (422) until the app is reloaded; the reload upgrades its mirror by
 itself (`persistence.ts`). So: push when nobody is mid-match, and reload the
 app on each phone afterwards.
+
+## Backups
+
+Production data is never deleted, so `main` is dumped (`pg_dump`, custom
+format) into the repo's gitignored `backups/` at three points:
+
+- **Before every migration on it**, as part of `make db-migrate TARGET=main`.
+- **Daily**, by a systemd user timer on the development laptop (`make
+  backup-timer` installs it from `backend/systemd/`). It runs at 13:00, or as
+  soon as the laptop is awake after a day it missed, retries after a failure,
+  and shows a desktop notification if it still fails. It runs while the user is
+  logged in; `loginctl enable-linger` would make it run without that.
+- **By hand**, whenever you like: `make db-backup TARGET=main`.
+
+Dumps are a few dozen KB. The timer's are named `chuncito-main-daily-…` and
+**only the newest 14 are kept**, so it does not fill the disk; the ones made
+before a migration or by hand are never pruned (delete them by hand if ever
+needed). Each dump is read back with `pg_restore --list` before it counts,
+and pruning happens only after that. They exist only on this disk, so
+copying `backups/` somewhere else now and then is what protects against
+losing the laptop. Never `git clean -x` the repo, which deletes ignored files.
+`chuncito-main-20261001T161639Z.json` there is an earlier JSON export, from
+before `pg_dump` 18 was installed.
+
+Neon's own point-in-time restore covers only its short free-plan window. To
+restore a dump, restore it into a **new Neon branch** rather than over
+`production`, check it, then switch the URLs:
+
+```sh
+pg_restore --no-owner --no-privileges --dbname="$NEW_BRANCH_DIRECT_URL" backups/chuncito-main-….dump
+```
+
+Check the timer with `systemctl --user list-timers chuncito-backup.timer` and
+its runs with `journalctl --user -u chuncito-backup`.
 
 ## Config vars
 

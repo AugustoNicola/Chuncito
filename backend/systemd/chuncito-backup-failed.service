@@ -1,0 +1,8 @@
+# Installed by `make backup-timer`. A backup that fails quietly for months is
+# the same as no backup, so a failure says so on the desktop.
+[Unit]
+Description=Tell the desktop that Chuncito's backup failed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/notify-send --urgency=critical "Chuncito backup failed" "journalctl --user -u chuncito-backup"
