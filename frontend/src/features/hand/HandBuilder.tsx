@@ -84,6 +84,8 @@ export interface HandBuilderProps {
   title?: string;
   /** Names the winner, and on a ron the discarder, on the score screen. */
   attribution?: ScoreAttribution;
+  /** Honba this win collects, shown under the score. The tracker's only. */
+  honba?: number;
   /**
    * House rules for this hand, from the match. Undefined in the plain
    * calculator, which offers them as toggles instead.
@@ -105,7 +107,7 @@ function buildQuery(state: HandState): ScoreQuery | null {
 
 export function HandBuilder({
   winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
-  attribution, rules, draft,
+  attribution, honba, rules, draft,
 }: HandBuilderProps = {}) {
   const [start] = useState(() => startingHand({
     sanma: players === 3, redFives: redFives ?? true, rules: rules ?? [],
@@ -144,7 +146,7 @@ export function HandBuilder({
   if (result) {
     return (
       <div className="app">
-        <ScoreResultView result={result} hand={state} attribution={attribution}
+        <ScoreResultView result={result} hand={state} attribution={attribution} honba={honba}
                          onBack={() => setResult(null)}
                          onConfirm={onConfirm ? () => onConfirm(result, state) : undefined}
                          onAddAnother={onAddAnother ? () => onAddAnother(result, state) : undefined} />

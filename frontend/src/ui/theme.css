@@ -447,6 +447,17 @@ button {
 .score__dealin { color: var(--loss); font-weight: 600; }
 .score__breakdown { color: var(--text-faint); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .score__breakdown--note { font-size: 0.78rem; font-style: italic; }
+/* Honba paid on top: set apart from the muted lines above, so it is not missed. */
+.score__honba {
+  margin-top: 6px;
+  padding: 3px 12px;
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 /*
  * Gradient text. Guarded, because with background-clip unsupported the

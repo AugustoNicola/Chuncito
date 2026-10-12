@@ -38,6 +38,14 @@ export const HONBA: Readonly<Record<PlayerCount, { ron: number; tsumoEach: numbe
   3: { ron: 1000, tsumoEach: 500 },
 };
 
+/**
+ * What the honba on the table add to one win, for the score screen: on a ron
+ * the discarder's whole extra, on a tsumo what each payer adds.
+ */
+export function honbaExtra(players: PlayerCount, mode: 'ron' | 'tsumo', honba: number): number {
+  return mode === 'ron' ? HONBA[players].ron * honba : HONBA[players].tsumoEach * honba;
+}
+
 /** A riichi declaration costs 1000, which becomes a stick on the table. */
 export const RIICHI_STICK = 1000;
 
@@ -423,14 +431,6 @@ export function matchResults(scores: Delta, config: {
   });
 }
 
-/** A result in thousands, signed, as tables write it: "+14.5", "-3.0". */
-export const resultLabel = (points: number): string =>
-  `${points > 0 ? '+' : points < 0 ? '−' : ''}${(Math.abs(points) / 1000).toFixed(1)}`;
-
-/** The same, as MAKApoints: "+14.5 MP". A number of MP always says so. */
-export const mpLabel = (points: number): string => `${resultLabel(points)} MP`;
-
-/** "1st", "2nd", ... -- a place as the table says it. */
 /**
  * What every player gains for having played a ranked match, on top of their
  * result: +5 MP each. It deliberately breaks the zero sum, so a regular's
@@ -442,6 +442,14 @@ export const MP_BONUS = 5000;
 /** A ranked match's MAKApoints for one player: the result plus the bonus. */
 export const mpOf = (result: MatchResult): number => result.total + MP_BONUS;
 
+/** A result in thousands, signed, as tables write it: "+14.5", "-3.0". */
+export const resultLabel = (points: number): string =>
+  `${points > 0 ? '+' : points < 0 ? '−' : ''}${(Math.abs(points) / 1000).toFixed(1)}`;
+
+/** The same, as MAKApoints: "+14.5 MP". A number of MP always says so. */
+export const mpLabel = (points: number): string => `${resultLabel(points)} MP`;
+
+/** "1st", "2nd", ... -- a place as the table says it. */
 export const placeLabel = (place: number): string =>
   `${place}${['st', 'nd', 'rd'][place - 1] ?? 'th'}`;
 

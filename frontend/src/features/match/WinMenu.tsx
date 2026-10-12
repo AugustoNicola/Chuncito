@@ -34,7 +34,7 @@ import {
   paymentTotal, type ManualShape,
 } from './scoring';
 import type { Seat } from './seats';
-import { seatWindOf } from './seats';
+import { seatWindOf, turnDistance } from './seats';
 
 /**
  * The common fu get a row to themselves because they are what you reach for;
@@ -160,6 +160,18 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
   const rulesForHand: Rule[] = state.config.rules.filter((rule) => rule !== 'riichiAbiertoRonYakuman'
     || (mode === 'ron' && dealIn !== null && !state.pendingRiichi.includes(dealIn)));
 
+  /**
+   * The honba this winner collects: all of them on a tsumo; on a ron only the
+   * winner nearest the discarder is paid them (`ronDelta`), so of the winners
+   * entered so far.
+   */
+  const honbaFor = (seat: Seat): number => {
+    if (mode === 'tsumo') return state.honba;
+    if (dealIn === null) return 0;
+    const nearer = staged.some((w) => turnDistance(dealIn, w.winner, players) < turnDistance(dealIn, seat, players));
+    return nearer ? 0 : state.honba;
+  };
+
   if (route === 'tiles' && current !== null) {
     const scored = (result: ScoreResult, hand: HandState): WinEntry => ({
       winner: current,
@@ -184,6 +196,7 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
           winner: nameOf(current),
           ...(mode === 'ron' && dealIn !== null ? { dealIn: nameOf(dealIn) } : {}),
         }}
+        honba={honbaFor(current)}
         winds={{
           roundWind: state.round.wind,
           seatWind: seatWindOf(current, state.round, players),

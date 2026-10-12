@@ -296,6 +296,7 @@ try {
   const seat = await page.$eval('.score__seat', (e) => e.textContent);
   check(seat === 'Non-dealer ron', `seat/win line reads "Non-dealer ron" (got "${seat}")`);
   check(await page.$('.score__who') === null, 'the plain calculator names nobody');
+  check(await page.$('.score__honba') === null, 'and has no honba to add');
   const fuLines = await page.$$eval('.score__fuline', (els) => els.map((e) => e.textContent));
   check(JSON.stringify(fuLines) === JSON.stringify(['Base20 fu', 'Closed ron10 fu']),
         `the fu are broken down under the han (got ${JSON.stringify(fuLines)})`);
@@ -748,6 +749,8 @@ try {
         `the seat wind came from the seat, not a picker (got ${embeddedSeat})`);
   const who = await page.$eval('.score__who', (el) => el.textContent);
   check(who === 'Dani off Ana’s discard', `the score names the winner and the discarder (got "${who}")`);
+  const honbaNote = await page.$eval('.score__honba', (el) => el.textContent).catch(() => null);
+  check(honbaNote === '+300 due to 1 honba', `the score says what the honba add (got "${honbaNote}")`);
   await shot('18-scored.png');
 
   await byText('Record this hand');

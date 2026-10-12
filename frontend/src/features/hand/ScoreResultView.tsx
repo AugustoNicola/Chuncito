@@ -6,7 +6,7 @@
  */
 import type { Payment, ScoreResult } from '../../scorer/types';
 import { PSEUDO_YAKU } from '../../scorer/types';
-import { paymentTotal } from '../match/scoring';
+import { honbaExtra, paymentTotal } from '../match/scoring';
 import { fuPartName, isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
 import { HandSummary } from './HandDisplay';
 import type { HandState } from './handState';
@@ -49,9 +49,15 @@ export interface ScoreAttribution {
 }
 
 export function ScoreResultView({
-  result, hand, attribution, onBack, onConfirm, confirmLabel, onAddAnother,
+  result, hand, attribution, honba = 0, onBack, onConfirm, confirmLabel, onAddAnother,
 }: {
   result: ScoreResult;
+  /**
+   * Honba on the table that this win collects. Only the tracker knows them;
+   * the plain calculator, and a multiple ron's winner further from the
+   * discarder, get none.
+   */
+  honba?: number;
   /** Omitted by the limit-theming preview; the score stands on its own. */
   hand?: HandState;
   attribution?: ScoreAttribution;
@@ -74,6 +80,7 @@ export function ScoreResultView({
   const winType = hand?.winMode === 'tsumo' ? 'tsumo' : 'ron';
   const players = hand?.sanma ? 3 : 4;
   const loss = hand?.sanma ? tsumoLoss(result.payment) : null;
+  const extra = honba > 0 ? honbaExtra(players, winType, honba).toLocaleString() : null;
 
   return (
     <div className="score" data-tier={levelTier(result.level)}>
@@ -128,6 +135,13 @@ export function ScoreResultView({
         {seat && <span className="score__seat">{seat} {winType}</span>}
         {split && <span className="score__breakdown">{split}</span>}
         {loss && <span className="score__breakdown score__breakdown--note">{loss}</span>}
+        {/* Paid on top of the hand's value, not part of it: the total above
+            stays the hand's, as the engine priced it. */}
+        {extra && (
+          <span className="score__honba">
+            +{extra}{winType === 'tsumo' ? ' all' : ''} due to {honba} honba
+          </span>
+        )}
       </div>
 
       <div className="score__actions">

@@ -783,6 +783,13 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
       The standings' working lists the bonus, the rules line says so, and
       the end screen's gains and new totals include it. Results (unranked,
       or the "vs target · uma · oka" working) still sum to zero.
+- [x] **Honba in the hand breakdown** — under the score, a pill reads
+      "+600 due to 2 honba" on a ron, "+100 all due to 1 honba" on a tsumo
+      (sanma: 1000 / 500 all, `HONBA`). Only with honba on the table, so
+      only from the tracker: the plain calculator has no honba and asks
+      none. On a multiple ron only the winner nearest the discarder (of
+      those entered so far) is shown them, as `ronDelta` pays them. The big
+      number stays the hand's own value.
 
 ## Picking this up cold
 
