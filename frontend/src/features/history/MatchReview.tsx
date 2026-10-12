@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { MatchState } from '../match/matchState';
-import { MatchOutcome } from '../match/MatchOutcome';
+import { MatchOutcome, ResultRules } from '../match/MatchOutcome';
 import { PinForm } from '../match/SyncPanel';
 import { TimelineList } from '../match/TimelineView';
 import { type Fetched, fetchMatch } from './history';
@@ -56,13 +56,15 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
           </p>
           <div className="review">
             <div className="endscreen review__outcome">
-              <MatchOutcome state={state} linkPlayers />
+              <MatchOutcome state={state} linkPlayers explain={false} />
             </div>
             <section className="review__hands">
               <h2 className="home__heading review__heading">Hands</h2>
               <TimelineList state={state} linkPlayers />
             </section>
           </div>
+          {/* The working behind the results, out of the way at the foot of the page. */}
+          <ResultRules state={state} />
         </>
       )}
     </div>

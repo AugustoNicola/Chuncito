@@ -190,3 +190,10 @@ I would like for us to track the duration of each round of play and the total ma
 We do not want an "ongoing match/round time" timer to appear in the main match page.
 
 Remember that the matches played so far will not have this information available; see how you can manage those null cases.
+
+# Feedback on the 2026-10-12 round
+
+- "Start" label in the placements graph gets cut off; replace with abbreviation like St
+- There's a new feature I forgot to ask: when creating a match, add a new "Choose Dealer" button that shuffles players without changing the relative order. This is useful for shuffling once we're seated in, so we don't have to change seats. Also relabel the current shuffling to "Shuffle All".
+- Change the positions of the "Continue as South Match" and "Save and finish" buttons, so Save and finish (which is the primary action) is larger.
+- Move the explainer text on the Match Review screen ("Result = final score - target + uma ...") to the bottom of the page.

@@ -854,6 +854,23 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
       fixtures time their hands deterministically; the sanma one has an
       untimed first hand, so the null crosses the wire and the database.
 
+Feedback on that round (2026-10-12):
+
+- [x] The standings chart's first tick reads **"St"** — "Start" was cut off.
+      The tooltip still says Start.
+- [x] **Choose dealer** at setup: rotates the seated players by a random
+      amount, so everyone keeps their neighbours and only East moves —
+      for a table already sat down. It can land on the current dealer
+      (a fair pick), so a hint says who deals first. The old Shuffle is
+      **Shuffle all**; both moved from the header into the Players field
+      (two buttons would not fit beside the title at 360 px). Seat 1's
+      dealer mark now keys off `data-seat`, not `:first-of-type`.
+- [x] End screen: Save as East / Continue as South sits **beside Discard**,
+      and **Save and finish** takes the full-width row below, as primary.
+- [x] The review's "Result = final score − target + uma …" line moved to the
+      foot of the page (`ResultRules`, exported from `MatchOutcome`, which
+      takes `explain={false}`). The end screen keeps it under the standings.
+
 ## Picking this up cold
 
 **State as of 2026-10-12** (the Backlog section above has the detail):
@@ -894,7 +911,7 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
   an adjustment row. A match-ending hand leaves the round where it was.
 - The second backlog round (2026-10-12, seven items at the end of
   `backlog.md`) is done, one commit each; see the Backlog section.
-- 279 unit tests, 261 browser checks, 53 backend tests.
+- 279 unit tests, 267 browser checks, 53 backend tests.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:

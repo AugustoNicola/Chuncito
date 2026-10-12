@@ -803,6 +803,8 @@ try {
   check(chart.length === 4 && chart.every((s) => s.points === 4)
         && chart.map((s) => s.wind).join() === 'este,sur,oeste,norte',
         `the standings chart has a line per starting wind, start plus 3 hands (got ${JSON.stringify(chart)})`);
+  const firstTick = await page.$eval('.standchart .linechart__axis--start', (el) => el.textContent);
+  check(firstTick === 'St', `the start is labelled short enough to fit (got ${firstTick})`);
   const newestPlaces = await page.$$eval('.timeline__hand:first-child .timeline__place',
                                          (els) => els.map((e) => e.textContent));
   check([...newestPlaces].sort().join() === '1st,2nd,3rd,4th',
@@ -815,8 +817,6 @@ try {
   check(tiers[1] === 'draw', `a draw is themed as one (got ${JSON.stringify(tiers)})`);
   const loggedYakus = await page.$$eval('.timeline__hand:first-child .timeline__yaku',
                                         (els) => els.map((e) => e.textContent));
-  const firstTick = await page.$eval('.standchart .linechart__axis--start', (el) => el.textContent);
-  check(firstTick === 'St', `the start is labelled short enough to fit (got ${firstTick})`);
   check(JSON.stringify(loggedYakus) === JSON.stringify(['Pinfu', 'Tanyao', 'Sanshoku Doujun']),
         `the yaku are recorded against the hand (got ${JSON.stringify(loggedYakus)})`);
   // The point of storing hand_tiles: the hand can be looked at again.
@@ -1546,6 +1546,9 @@ try {
         `a registered player's name links to their page, a guest's does not (got ${JSON.stringify(nameLinks)})`);
   check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
         `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
+  check(await page.$('.review__outcome .standings__rules') === null
+        && await page.$('.review + .standings__rules') !== null,
+        'the review keeps the explanation of results for the foot of the page');
   check((await page.$$('.review__hands .standchart__series')).length === 3,
         'the review shows the standings chart above the hands');
   const reviewTimes = await page.$$eval('.review__hands .timeline__duration', (els) => els.map((e) => e.textContent));
