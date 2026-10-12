@@ -781,6 +781,17 @@ try {
   await page.waitForSelector('.timeline');
   const entries = await page.$$eval('.timeline__hand', (els) => els.length);
   check(entries === 3, `the timeline holds every hand (got ${entries})`);
+  // The standings chart above it: a line per player, the start and one point per hand.
+  const chart = await page.$$eval('.standchart__series', (els) => els.map((e) => ({
+    wind: e.dataset.wind, points: e.querySelector('polyline').getAttribute('points').split(' ').length,
+  })));
+  check(chart.length === 4 && chart.every((s) => s.points === 4)
+        && chart.map((s) => s.wind).join() === 'este,sur,oeste,norte',
+        `the standings chart has a line per starting wind, start plus 3 hands (got ${JSON.stringify(chart)})`);
+  const newestPlaces = await page.$$eval('.timeline__hand:first-child .timeline__place',
+                                         (els) => els.map((e) => e.textContent));
+  check([...newestPlaces].sort().join() === '1st,2nd,3rd,4th',
+        `each hand's box gives everyone's place after it (got ${JSON.stringify(newestPlaces)})`);
   const firstEntry = await page.$eval('.timeline__what', (el) => el.textContent);
   check(firstEntry === 'Dani ron off Ana', `newest hand first (got ${firstEntry})`);
   // A scored hand carries its yaku, which is what makes the Phase 4 filters work.
@@ -1476,6 +1487,8 @@ try {
         `a registered player's name links to their page, a guest's does not (got ${JSON.stringify(nameLinks)})`);
   check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
         `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
+  check((await page.$$('.review__hands .standchart__series')).length === 3,
+        'the review shows the standings chart above the hands');
   await shot('61-review.png');
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.standings', { timeout: 10_000 });

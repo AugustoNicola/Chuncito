@@ -730,3 +730,41 @@ export function bestHand(state: MatchState): BestHand | null {
 /** The best limit reached in the match, for `matches.max_level`. */
 export const maxLevel = (state: MatchState): Level | null =>
   bestHand(state)?.win.level ?? null;
+
+/** The table at one point of the match: everyone's score and place. */
+export interface Standing {
+  scores: Delta;
+  /** Each seat's place, indexed by seat; ties go by seat order, as at the end. */
+  places: number[];
+}
+
+/**
+ * The standings at the start and after every hand: `hands.length + 1` entries,
+ * the first being the deal-in scores.
+ *
+ * A replay of the rows, which is all they are for: each hand's `scoreDelta`
+ * already includes its riichi sticks, and an adjustment counts from the hand
+ * it was made after (`afterSeq`), so the last entry of a finished match is
+ * its final scores. Live riichi sticks of the hand in progress are left out:
+ * they belong to no hand yet.
+ */
+export function standingsOverTime(state: MatchState): Standing[] {
+  const seats = seatsOf(state.config.players);
+  const scores = seats.map(() => state.config.startingPoints) as Delta;
+  const adjust = (afterSeq: number) => {
+    for (const a of state.adjustments) if (a.afterSeq === afterSeq) scores[a.seat] += a.delta;
+  };
+  const snapshot = (): Standing => {
+    const places: number[] = [];
+    for (const p of placements(scores, [])) places[p.seat] = p.place;
+    return { scores: [...scores] as Delta, places };
+  };
+  adjust(0);
+  const out = [snapshot()];
+  state.hands.forEach((row, i) => {
+    for (const seat of seats) scores[seat] += row.scoreDelta[seat];
+    adjust(i + 1);
+    out.push(snapshot());
+  });
+  return out;
+}

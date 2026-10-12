@@ -800,6 +800,20 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
       (`.stat[data-tone]`): MP accent blue, average place silver, win rate
       green, tsumo rate purple, deal-in red (`--loss`), riichi yellow,
       average win bronze.
+- [x] **Standing timelapse** — `StandingsChart` above the hands in
+      `TimelineList`, so on the night's timeline and in a review: a line
+      per player, their place at the start and after every hand, 1st on
+      top, coloured by the wind they *started* on (`--wind-east/south/west/
+      north`: accent blue, red, mangan green, haneman purple), with a legend
+      of wind marks and names. Ticks name each round once ("E1", not once
+      per repeat); a column per point opens a tooltip with the round and
+      everyone's place and score, in the place metals. Left to right from
+      the start even while the list below runs newest first. Fed by
+      `standingsOverTime` (`matchState.ts`, tested): a replay of the rows'
+      deltas plus adjustments by `afterSeq`, ties by seat order as at the
+      end. Each hand's box now says everyone's place after it
+      (`.timeline__place`, between the name and the delta; gold, silver,
+      bronze, 4th neutral). A hand-less match shows no chart.
 
 ## Picking this up cold
 

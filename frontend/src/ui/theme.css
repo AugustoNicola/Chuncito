@@ -38,6 +38,11 @@
   --place-1: var(--limit-yakuman);
   --place-2: var(--limit-sanbaiman);
   --place-3: var(--limit-baiman);
+  /* A player's colour in the standings chart, by the wind they started on. */
+  --wind-east:  var(--accent);
+  --wind-south: #ff6b6b;
+  --wind-west:  var(--limit-mangan);
+  --wind-north: var(--limit-haneman);
 
   --tile-w: 40px;
   /* The glyph artwork is drawn nearly edge to edge on its 300x400 canvas, so
@@ -1142,6 +1147,13 @@ button {
   font-size: 0.68rem; color: var(--text-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.timeline__place {
+  font-size: 0.66rem; font-weight: 700; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.timeline__place[data-place="1"] { color: var(--place-1); }
+.timeline__place[data-place="2"] { color: var(--place-2); }
+.timeline__place[data-place="3"] { color: var(--place-3); }
 .timeline__gain { color: var(--gain); font-variant-numeric: tabular-nums; }
 .timeline__loss { color: var(--loss); font-variant-numeric: tabular-nums; }
 .timeline__flat { color: var(--text-faint); font-variant-numeric: tabular-nums; }
@@ -1649,6 +1661,26 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
 .linechart__tipseat[data-place="1"] .linechart__tipplace { color: var(--place-1); }
 .linechart__tipseat[data-place="2"] .linechart__tipplace { color: var(--place-2); }
 .linechart__tipseat[data-place="3"] .linechart__tipplace { color: var(--place-3); }
+
+/* The standings over a match: a line per player in the colour of the wind
+   they started on. */
+.standchart { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.standchart__series[data-wind="este"],  .standchart__key[data-wind="este"]  { --wind: var(--wind-east); }
+.standchart__series[data-wind="sur"],   .standchart__key[data-wind="sur"]   { --wind: var(--wind-south); }
+.standchart__series[data-wind="oeste"], .standchart__key[data-wind="oeste"] { --wind: var(--wind-west); }
+.standchart__series[data-wind="norte"], .standchart__key[data-wind="norte"] { --wind: var(--wind-north); }
+.standchart__line { fill: none; stroke: var(--wind); stroke-width: 2px; stroke-linejoin: round; }
+.standchart__dot { fill: var(--wind); stroke: var(--bg-raised); stroke-width: 1.5px; }
+.standchart__tick { text-anchor: middle; }
+.standchart__hit { fill: transparent; }
+.standchart__legend {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font-size: 0.8rem;
+}
+.standchart__key { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.standchart__swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--wind); }
+.standchart__name { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .histogram {
   display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px;

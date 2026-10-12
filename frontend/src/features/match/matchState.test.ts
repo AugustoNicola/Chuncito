@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UMA, type HandInput, type MatchConfig, type MatchState,
   LEFTOVER_NOTE, adjustScore, adjustScores, advanceRoundManually, createMatch, endMatchManually,
-  maxLevel, potOnTable, recordHand, toggleRiichi, undoLastHand,
+  maxLevel, potOnTable, recordHand, standingsOverTime, toggleRiichi, undoLastHand,
 } from './matchState';
+import { playEverything } from './testMatches';
 import { fromRows, toRows } from './rows';
 import {
   type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, baseFromResult, basePoints, levelFor,
@@ -646,5 +647,19 @@ describe('sticks left on the table at the end', () => {
     expect(undone.scores[2]).toBe(35000);
     expect(undone.potCarried).toBe(1);
     expect(undone.adjustments.some((a) => a.note === LEFTOVER_NOTE)).toBe(false);
+  });
+});
+
+
+describe('standings over time', () => {
+  it('replays the rows to the final scores, places by seat order on a tie', () => {
+    const state = playEverything();
+    const over = standingsOverTime(state);
+    expect(over).toHaveLength(state.hands.length + 1);
+    expect(over[0]!.places).toEqual([1, 2, 3, 4]);
+    expect(over[0]!.scores).toEqual([25000, 25000, 25000, 25000]);
+    expect(over.at(-1)!.scores).toEqual(state.scores);
+    const final = placements(state.scores, []);
+    for (const p of final) expect(over.at(-1)!.places[p.seat]).toBe(p.place);
   });
 });

@@ -5,9 +5,11 @@
  * screen will do against the server in Phase 4, which is the point of the
  * timeline being a plain list of rows rather than a fold over events.
  */
-import type { HandRow, MatchState, SeatPlayer, WinRow } from './matchState';
+import type { HandRow, MatchState, SeatPlayer, Standing, WinRow } from './matchState';
 import { PlayerName } from '../players/PlayerName';
-import { topLevel } from './matchState';
+import { standingsOverTime, topLevel } from './matchState';
+import { placeLabel } from './scoring';
+import { StandingsChart } from './StandingsChart';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
@@ -85,8 +87,11 @@ function tierOf(row: HandRow): string | undefined {
   return levelTier(level);
 }
 
-function HandEntry({ row, names, seats, link, sanma }: {
-  row: HandRow; names: readonly string[]; seats: readonly SeatPlayer[]; link: boolean; sanma: boolean;
+function HandEntry({ row, after, names, seats, link, sanma }: {
+  row: HandRow;
+  /** The standings once this hand (and anything adjusted after it) was in. */
+  after: Standing | undefined;
+  names: readonly string[]; seats: readonly SeatPlayer[]; link: boolean; sanma: boolean;
 }) {
   return (
     <li className="timeline__hand" data-tier={tierOf(row)}>
@@ -107,6 +112,11 @@ function HandEntry({ row, names, seats, link, sanma }: {
         {seatsOf(sanma ? 3 : 4).map((seat) => (
           <span key={seat} className="timeline__delta">
             <span className="timeline__seatname"><PlayerName seat={seats[seat]!} link={link} /></span>
+            {after && (
+              <span className="timeline__place" data-place={after.places[seat]}>
+                {placeLabel(after.places[seat]!)}
+              </span>
+            )}
             <span className={row.scoreDelta[seat] < 0 ? 'timeline__loss'
               : row.scoreDelta[seat] > 0 ? 'timeline__gain' : 'timeline__flat'}>
               {row.scoreDelta[seat] > 0 ? '+' : ''}{row.scoreDelta[seat].toLocaleString()}
@@ -141,14 +151,19 @@ function HandEntry({ row, names, seats, link, sanma }: {
 export function TimelineList({ state, linkPlayers = false }: { state: MatchState; linkPlayers?: boolean }) {
   const names = state.config.seats.map((p) => p.name);
   const rows = state.status === 'finished' ? state.hands : [...state.hands].reverse();
+  const over = standingsOverTime(state);
+  /** Entry 0 is the start, so a hand's standings are one along from its index. */
+  const afterOf = new Map(state.hands.map((row, i) => [row.clientUuid, over[i + 1]]));
 
   return (
     <>
+      {/* Always left to right from the start, whichever way the list runs. */}
+      {rows.length > 0 && <StandingsChart state={state} over={over} />}
       {rows.length === 0 ? (
         <p className="timeline__empty">No hands recorded yet.</p>
       ) : (
         <ol className="timeline">
-          {rows.map((row) => <HandEntry key={row.clientUuid} row={row} names={names}
+          {rows.map((row) => <HandEntry key={row.clientUuid} row={row} after={afterOf.get(row.clientUuid)} names={names}
                                             seats={state.config.seats} link={linkPlayers}
                                             sanma={state.config.players === 3} />)}
         </ol>
