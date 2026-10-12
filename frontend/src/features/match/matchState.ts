@@ -657,6 +657,63 @@ export function endMatchManually(state: MatchState, now = new Date()): MatchStat
   });
 }
 
+// --- changing the length once the match is over ---
+
+/**
+ * A South match ended early without a South hand played can be kept as the
+ * East match it turned out to be -- however far into East it got. Only the
+ * length changes: the hands, the scores and the early end stand.
+ */
+export const canSaveAsEast = (state: MatchState): boolean =>
+  state.status === 'finished' && state.endReason === 'manual' && state.config.length === 'south'
+  && state.hands.every((row) => row.roundWind === 'este');
+
+export function saveAsEast(state: MatchState): MatchState {
+  if (!canSaveAsEast(state)) return state;
+  return { ...state, config: { ...state.config, length: 'east' } };
+}
+
+/** Whether the dealer kept the deal after a recorded hand, read off its row. */
+function rowRepeats(row: HandRow, players: PlayerCount): boolean {
+  const dealer = dealerOf({ wind: row.roundWind, number: row.roundNumber }, players);
+  switch (row.outcome) {
+    case 'tsumo': case 'ron': return row.wins.some((w) => w.winnerSeat === dealer);
+    case 'abortive_draw': return true;
+    case 'exhaustive_draw': case 'nagashi_mangan': return row.tenpaiSeats.includes(dealer);
+  }
+}
+
+/**
+ * A finished East match carried on as a South match: back in progress, with
+ * the table un-settled (`unsettleTable`: the leftover sticks go back on it),
+ * at the round it would have reached had it been a South match all along.
+ *
+ * That is not always South 1. A match that ended at its final round left the
+ * round where the last hand was played, so the next one is worked out from
+ * that hand: South 1 when East 4's dealer lost the deal (the usual case, and
+ * honba and sticks carry over after a draw, as between any two rounds); the
+ * same round again on a dealer repeat, which can end an East match only in
+ * sudden death; the next South round when sudden death had already reached
+ * South. A match ended early already sits at its next round. Null when even a
+ * South match would have ended there (a bust, or somebody at the goal after
+ * South 4), so there is nothing to carry on.
+ */
+export function continueAsSouth(state: MatchState): MatchState | null {
+  if (state.status !== 'finished' || state.config.length !== 'east' || state.endReason === 'bust') return null;
+  const players = state.config.players;
+  const config: MatchConfig = { ...state.config, length: 'south' };
+  const next: MatchState = {
+    ...unsettleTable(state), config, status: 'in_progress', endReason: null, endedAt: null,
+  };
+  if (state.endReason !== 'final_round') return next;
+  const row = state.hands.at(-1);
+  if (!row) return null;
+  const played: Round = { wind: row.roundWind, number: row.roundNumber };
+  const repeats = rowRepeats(row, players);
+  if (endCheck(next.scores, played, config, !repeats)) return null;
+  return { ...next, round: repeats ? played : nextRound(played, players) };
+}
+
 export const setMatchName = (state: MatchState, name: string): MatchState =>
   ({ ...state, name });
 

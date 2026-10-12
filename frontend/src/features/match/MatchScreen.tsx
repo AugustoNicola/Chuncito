@@ -21,8 +21,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import type { HandInput, HandRow, MatchState, WinEntry } from './matchState';
 import {
-  adjustScores, advanceRoundManually, endMatchManually, recordHand, setHonba,
-  setMatchName, setRanked, toggleRiichi, undoLastHand, winnersOf,
+  adjustScores, advanceRoundManually, continueAsSouth, endMatchManually, recordHand, saveAsEast,
+  setHonba, setMatchName, setRanked, toggleRiichi, undoLastHand, winnersOf,
 } from './matchState';
 import type { Seat } from './seats';
 import { roundLabel } from './seats';
@@ -149,13 +149,22 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
   }
 
   if (match.status === 'finished' && menu.at !== 'timeline') {
+    const carriedOn = continueAsSouth(match);
     return (
       <EndScreen
         state={match}
         onDiscard={leave(onDiscard)}
         onTimeline={() => setMenu({ at: 'timeline' })}
-        onSave={async (name, ranked) => {
-          const named = setRanked(setMatchName(match, name), ranked);
+        onContinueAsSouth={carriedOn ? () => stage({
+          after: carriedOn,
+          row: null,
+          title: 'Continue as South match',
+          what: `The match becomes a South match and play goes on in ${roundLabel(carriedOn.round)}.`,
+          confirmLabel: 'Play on',
+          back: { at: 'table' },
+        }) : undefined}
+        onSave={async (name, ranked, asEast) => {
+          const named = setRanked(setMatchName(asEast ? saveAsEast(match) : match, name), ranked);
           onChange(named);
           // Queued here as well as by the effect, which will not run: this
           // screen is gone by the time the state change would reach it.
@@ -218,7 +227,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
           onEnd={() => manual(
             endMatchManually(match),
             'End the match',
-            'Placements are worked out from the scores as they stand. Any riichi sticks on the table are lost, as they would be at a real table.',
+            'Placements are worked out from the scores as they stand. Any riichi sticks on the table go to 1st, as at any other end.',
             'End it now',
           )}
           onLeave={leave(onLeave)}

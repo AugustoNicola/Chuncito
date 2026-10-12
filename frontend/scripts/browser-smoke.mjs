@@ -1043,6 +1043,9 @@ try {
         `a match is played for MAKApoints unless said otherwise (got ${JSON.stringify(mpChoice)})`);
   const guestRows = await page.$$eval('.mpgain__guest', (els) => els.length);
   check(guestRows === 4, `guests are listed as not counted (got ${guestRows})`);
+  const endButtons = () => page.$$eval('.app__footer .btn', (els) => els.map((e) => e.textContent));
+  check((await endButtons()).includes('Save as East match') && !(await endButtons()).includes('Continue as South match'),
+        `a South match ended early in East can be saved as an East match (got ${JSON.stringify(await endButtons())})`);
 
   // A finished match can be thrown away instead of saved: two taps, then home.
   await byText('Discard');
@@ -1051,6 +1054,37 @@ try {
   await byText('Yes, throw it away');
   await page.waitForSelector('.home');
   check(await page.$('.home__resume') === null, 'a discarded match is not offered back');
+
+  // An East match, once over, can be carried on as a South match.
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  await seatGuests(names);
+  await byText('East match');
+  await byText('Start match');
+  await page.waitForSelector('.table');
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('End early');
+  await page.waitForSelector('.confirm');
+  await byText('End it now');
+  await page.waitForSelector('.standings');
+  check((await endButtons()).includes('Continue as South match') && !(await endButtons()).includes('Save as East match'),
+        `an East match's end offers to continue as a South match (got ${JSON.stringify(await endButtons())})`);
+  await byText('Continue as South match');
+  await page.waitForSelector('.confirm');
+  const goOn = await page.$eval('.confirm__what', (el) => el.textContent);
+  check(goOn.includes('South match') && goOn.includes('East 1'),
+        `the confirmation says where play goes on (got "${goOn}")`);
+  await byText('Play on');
+  await page.waitForSelector('.table');
+  const carriedTitle = await page.$eval('.app__title--match', (el) => el.textContent);
+  check(carriedTitle.includes('South match') && await centreText() === 'East 1',
+        `the match is back in progress as a South match (got "${carriedTitle}", ${await centreText()})`);
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('Discard this match');
+  await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
 
   // ==================== sanma ====================
 

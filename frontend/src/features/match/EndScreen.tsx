@@ -8,15 +8,18 @@
  * by its date.
  */
 import { useEffect, useState } from 'react';
-import type { MatchState } from './matchState';
+import { type MatchState, canSaveAsEast } from './matchState';
 import { MatchOutcome } from './MatchOutcome';
 import { matchResults, mpLabel, mpOf } from './scoring';
 import { cachedPlayers, type Player } from '../players/players';
 import { refreshPlayers } from './syncClient';
 
-export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
+export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSouth }: {
   state: MatchState;
-  onSave: (name: string, ranked: boolean) => void;
+  /** `asEast`: saved as the East match a South one ended early turned out to be. */
+  onSave: (name: string, ranked: boolean, asEast?: boolean) => void;
+  /** Set for an East match that a South match would have carried on from. */
+  onContinueAsSouth?: () => void;
   /** Throws the match away -- from this phone and the server -- instead of saving it. */
   onDiscard: () => void;
   onTimeline: () => void;
@@ -98,6 +101,17 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
 
       {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
       <div className="app__footer">
+        {/* Changing the match's length: one or the other, never both. */}
+        {!confirmDiscard && canSaveAsEast(state) && (
+          <button type="button" className="btn btn--wide" onClick={() => onSave(name.trim(), ranked, true)}>
+            Save as East match
+          </button>
+        )}
+        {!confirmDiscard && onContinueAsSouth && (
+          <button type="button" className="btn btn--wide" onClick={onContinueAsSouth}>
+            Continue as South match
+          </button>
+        )}
         {confirmDiscard ? (
           <div className="endscreen__actions">
             <button type="button" className="btn btn--danger btn--wide" onClick={onDiscard}>

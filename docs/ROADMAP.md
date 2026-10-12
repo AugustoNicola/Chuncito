@@ -814,6 +814,29 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
       end. Each hand's box now says everyone's place after it
       (`.timeline__place`, between the name and the delta; gold, silver,
       bronze, 4th neutral). A hand-less match shows no chart.
+- [x] **Changing a match's length at its end** — two buttons on the end
+      screen, above Discard / Save, never both at once:
+      - **Save as East match** (`canSaveAsEast` / `saveAsEast`): a South
+        match *ended early* with every hand played in East — however far
+        into East, and also once East 4 is done but South 1 not played —
+        is saved with `length: 'east'`. Nothing else changes; it stays
+        "Ended early". A bust or a played-out match does not offer it.
+      - **Continue as South match** (`continueAsSouth`): any East match
+        that did not bust, through `ConfirmChange` ("Play on"). The end's
+        settlement is undone (`unsettleTable`: leftover sticks back on the
+        table) and the round is the one a South match would have reached.
+        **The ruling, as asked:** usually South 1 — an East match ends at
+        East 4 only when its dealer loses the deal (a dealer repeat plays
+        on, no agari-yame), with the honba and sticks the last hand left
+        (a noten draw: honba +1, sticks carried). Not South 1 when sudden
+        death had already run into South: it resumes at the next South
+        round, or the same one with +1 honba if the dealer won the hand
+        that ended it; after South 4's hard stop with nobody at the goal,
+        West 1 (a South match's own sudden death). A match ended early
+        resumes where it stood. Not offered when a South match would have
+        ended there too (somebody at the goal after South 4's dealer lost).
+      - Drive-by: "End early"'s confirmation said leftover sticks are lost;
+        they go to 1st, and it says so.
 
 ## Picking this up cold
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UMA, type HandInput, type MatchConfig, type MatchState,
   LEFTOVER_NOTE, adjustScore, adjustScores, advanceRoundManually, createMatch, endMatchManually,
-  maxLevel, potOnTable, recordHand, standingsOverTime, toggleRiichi, undoLastHand,
+  canSaveAsEast, continueAsSouth, maxLevel, potOnTable, recordHand, saveAsEast, standingsOverTime, toggleRiichi, undoLastHand,
 } from './matchState';
 import { playEverything } from './testMatches';
 import { fromRows, toRows } from './rows';
@@ -661,5 +661,80 @@ describe('standings over time', () => {
     expect(over.at(-1)!.scores).toEqual(state.scores);
     const final = placements(state.scores, []);
     for (const p of final) expect(over.at(-1)!.places[p.seat]).toBe(p.place);
+  });
+});
+
+
+describe('changing the length of a finished match', () => {
+  it('keeps a South match ended early in East as an East match', () => {
+    let s = play(start(), win(1, 0, { dealIn: 2 }));
+    s = endMatchManually(s);
+    expect(canSaveAsEast(s)).toBe(true);
+    const east = saveAsEast(s);
+    expect(east.config.length).toBe('east');
+    expect({ ...east, config: s.config }).toEqual(s);
+  });
+
+  it('only when it ended early and no South hand was played', () => {
+    let s = start();
+    for (let i = 0; i < 4; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.round).toEqual({ wind: 'sur', number: 1 });
+    // East 4 done and South 1 dealt, but nothing played in it: still fine.
+    expect(canSaveAsEast(endMatchManually(s))).toBe(true);
+    s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(canSaveAsEast(endMatchManually(s))).toBe(false);
+    expect(canSaveAsEast(endMatchManually(start({ length: 'east' })))).toBe(false);
+  });
+
+  it('carries an East match on into South 1, sticks and honba back on the table', () => {
+    let s = start({ length: 'east' });
+    s = adjustScore(s, 2, 10000, '');
+    s = toggleRiichi(s, 0);
+    for (let i = 0; i < 4; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.endReason).toBe('final_round');
+    const on = continueAsSouth(s)!;
+    expect(on.status).toBe('in_progress');
+    expect(on.config.length).toBe('south');
+    expect(on.round).toEqual({ wind: 'sur', number: 1 });
+    expect(on.honba).toBe(4);
+    expect(on.potCarried).toBe(1);
+    expect(on.scores[2]).toBe(35000);
+    expect(on.adjustments.some((a) => a.note === LEFTOVER_NOTE)).toBe(false);
+    expect(on.endReason).toBeNull();
+  });
+
+  it('repeats the round when sudden death ended on a dealer win', () => {
+    let s = start({ length: 'east' });
+    for (let i = 0; i < 4; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.round).toEqual({ wind: 'sur', number: 1 });
+    s = play(s, win(0, 0, { mode: 'ron', dealIn: 2, han: 5, fu: 30 }));   // South 1's dealer
+    expect(s.status).toBe('finished');
+    const on = continueAsSouth(s)!;
+    expect(on.round).toEqual({ wind: 'sur', number: 1 });
+    expect(on.honba).toBe(5);
+  });
+
+  it('resumes a match ended early where it stood, but not one that busted', () => {
+    const early = endMatchManually(play(start({ length: 'east' }), win(1, 0, { dealIn: 2 })));
+    expect(continueAsSouth(early)!.round).toEqual({ wind: 'este', number: 2 });
+    let bust = adjustScore(start({ length: 'east' }), 2, -20000, '');
+    bust = play(bust, win(1, 0, { dealIn: 2, han: 5, fu: 30 }));
+    expect(bust.endReason).toBe('bust');
+    expect(continueAsSouth(bust)).toBeNull();
+  });
+
+  it('goes on into West after South 4, or not at all when South 4 ended it anyway', () => {
+    // Sudden death ran to the hard stop with nobody at the goal: as a South
+    // match, that is its own sudden death into West.
+    let s = start({ length: 'east' });
+    for (let i = 0; i < 8; i++) s = play(s, { kind: 'exhaustiveDraw', tenpai: [] });
+    expect(s.round).toEqual({ wind: 'sur', number: 4 });
+    expect(continueAsSouth(s)!.round).toEqual({ wind: 'oeste', number: 1 });
+    // South 4 lost by its dealer, with somebody over the goal: a South match ends there too.
+    let t = start({ length: 'east' });
+    for (let i = 0; i < 7; i++) t = play(t, { kind: 'exhaustiveDraw', tenpai: [] });
+    t = play(t, win(1, 3, { dealIn: 2, han: 5, fu: 30 }));
+    expect(t.status).toBe('finished');
+    expect(continueAsSouth(t)).toBeNull();
   });
 });

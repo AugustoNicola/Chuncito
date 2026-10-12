@@ -195,6 +195,11 @@ export function ConfirmChange({
               from the table ({(collected * 1000).toLocaleString()}).
             </span>
           )}
+          {before.status === 'finished' && potOnTable(after) > 0 && (
+            <span className="field__hint">
+              The riichi sticks the end gave to 1st go back on the table.
+            </span>
+          )}
           {before.pendingRiichi.length > 0 && (
             <span className="field__hint">
               {before.pendingRiichi.map((s) => names[s]).join(' and ')} already paid
