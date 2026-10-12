@@ -299,8 +299,9 @@ button {
 .keyboard { display: flex; flex-direction: column; gap: 5px; }
 .keyboard__row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
 .keyboard .tile { width: 100%; }
-/* Seven honours in a nine-column grid: four winds, two free columns, three dragons. */
-.keyboard__row--honours > :nth-child(5) { grid-column-start: 7; }   /* the first dragon */
+/* Seven honours centred in a nine-column grid: a free column at each border,
+   then the four winds and the three dragons side by side. */
+.keyboard__row--honours > :first-child { grid-column-start: 2; }   /* East */
 
 /* ---------- context flap ---------- */
 

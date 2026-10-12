@@ -30,8 +30,8 @@ export function TileKeyboard({ state, onPress }: {
   return (
     <div className="keyboard">
       {ROWS.map((row, i) => (
-        // The honour row is short: winds flush left, dragons flush right, and
-        // the two spare columns between them, so the two groups read apart.
+        // The honour row is short: the seven honours sit in the middle, the two
+        // spare columns at its borders.
         <div className={`keyboard__row${row.length < 9 ? ' keyboard__row--honours' : ''}`} key={i}>
           {row.map((tile) => {
             const reason = disabledReason(state, tile);

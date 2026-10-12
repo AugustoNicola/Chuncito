@@ -771,6 +771,12 @@ Asked for on 2026-09-26:
       server fails the session check as if offline until its server section,
       which then tests the gate.
 
+Second backlog round (2026-10-12), appended to `backlog.md`:
+
+- [x] **Honor keys in the middle of the keyboard** — the seven honours take
+      columns 2–8 of the nine, winds then dragons side by side, a free
+      column at each border (`.keyboard__row--honours`).
+
 ## Picking this up cold
 
 **State as of 2026-10-09** (the Backlog section above has the detail):
