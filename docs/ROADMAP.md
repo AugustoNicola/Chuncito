@@ -925,6 +925,19 @@ Feedback on that round (2026-10-12):
   an adjustment row. A match-ending hand leaves the round where it was.
 - The second backlog round (2026-10-12, seven items at the end of
   `backlog.md`) is done, one commit each; see the Backlog section.
+- **After that deploy, phones holding matches from 2026-09-23/25 show them
+  as refused** (they seat player ids `main` no longer has). The user was told
+  to use **Remove from this phone** on each; others in the group will see the
+  same. Known edge: a refused match that is still the phone's *current*
+  (finished, unsaved) mirror gets no button — not seen in practice.
+- Offered, not yet answered (2026-10-12): commit the migration rehearsal as
+  a script (restore the day's `main` dump into a throwaway schema on `dev`
+  with `pg_restore --data-only -t <table>` per table, parents first, with
+  `public.` rewritten to the schema; upgrade to the previous revision first,
+  snapshot counts and MP totals, upgrade to head, compare, `load_match`
+  every match, drop the schema — it never connects to `main`); cap the
+  standings chart's height on desktop; a honba counter in the plain
+  calculator (honba shows only from the tracker now).
 - 281 unit tests, 269 browser checks, 53 backend tests.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
@@ -936,13 +949,13 @@ was learned building Phases 1 to 3 and the sanma round:
   picker does not just look untidy — a wrong seat wind mis-scores the hand and
   the engine returns a plausible-looking answer.
 - **The pure cores are where the rules live.** `handState.ts`, `matchState.ts`,
-  `seats.ts`, `scoring.ts` are React-free and carry most of the 233 unit tests.
+  `seats.ts`, `scoring.ts` are React-free and carry most of the 281 unit tests.
   Fix rules there, not in a component.
 - **Never assume four seats.** Sanma is a `players: 3` match; iterate
   `seatsIn(state)` / `seatsOf(players)`, never `[0, 1, 2, 3]`, and pass the count
   to `paymentTotal`. A four-entry loop over a sanma match reads an absent seat.
 - **`npm run test:browser` is the safety net that matters.** It drives the real
-  UI in Firefox — 237 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
+  UI in Firefox — 269 checks, including a four-player match played end to end, the back-gesture guard, the history's filters and review, a player page,
   a sanma match with a tile-scored kita hand, and the PIN, upload, the Players
   screen, the seat picker and carrying a match on against a fake API (request interception; the run never
   touches the database). Several real bugs were caught
