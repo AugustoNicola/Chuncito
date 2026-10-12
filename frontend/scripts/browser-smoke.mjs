@@ -1061,7 +1061,8 @@ try {
   const guestRows = await page.$$eval('.mpgain__guest', (els) => els.length);
   check(guestRows === 4, `guests are listed as not counted (got ${guestRows})`);
   const endButtons = () => page.$$eval('.app__footer .btn', (els) => els.map((e) => e.textContent));
-  check((await endButtons()).includes('Save as East match') && !(await endButtons()).includes('Continue as South match'),
+  // Beside Discard, so Save and finish keeps the wide row of its own.
+  check(JSON.stringify(await endButtons()) === '["Discard","Save as East match","Save and finish"]',
         `a South match ended early in East can be saved as an East match (got ${JSON.stringify(await endButtons())})`);
 
   // A finished match can be thrown away instead of saved: two taps, then home.
@@ -1085,7 +1086,7 @@ try {
   await page.waitForSelector('.confirm');
   await byText('End it now');
   await page.waitForSelector('.standings');
-  check((await endButtons()).includes('Continue as South match') && !(await endButtons()).includes('Save as East match'),
+  check(JSON.stringify(await endButtons()) === '["Discard","Continue as South match","Save and finish"]',
         `an East match's end offers to continue as a South match (got ${JSON.stringify(await endButtons())})`);
   await byText('Continue as South match');
   await page.waitForSelector('.confirm');

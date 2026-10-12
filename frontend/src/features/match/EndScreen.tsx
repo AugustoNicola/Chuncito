@@ -101,17 +101,6 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
 
       {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
       <div className="app__footer">
-        {/* Changing the match's length: one or the other, never both. */}
-        {!confirmDiscard && canSaveAsEast(state) && (
-          <button type="button" className="btn btn--wide" onClick={() => onSave(name.trim(), ranked, true)}>
-            Save as East match
-          </button>
-        )}
-        {!confirmDiscard && onContinueAsSouth && (
-          <button type="button" className="btn btn--wide" onClick={onContinueAsSouth}>
-            Continue as South match
-          </button>
-        )}
         {confirmDiscard ? (
           <div className="endscreen__actions">
             <button type="button" className="btn btn--danger btn--wide" onClick={onDiscard}>
@@ -122,14 +111,29 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
             </button>
           </div>
         ) : (
-          <div className="endscreen__actions">
-            <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(true)}>
-              Discard
-            </button>
-            <button type="button" className="btn btn--primary btn--wide" onClick={() => onSave(name.trim(), ranked)}>
-              Save and finish
-            </button>
-          </div>
+          <>
+            {/* Changing the match's length -- one or the other, never both --
+                sits beside Discard, so Save keeps the wide primary place. */}
+            <div className="endscreen__actions">
+              <button type="button" className="btn btn--wide" onClick={() => setConfirmDiscard(true)}>
+                Discard
+              </button>
+              {canSaveAsEast(state) ? (
+                <button type="button" className="btn btn--wide" onClick={() => onSave(name.trim(), ranked, true)}>
+                  Save as East match
+                </button>
+              ) : onContinueAsSouth ? (
+                <button type="button" className="btn btn--wide" onClick={onContinueAsSouth}>
+                  Continue as South match
+                </button>
+              ) : (
+                <SaveButton onClick={() => onSave(name.trim(), ranked)} />
+              )}
+            </div>
+            {(canSaveAsEast(state) || onContinueAsSouth) && (
+              <SaveButton onClick={() => onSave(name.trim(), ranked)} />
+            )}
+          </>
         )}
         {confirmDiscard && (
           <span className="field__hint endscreen__warn">
@@ -138,5 +142,13 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
         )}
       </div>
     </div>
+  );
+}
+
+function SaveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="btn btn--primary btn--wide" onClick={onClick}>
+      Save and finish
+    </button>
   );
 }
