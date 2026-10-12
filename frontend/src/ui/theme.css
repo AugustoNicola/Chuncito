@@ -648,7 +648,7 @@ button {
   padding: 8px 6px;
   color: inherit; text-decoration: none;
 }
-.players__rank {
+.players__rank, .rankbadge {
   flex: none; width: 34px; height: 34px;
   display: grid; place-items: center;
   border-radius: 50%;
@@ -656,6 +656,12 @@ button {
   color: var(--metal); font-weight: 700; font-variant-numeric: tabular-nums;
 }
 .players__row:not([data-rank]) .players__rank { border-style: dashed; color: var(--text-faint); }
+/* The same badge on a profile, metal by its own rank. */
+.rankbadge { --metal: var(--border-strong); }
+.rankbadge[data-rank="1"] { --metal: var(--place-1); }
+.rankbadge[data-rank="2"] { --metal: var(--place-2); }
+.rankbadge[data-rank="3"] { --metal: var(--place-3); }
+.rankbadge:not([data-rank]) { border-style: dashed; color: var(--text-faint); }
 .players__who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .players__name { font-weight: 600; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .players__card:hover .players__name { color: var(--accent); }
@@ -1554,16 +1560,31 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
 .profile__section { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+/* Tinted like a limit hand's timeline box: the colour in the border, a wash
+   of it in the background, and the label in it. */
 .stat {
+  --tone: var(--border-strong);
   display: flex; flex-direction: column; gap: 2px;
   padding: 9px 10px;
   border-radius: 8px;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--border));
+  background: color-mix(in srgb, var(--tone) 9%, var(--bg-raised));
 }
-.stat__label { font-size: 0.72rem; color: var(--text-dim); }
+.stat[data-tone="mp"]     { --tone: var(--accent); }
+.stat[data-tone="place"]  { --tone: var(--limit-sanbaiman); }
+.stat[data-tone="win"]    { --tone: var(--limit-mangan); }
+.stat[data-tone="tsumo"]  { --tone: var(--limit-haneman); }
+.stat[data-tone="dealin"] { --tone: var(--loss); }
+.stat[data-tone="riichi"] { --tone: var(--limit-yakuman); }
+.stat[data-tone="value"]  { --tone: var(--limit-baiman); }
+.stat__label { font-size: 0.72rem; color: var(--tone); }
 .stat__value { font-size: 1.3rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 .stat__detail { font-size: 0.7rem; color: var(--text-faint); }
+/* MAKApoints across the whole row: what it is on the left, the total and the
+   rank on the right. */
+.stat--wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 12px; }
+.stat__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.stat--wide .stat__value { font-size: 1.5rem; }
 
 .donut {
   display: flex; align-items: center; gap: 14px;
@@ -1729,8 +1750,6 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   .review__outcome { position: sticky; top: 12px; }
   .review__heading { margin-top: 12px; }
 
-  /* One row, however many tiles there are. */
-  .stats { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
   .profile__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; align-items: start; }
   .linechart__point, .profile__match { cursor: pointer; }
   .profile__match:hover .profile__matchname { color: var(--accent); }

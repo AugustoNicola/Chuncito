@@ -20,6 +20,8 @@ import { matchDate } from '../history/MatchList';
 import { PinForm } from '../match/SyncPanel';
 import { type Round, roundLabel } from '../match/seats';
 import { mpLabel } from '../match/scoring';
+import { refreshPlayers } from '../match/syncClient';
+import { byMakapoints, cachedPlayers, type Player } from './players';
 import { Bars, Donut, Histogram, PlacementLine } from './charts';
 import {
   type PlayerStats, averagePlacement, fetchStats, percent, placementSlices, winMethodSlices,
@@ -98,6 +100,10 @@ export function ProfileScreen({ onBack }: { onBack: () => void }) {
 }
 
 function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: string) => void }) {
+  /** The ranking the Players screen shows, for this player's place in it. */
+  const [roster, setRoster] = useState<Player[]>(cachedPlayers);
+  useEffect(() => { void refreshPlayers().then((list) => { if (list) setRoster(list); }); }, []);
+  const ranking = byMakapoints(roster).find((r) => r.player.id === stats.player.id);
   const avg = averagePlacement(stats.placementCounts);
   const yakus = yakuRows(stats.yakus);
   const notYet = yakuNotYet(stats.yakus, stats.players);
@@ -106,21 +112,35 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
 
   return (
     <>
-      {/* The match count is on the toggle above. */}
+      {/* The match count is on the toggle above. Each tile wears a colour of
+          its own, tinted the way the timeline tints a limit hand. */}
       <div className="stats">
-        <Stat label="MAKApoints" value={mpLabel(stats.mpPoints)}
-              detail={`${stats.mpMatches} ranked match${stats.mpMatches === 1 ? '' : 'es'}, all kinds`} />
-        <Stat label="Average place" value={avg === null ? '–' : avg.toFixed(2)} />
-        <Stat label="Uma" value={`${stats.umaTotal > 0 ? '+' : ''}${stats.umaTotal}`} />
-        <Stat label="Win rate" value={percent(stats.wins, stats.hands)}
+        <div className="stat stat--wide" data-tone="mp">
+          <span className="stat__text">
+            <span className="stat__label">MAKApoints</span>
+            <span className="stat__detail">
+              {stats.mpMatches} ranked match{stats.mpMatches === 1 ? '' : 'es'}, all kinds
+            </span>
+          </span>
+          <span className="stat__value">{mpLabel(stats.mpPoints)}</span>
+          {/* The rank badge from the Players screen, once the ranking is known. */}
+          {ranking && (
+            <span className="rankbadge" data-rank={ranking.rank ?? undefined}
+                  aria-label={ranking.rank ? `Rank ${ranking.rank}` : 'Unranked'}>
+              {ranking.rank ?? '–'}
+            </span>
+          )}
+        </div>
+        <Stat tone="place" label="Average place" value={avg === null ? '–' : avg.toFixed(2)} />
+        <Stat tone="win" label="Win rate" value={percent(stats.wins, stats.hands)}
               detail={`${stats.wins} of ${stats.hands} hands`} />
-        <Stat label="Tsumo rate" value={percent(stats.tsumoWins, stats.wins)}
+        <Stat tone="tsumo" label="Tsumo rate" value={percent(stats.tsumoWins, stats.wins)}
               detail={`${stats.tsumoWins} of ${stats.wins} wins`} />
-        <Stat label="Deal-in rate" value={percent(stats.dealIns, stats.hands)}
+        <Stat tone="dealin" label="Deal-in rate" value={percent(stats.dealIns, stats.hands)}
               detail={`${stats.dealIns} of ${stats.hands} hands`} />
-        <Stat label="Riichi rate" value={percent(stats.riichis, stats.hands)}
+        <Stat tone="riichi" label="Riichi rate" value={percent(stats.riichis, stats.hands)}
               detail={`${stats.riichis} of ${stats.hands} hands`} />
-        <Stat label="Average win"
+        <Stat tone="value" label="Average win"
               value={stats.wins === 0 ? '–' : Math.round(stats.pointsWonTotal / stats.wins).toLocaleString()}
               detail={`over ${stats.wins} win${stats.wins === 1 ? '' : 's'}`} />
       </div>
@@ -216,9 +236,15 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
   );
 }
 
-function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function Stat({ tone, label, value, detail }: {
+  /** Picks the tile's colour (`.stat[data-tone]`). */
+  tone: string;
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
-    <div className="stat">
+    <div className="stat" data-tone={tone}>
       <span className="stat__label">{label}</span>
       <span className="stat__value">{value}</span>
       {detail && <span className="stat__detail">{detail}</span>}

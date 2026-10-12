@@ -790,6 +790,16 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
       none. On a multiple ron only the winner nearest the discarder (of
       those entered so far) is shown them, as `ronDelta` pays them. The big
       number stays the hand's own value.
+- [x] **Profile tiles** — the uma tile is gone. MAKApoints spans the row
+      (`.stat--wide`): label and match count on the left, the total and the
+      Players screen's rank badge (`.rankbadge`, metals for the podium,
+      dashed when unranked) on the right; the rank comes from the cached /
+      refreshed player list, so the badge appears once that is known. The
+      other six sit three to a row at every width (the desktop's single row
+      is gone). Each tile is tinted like a limit hand's timeline box
+      (`.stat[data-tone]`): MP accent blue, average place silver, win rate
+      green, tsumo rate purple, deal-in red (`--loss`), riichi yellow,
+      average win bronze.
 
 ## Picking this up cold
 

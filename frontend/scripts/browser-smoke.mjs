@@ -1572,6 +1572,14 @@ try {
   const tiles = await page.$$eval('.stat__label', (els) => els.map((e) => e.textContent));
   check(['Win rate', 'Tsumo rate', 'Deal-in rate', 'Riichi rate', 'Average place', 'Average win']
     .every((t) => tiles.includes(t)), `the rates are there (got ${JSON.stringify(tiles)})`);
+  check(!tiles.includes('Uma'), 'the uma tile is gone');
+  await page.waitForSelector('.stat--wide .rankbadge', { timeout: 10_000 });
+  const mpTile = await page.$eval('.stat--wide', (el) => ({
+    label: el.querySelector('.stat__label').textContent,
+    rank: el.querySelector('.rankbadge').dataset.rank,
+  }));
+  check(mpTile.label === 'MAKApoints' && mpTile.rank === '1',
+        `MAKApoints spans the row with the ranking's badge (got ${JSON.stringify(mpTile)})`);
   const avgWin = await page.evaluate(() => [...document.querySelectorAll('.stat')]
     .find((s) => s.querySelector('.stat__label').textContent === 'Average win')
     .querySelector('.stat__value').textContent);
@@ -1689,7 +1697,8 @@ try {
   await page.goto('http://localhost:5199/players/beto?players=3', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.linechart', { timeout: 10_000 });
   const tileTops = await page.$$eval('.stat', (els) => els.map((e) => e.getBoundingClientRect().top));
-  check(new Set(tileTops).size === 1, `a wide profile has its tiles in one row (got ${tileTops.length} tiles)`);
+  check(tileTops.length === 7 && new Set(tileTops).size === 3,
+        `a wide profile has MAKApoints on a row of its own, then two rows of three (got ${JSON.stringify(tileTops)})`);
   const sections = await page.$$eval('.profile__grid > .profile__section',
     (els) => els.map((e) => e.getBoundingClientRect().left));
   check(new Set(sections).size === 2, 'and its sections in two columns');
