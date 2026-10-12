@@ -856,7 +856,7 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
 
 ## Picking this up cold
 
-**State as of 2026-10-09** (the Backlog section above has the detail):
+**State as of 2026-10-12** (the Backlog section above has the detail):
 
 - **`main` holds the group's real matches and is backed up daily**
   (2026-10-09; `DEPLOY.md`'s Backups section). Never delete or rewrite its
@@ -892,7 +892,9 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
   zero-sum), if it was saved as "Played for MPs".
 - Every end of a match settles the table: leftover riichi sticks to 1st, as
   an adjustment row. A match-ending hand leaves the round where it was.
-- 266 unit tests, 247 browser checks, 52 backend tests.
+- The second backlog round (2026-10-12, seven items at the end of
+  `backlog.md`) is done, one commit each; see the Backlog section.
+- 279 unit tests, 261 browser checks, 53 backend tests.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:
