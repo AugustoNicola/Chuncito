@@ -140,3 +140,53 @@ For example, ending second with 34500 points in a 4player match with umas +30/+1
 (34500 pts - 30000 pts) + 10000 pts + 0 = 14500 pts = +14.5 MP
 
 MPs after a match can be positive or negative, and the idea is that your current MPs is just the sum of all your matches' MPs (starting from zero). Using this, players will be sorted in the /players view (as explained earlier). Also, gained and new total MPs for each player should appear on match's end. Every match can be played "for MPs" or without; this is decided when saving the match.
+
+# Standing Timelapse
+
+It would be great to see a line chart (very similar to the "last matches' placements" graph in a player profile) that displays each player's position in each point of the match. Assign a fixed color to each wind (blue red green purple) and plot each player's placement at each round point. This would appear at the top of the timeline of an ongoing match, and also when reviewing any completed match on top of the list of rounds.
+
+Aside from this, the box of each round's delta in points for each player should also display each player's ranking after that round ended, to make it clear who was in each position at each time. Visually, you can add it vertically before the point delta of each player's name. Remember to color-code the labels "1st/2nd/..." using the typical bronze-silver-gold palette.
+
+# Honor Keys Position in Keyboard
+
+Move the honor tiles (winds and dragons) to the center of the keyboard in the hand calculator. The remaining space should be at the borders of the row.
+
+# Feature for Changing Ongoing Match's Duration
+
+It is quite common that we start an east-south match and decide to end it at east instead of playing the south rounds. Also, sometimes, we finish an east match and would like to instead keep playing the south rounds. There should be features for each of those.
+
+For the first case, I would like that after pressing the "End Early" button, when reviewing the match, if it was an East-South and no South round was played, a new "Save as East Match" button should appear. It stores the match normally, but changes its original duration to East Match. It should work even if we end it before playing East 4.
+
+For the second case, When reviewing the end of an East Match, a new "Continue as South Match" button should appear. This will keep the match ongoing, sending us to the corresponding new round (it may not always be South 1 I think, check that ruling for me).
+
+# Player Profile UI Upgrades
+
+I have some changes for the part of the player profile UI that has all of the boxes with data:
+
+- Remove the "uma" box
+- Make the "MAKApoints box" occupy the entire horizontal width; use the new space at the right to display the number with a circle displaying the player's rank (same as in the "Players" screen)
+- The remaining six boxes should be organized in two rows (three per row).
+- Color-code all boxes, using the same themeing style as in round boxes when there is a Mangan or above hand. The colors should be:
+  - MAKApoints: blue, app's primary colour
+  - Average place: silver (as Sanbaiman-colour)
+  - Win rate: green (as Mangan-colour)
+  - Tsumo rate: purple (as Haneman-colour)
+  - Deal-in rate: red
+  - Riichi rate: yellow 
+  - Average win: bronze (as Baiman-colour)
+
+# Change MAKApoints calculation to be not zero-sum
+
+After calculating MPs as it is currently done, add a +5 MP bonus to each player. This will break the zero-sum of the system, but I think it is a nice reward for usual players and reflects matches played. This new errata'd number is what should appear.
+
+# Show Honba/Repeats in Hand Breakdown
+
+In the hand breakdown screen (the one that appears after "Score Hand" in the calculator), below the hand value there should appear a new line with honba information if there are honbas on the table. For a ron, it should say "+<pts> due to <n> honba" (e.g. "+600 due to 2 honba"), and for tsumo it should display "+<pts> all due to <n> honba" (e.g. "+100 all due to 1 honba"). This new line should be clearly visible below the current stuff, and should only appear if there are nonzero honbas.
+
+# Track and Show Round Duration
+
+I would like for us to track the duration of each round of play and the total match duration. The duration of each round should appear in the boxes of the timelapse and match review, and the total match duration should appear in the boxes of the Matches menu and other places where match info is displayed.
+
+We do not want an "ongoing match/round time" timer to appear in the main match page.
+
+Remember that the matches played so far will not have this information available; see how you can manage those null cases.
