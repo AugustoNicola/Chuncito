@@ -880,10 +880,10 @@ Feedback on that round (2026-10-12):
   data by hand. On 2026-10-09 it had 7 matches; nine of the ten in the
   2026-10-01 JSON export (`backups/`) were no longer there, short finished
   matches from 2026-09-23/25 — asked the user whether that was a cleanup.
-- **`main` is at `0005`; the code needs `0006`** (2026-10-12: `hands.recorded_at`,
-  additive). Not pushed: `make db-migrate TARGET=main` (it backs up first)
-  before the push, or the release phase refuses it. Before that, the user
-  applied `0002`–`0005` before pushing. `0003`/`0004` were not additive (see
+- **`main` is migrated to `0006` and everything is pushed** (2026-10-12):
+  `hands.recorded_at`, additive, rehearsed first on a copy of the day's
+  backup in a throwaway dev schema (all 14 matches loaded and rebuilt).
+  Backed up just before as `backups/chuncito-main-20261012T171257Z.dump`. `0003`/`0004` were not additive (see
   `DEPLOY.md`); a future migration follows the same checklist there.
 - **Contributions come as GitHub PRs** (PR #1 was the first). `gh` is not
   installed: fetch one with `git fetch origin pull/<n>/head:pr-<n>`, run the
