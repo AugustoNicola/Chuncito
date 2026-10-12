@@ -34,6 +34,15 @@ function shuffled<T>(names: readonly T[]): T[] {
   return out;
 }
 
+/**
+ * The same order, starting from someone else: everyone keeps their neighbours,
+ * only who sits East changes. A uniform pick, so it can land where it was.
+ */
+function rotated<T>(names: readonly T[]): T[] {
+  const by = Math.floor(Math.random() * names.length);
+  return names.map((_, i) => names[(i + by) % names.length]!);
+}
+
 export function SetupScreen({ onStart, onCancel }: {
   onStart: (config: MatchConfig) => void;
   onCancel?: () => void;
@@ -60,6 +69,8 @@ export function SetupScreen({ onStart, onCancel }: {
   /** A player being added from a seat, and why the last attempt failed. */
   const [adding, setAdding] = useState<Seat | null>(null);
   const [addError, setAddError] = useState<{ seat: Seat; text: string } | null>(null);
+  /** Who "Choose dealer" picked -- said, since it can pick whoever already deals. */
+  const [dealerNote, setDealerNote] = useState<string | null>(null);
 
   // The cache is enough to start with; the server's list replaces it if it answers.
   useEffect(() => {
@@ -90,6 +101,7 @@ export function SetupScreen({ onStart, onCancel }: {
   function choose(seat: Seat, choice: SeatPlayer | null) {
     const next = allSeats.map((v, i) => (i === seat ? choice : v));
     setAllSeats(next);
+    setDealerNote(null);
     setQuery(seat, '');
     if (choice === null) {
       setOpen(seat);
@@ -166,12 +178,7 @@ export function SetupScreen({ onStart, onCancel }: {
           <button type="button" className="btn btn--quiet" onClick={onCancel}>Back</button>
         )}
         <h1 className="app__title">New match</h1>
-        <button type="button" className="btn btn--quiet"
-                onClick={() => setAllSeats([...shuffled(seated), ...allSeats.slice(players)])}
-                disabled={!filled}
-                title="Shuffle the seating">
-          Shuffle
-        </button>
+        <span className="app__barspacer" />
       </header>
 
       <div className="setup">
@@ -197,12 +204,32 @@ export function SetupScreen({ onStart, onCancel }: {
 
         <div className="field">
           <span className="field__label">Players</span>
+          {/* Choose dealer is for a table already sat down: the seats stay as
+              they are and only East moves round. Shuffle all re-seats everyone. */}
+          <div className="setup__shuffles">
+            <button type="button" className="btn" disabled={!filled}
+                    onClick={() => {
+                      const order = rotated(seated);
+                      setAllSeats([...order, ...allSeats.slice(players)]);
+                      setDealerNote(`${order[0]?.name ?? ''} deals first.`);
+                    }}>
+              Choose dealer
+            </button>
+            <button type="button" className="btn" disabled={!filled}
+                    onClick={() => {
+                      setAllSeats([...shuffled(seated), ...allSeats.slice(players)]);
+                      setDealerNote(null);
+                    }}>
+              Shuffle all
+            </button>
+          </div>
+          {dealerNote && <span className="field__hint setup__dealer">{dealerNote}</span>}
           {seats.map((seat) => {
             const wind = roundName(SITUATION_WINDS[seat]!);
             const choice = seated[seat];
             const options = open === seat && !choice ? optionsFor(seat) : null;
             return (
-              <div className="setup__seatblock" key={seat}>
+              <div className="setup__seatblock" data-seat={seat} key={seat}>
                 <div className="setup__seat">
                   <span className="setup__seatno" title={`Starts as ${wind}`}>
                     {roundKanji(SITUATION_WINDS[seat]!)}

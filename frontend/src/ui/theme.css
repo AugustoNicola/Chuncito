@@ -754,9 +754,12 @@ button {
   font-size: 0.78rem; color: var(--text-dim);
 }
 /* Seat 1 deals East 1, so it is worth marking before the shuffle. */
-.setup__seatblock:first-of-type .setup__seatno {
+.setup__seatblock[data-seat="0"] .setup__seatno {
   border-color: var(--seat-dealer); color: var(--seat-dealer);
 }
+.setup__shuffles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.setup__dealer { color: var(--text-dim); }
+
 .setup__name, .setup__number {
   flex: 1; min-width: 0;
   padding: 10px 12px;

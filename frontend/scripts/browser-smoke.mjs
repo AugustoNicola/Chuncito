@@ -453,6 +453,18 @@ try {
 
   const names = ['Ana', 'Beto', 'Cami', 'Dani'];
   await seatGuests(names);
+  // Choose dealer moves East round the table without re-seating anyone.
+  const seatedNames = () => page.$$eval('.setup__chosenname', (els) => els.map((e) => e.textContent));
+  const rotations = names.map((_, k) => names.map((__, i) => names[(i + k) % 4]).join());
+  for (let i = 0; i < 4; i++) {
+    await byText('Choose dealer');
+    const now = await seatedNames();
+    const note = await page.$eval('.setup__dealer', (el) => el.textContent).catch(() => null);
+    check(rotations.includes(now.join()) && note === `${now[0]} deals first.`,
+          `Choose dealer keeps everyone's neighbours and says who deals (got ${now.join()}, "${note}")`);
+  }
+  // Back to the drawn order, which the rest of the run counts on.
+  while ((await seatedNames()).join() !== names.join()) await byText('Choose dealer');
   const rulesFold = await page.$eval('.setup__rules', (el) => [el.open, el.querySelector('summary').textContent]);
   check(rulesFold[0] === false && rulesFold[1].includes('uma +20/+10/-10/-20') && rulesFold[1].includes('goal 30,000'),
         `the defaulted rules are folded away, summarised (got ${JSON.stringify(rulesFold)})`);
