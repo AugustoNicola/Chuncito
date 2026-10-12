@@ -10,6 +10,7 @@ import { PlayerName } from '../players/PlayerName';
 import { standingsOverTime, topLevel } from './matchState';
 import { placeLabel } from './scoring';
 import { StandingsChart } from './StandingsChart';
+import { durationLabel, handDurations } from './duration';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
@@ -87,8 +88,10 @@ function tierOf(row: HandRow): string | undefined {
   return levelTier(level);
 }
 
-function HandEntry({ row, after, names, seats, link, sanma }: {
+function HandEntry({ row, after, duration, names, seats, link, sanma }: {
   row: HandRow;
+  /** How long the hand took, in ms; null when it was not timed. */
+  duration: number | null;
   /** The standings once this hand (and anything adjusted after it) was in. */
   after: Standing | undefined;
   names: readonly string[]; seats: readonly SeatPlayer[]; link: boolean; sanma: boolean;
@@ -101,6 +104,9 @@ function HandEntry({ row, after, names, seats, link, sanma }: {
           {row.honba > 0 && <span className="timeline__honba">+{row.honba}</span>}
         </span>
         <span className="timeline__what">{headline(row, names)}</span>
+        {duration !== null && (
+          <span className="timeline__duration" title="How long the hand took">{durationLabel(duration)}</span>
+        )}
       </div>
 
       {row.wins.map((win) => (
@@ -154,6 +160,8 @@ export function TimelineList({ state, linkPlayers = false }: { state: MatchState
   const over = standingsOverTime(state);
   /** Entry 0 is the start, so a hand's standings are one along from its index. */
   const afterOf = new Map(state.hands.map((row, i) => [row.clientUuid, over[i + 1]]));
+  const durations = handDurations(state);
+  const durationOf = new Map(state.hands.map((row, i) => [row.clientUuid, durations[i] ?? null]));
 
   return (
     <>
@@ -163,7 +171,8 @@ export function TimelineList({ state, linkPlayers = false }: { state: MatchState
         <p className="timeline__empty">No hands recorded yet.</p>
       ) : (
         <ol className="timeline">
-          {rows.map((row) => <HandEntry key={row.clientUuid} row={row} after={afterOf.get(row.clientUuid)} names={names}
+          {rows.map((row) => <HandEntry key={row.clientUuid} row={row} after={afterOf.get(row.clientUuid)}
+                                            duration={durationOf.get(row.clientUuid) ?? null} names={names}
                                             seats={state.config.seats} link={linkPlayers}
                                             sanma={state.config.players === 3} />)}
         </ol>

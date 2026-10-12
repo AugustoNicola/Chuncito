@@ -56,7 +56,8 @@
         "outcome": "tsumo",
         "abortiveReason": null,
         "dealInSeat": null,
-        "scoreDelta": "8000,-4000,-4000"
+        "scoreDelta": "8000,-4000,-4000",
+        "recordedAt": null
       },
       {
         "clientUuid": "fixture-3p-hand-2",
@@ -68,7 +69,8 @@
         "outcome": "exhaustive_draw",
         "abortiveReason": null,
         "dealInSeat": null,
-        "scoreDelta": "-3000,1500,1500"
+        "scoreDelta": "-3000,1500,1500",
+        "recordedAt": "2026-09-22T20:35:30.250Z"
       }
     ],
     "handWins": [

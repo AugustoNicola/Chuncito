@@ -12,6 +12,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { PinForm } from '../match/SyncPanel';
 import { placeLabel } from '../match/scoring';
+import { durationLabel, matchDuration } from '../match/duration';
 import { type ServerMatch, refreshPlayers } from '../match/syncClient';
 import { type Player, byRecent, cachedPlayers } from '../players/players';
 import {
@@ -170,6 +171,7 @@ function MatchItem({ match }: { match: ServerMatch }) {
     name, score: match.scores[seat] ?? 0, place: match.placements[seat] ?? seat + 1,
   })).sort((a, b) => a.place - b.place);
   const level = match.maxLevel && match.maxLevel !== 'sinNombre' ? match.maxLevel : null;
+  const took = matchDuration(match);
 
   return (
     <Link className="history__item" to={`/matches/${encodeURIComponent(match.id)}`}
@@ -183,6 +185,7 @@ function MatchItem({ match }: { match: ServerMatch }) {
         {match.players === 3 && ' · Sanma'}
         {match.ranked && ' · For MPs'}
         {` · ${match.hands} hand${match.hands === 1 ? '' : 's'}`}
+        {took !== null && ` · ${durationLabel(took)}`}
       </span>
       <span className="history__standings">
         {order.map((p) => (

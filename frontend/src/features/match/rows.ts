@@ -71,6 +71,8 @@ export interface HandTableRow {
   dealInSeat: Seat | null;
   /** "+8000,-8000,0,0" across seats, as the data model spells it; three in sanma. */
   scoreDelta: string;
+  /** When the hand was recorded; null on hands from before it was kept (0006). */
+  recordedAt: string | null;
 }
 
 export interface HandWinRow {
@@ -172,6 +174,7 @@ export function toRows(state: MatchState): MatchRows {
       abortiveReason: hand.abortiveReason,
       dealInSeat: hand.dealInSeat,
       scoreDelta: hand.scoreDelta.join(','),
+      recordedAt: hand.recordedAt,
     });
     for (const win of hand.wins) {
       rows.handWins.push({
@@ -274,6 +277,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
       dealInSeat: row.dealInSeat,
       abortiveReason: row.abortiveReason,
       scoreDelta: parseDelta(row.scoreDelta),
+      recordedAt: row.recordedAt ?? null,
       riichiSeats: bySeq(rows.handRiichi, row.seq).map((r) => r.seat),
       tenpaiSeats: bySeq(rows.handTenpai, row.seq).map((r) => r.seat),
       wins: wins.map<WinRow>((w) => ({

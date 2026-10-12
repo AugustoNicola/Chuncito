@@ -837,6 +837,22 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
         ended there too (somebody at the goal after South 4's dealer lost).
       - Drive-by: "End early"'s confirmation said leftover sticks are lost;
         they go to 1st, and it says so.
+- [x] **Round and match durations** — each hand row records when it was
+      recorded (`HandRow.recordedAt`, `hands.recorded_at`, **migration
+      `0006`**, additive), and `duration.ts` (tested) works the rest out:
+      a hand lasted from the one before it (the match's start, for the
+      first) to its own recording — so an undone and re-recorded hand is
+      re-timed, and time spent away from the table counts. A match's total
+      is `endedAt − startedAt`, which every match always had, so **past
+      matches show their total too**; only their hands are untimed (null,
+      shown as nothing, a hand next to an untimed one included). Shown: in
+      each timeline box at the end of its head (night and review), in the
+      outcome's meta line (end screen and review), on the history cards
+      and in the profile's match list (`PlacedMatch.endedAt`). No clock on
+      the table, as asked. The wire field is defaulted on the server so a
+      phone still on the previous version keeps saving (tested). The
+      fixtures time their hands deterministically; the sanma one has an
+      untimed first hand, so the null crosses the wire and the database.
 
 ## Picking this up cold
 
@@ -847,8 +863,10 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
   data by hand. On 2026-10-09 it had 7 matches; nine of the ten in the
   2026-10-01 JSON export (`backups/`) were no longer there, short finished
   matches from 2026-09-23/25 — asked the user whether that was a cleanup.
-- **`main` is migrated to `0005` and everything is pushed**: the user applied
-  `0002`–`0005` before pushing. `0003`/`0004` were not additive (see
+- **`main` is at `0005`; the code needs `0006`** (2026-10-12: `hands.recorded_at`,
+  additive). Not pushed: `make db-migrate TARGET=main` (it backs up first)
+  before the push, or the release phase refuses it. Before that, the user
+  applied `0002`–`0005` before pushing. `0003`/`0004` were not additive (see
   `DEPLOY.md`); a future migration follows the same checklist there.
 - **Contributions come as GitHub PRs** (PR #1 was the first). `gh` is not
   installed: fetch one with `git fetch origin pull/<n>/head:pr-<n>`, run the

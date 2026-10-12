@@ -143,6 +143,9 @@ hands = Table(
     Column('deal_in_seat', SmallInteger),
     Column('score_delta', ARRAY(Integer), nullable=False),
     Column('client_uuid', Text, nullable=False, unique=True),
+    # When the hand was recorded, so how long it took (0006). Null on hands
+    # recorded before it was kept.
+    Column('recorded_at', DateTime(timezone=True)),
     UniqueConstraint('match_id', 'seq'),
     CheckConstraint(_in('round_wind', WINDS), name='round_wind'),
     CheckConstraint(_in('outcome', OUTCOMES), name='outcome'),

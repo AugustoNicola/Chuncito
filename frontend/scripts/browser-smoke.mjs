@@ -88,7 +88,7 @@ try {
         matchesFour: sat.filter(([, m]) => m.rows.match.players === 4).length,
         matchesSanma: sat.filter(([, m]) => m.rows.match.players === 3).length,
         matches: mine.map(([id, { rows: r }]) => ({
-          matchId: id, name: r.match.name, startedAt: r.match.startedAt,
+          matchId: id, name: r.match.name, startedAt: r.match.startedAt, endedAt: r.match.endedAt,
           placement: seatOf(r).placement, finalScore: seatOf(r).finalScore, umaPoints: seatOf(r).umaPoints,
           table: r.matchPlayers.map((p) => ({
             name: p.guestName ?? api.players.get(p.playerId)?.displayName ?? '',
@@ -781,6 +781,9 @@ try {
   await page.waitForSelector('.timeline');
   const entries = await page.$$eval('.timeline__hand', (els) => els.length);
   check(entries === 3, `the timeline holds every hand (got ${entries})`);
+  const handTimes = await page.$$eval('.timeline__duration', (els) => els.map((e) => e.textContent));
+  check(handTimes.length === 3 && handTimes.every((t) => t === '<1 min'),
+        `each hand says how long it took (got ${JSON.stringify(handTimes)})`);
   // The standings chart above it: a line per player, the start and one point per hand.
   const chart = await page.$$eval('.standchart__series', (els) => els.map((e) => ({
     wind: e.dataset.wind, points: e.querySelector('polyline').getAttribute('points').split(' ').length,
@@ -1469,7 +1472,10 @@ try {
   const beto = [...api.players.values()].find((p) => p.displayName === 'Beto');
   const seed = (id, name, maxLevel, startedAt, edit = (r) => r) => {
     const rows = structuredClone(finished);
-    rows.match = { ...rows.match, id, name, maxLevel, startedAt };
+    // Timed as if played that evening: a hand every 20 minutes, 1 h 12 min in all.
+    const at = (minutes) => new Date(Date.parse(startedAt) + minutes * 60_000).toISOString();
+    rows.match = { ...rows.match, id, name, maxLevel, startedAt, endedAt: at(72) };
+    rows.hands = rows.hands.map((h, i) => ({ ...h, recordedAt: at(20 * (i + 1)) }));
     api.matches.set(id, { revision: 1, rows: edit(rows) });
   };
   // One played just for fun, one for MPs.
@@ -1491,6 +1497,10 @@ try {
   check(all.indexOf('with Beto') >= 0 && all.indexOf('with Beto') < all.indexOf('the kita one'),
         `history lists finished matches, newest first (got ${JSON.stringify(all)})`);
   check(!all.includes(''), 'an unnamed match is labelled as such');
+  const listedMeta = await page.evaluate(() => [...document.querySelectorAll('.history__item')]
+    .find((el) => el.querySelector('.history__name').textContent === 'with Beto')
+    .querySelector('.history__meta').textContent);
+  check(listedMeta.includes('1 h 12 min'), `the list says how long a match took (got "${listedMeta}")`);
   const level = await page.$eval('.history__item[data-tier="haneman"] .history__level',
     (el) => el.textContent).catch(() => null);
   check(level === 'Haneman', `a match shows its best hand, themed (got ${level})`);
@@ -1523,6 +1533,10 @@ try {
         `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
   check((await page.$$('.review__hands .standchart__series')).length === 3,
         'the review shows the standings chart above the hands');
+  const reviewTimes = await page.$$eval('.review__hands .timeline__duration', (els) => els.map((e) => e.textContent));
+  const reviewTook = await page.$eval('.endscreen__duration', (el) => el.textContent).catch(() => null);
+  check(JSON.stringify(reviewTimes) === '["20 min","20 min"]' && reviewTook === '1 h 12 min',
+        `the review times each hand and the match (got ${JSON.stringify(reviewTimes)}, ${reviewTook})`);
   await shot('61-review.png');
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.standings', { timeout: 10_000 });

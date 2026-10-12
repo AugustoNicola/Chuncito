@@ -20,6 +20,7 @@ import { matchDate } from '../history/MatchList';
 import { PinForm } from '../match/SyncPanel';
 import { type Round, roundLabel } from '../match/seats';
 import { mpLabel } from '../match/scoring';
+import { durationLabel, matchDuration } from '../match/duration';
 import { refreshPlayers } from '../match/syncClient';
 import { byMakapoints, cachedPlayers, type Player } from './players';
 import { Bars, Donut, Histogram, PlacementLine } from './charts';
@@ -224,7 +225,10 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
                     {['1st', '2nd', '3rd', '4th'][m.placement - 1]}
                   </span>
                   <span className="profile__matchname">{m.name || 'Unnamed match'}</span>
-                  <span className="profile__matchdate">{matchDate(m.startedAt)}</span>
+                  <span className="profile__matchdate">
+                    {matchDate(m.startedAt)}
+                    {matchDuration(m) !== null && ` · ${durationLabel(matchDuration(m)!)}`}
+                  </span>
                   <span className="profile__matchscore">{m.finalScore.toLocaleString()}</span>
                 </button>
               </li>

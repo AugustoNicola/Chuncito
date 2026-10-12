@@ -133,6 +133,12 @@ export interface HandRow {
   /** Exhaustive draws and nagashi only. */
   tenpaiSeats: Seat[];
   abortiveReason: AbortiveReason | null;
+  /**
+   * When the hand was recorded, which is when it ended. A hand lasted from the
+   * one before it (or the match's start) to this (`handDurations`). Null on
+   * hands recorded before this was kept.
+   */
+  recordedAt: string | null;
 }
 
 export interface Adjustment {
@@ -543,6 +549,7 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
       input.kind === 'exhaustiveDraw' || input.kind === 'nagashiMangan'
         ? [...input.tenpai].sort((a, b) => a - b) : [],
     abortiveReason: input.kind === 'abortiveDraw' ? input.reason : null,
+    recordedAt: now.toISOString(),
   };
 
   // The sticks were deducted at declaration time; only the rest of the delta is new.

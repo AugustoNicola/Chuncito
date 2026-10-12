@@ -66,7 +66,8 @@
         "outcome": "ron",
         "abortiveReason": null,
         "dealInSeat": 2,
-        "scoreDelta": "0,8000,-8000,0"
+        "scoreDelta": "0,8000,-8000,0",
+        "recordedAt": "2026-09-21T10:09:00.000Z"
       },
       {
         "clientUuid": "fixture-4p-hand-2",
@@ -78,7 +79,8 @@
         "outcome": "tsumo",
         "abortiveReason": null,
         "dealInSeat": null,
-        "scoreDelta": "-1000,-2000,4000,-1000"
+        "scoreDelta": "-1000,-2000,4000,-1000",
+        "recordedAt": "2026-09-21T10:18:00.000Z"
       },
       {
         "clientUuid": "fixture-4p-hand-3",
@@ -90,7 +92,8 @@
         "outcome": "exhaustive_draw",
         "abortiveReason": null,
         "dealInSeat": null,
-        "scoreDelta": "1500,-1500,-1500,500"
+        "scoreDelta": "1500,-1500,-1500,500",
+        "recordedAt": "2026-09-21T10:27:00.000Z"
       },
       {
         "clientUuid": "fixture-4p-hand-4",
@@ -102,7 +105,8 @@
         "outcome": "abortive_draw",
         "abortiveReason": "four_kans",
         "dealInSeat": null,
-        "scoreDelta": "0,0,0,0"
+        "scoreDelta": "0,0,0,0",
+        "recordedAt": "2026-09-21T10:36:00.000Z"
       },
       {
         "clientUuid": "fixture-4p-hand-5",
@@ -114,7 +118,8 @@
         "outcome": "ron",
         "abortiveReason": null,
         "dealInSeat": 0,
-        "scoreDelta": "-11200,9600,0,2600"
+        "scoreDelta": "-11200,9600,0,2600",
+        "recordedAt": "2026-09-21T10:45:00.000Z"
       },
       {
         "clientUuid": "fixture-4p-hand-6",
@@ -126,7 +131,8 @@
         "outcome": "nagashi_mangan",
         "abortiveReason": null,
         "dealInSeat": null,
-        "scoreDelta": "-2300,-2300,8900,-4300"
+        "scoreDelta": "-2300,-2300,8900,-4300",
+        "recordedAt": "2026-09-21T10:54:00.000Z"
       }
     ],
     "handWins": [

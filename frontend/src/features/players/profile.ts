@@ -15,7 +15,7 @@ export interface TableSeat {
 }
 
 export interface PlacedMatch {
-  matchId: string; name: string; startedAt: string;
+  matchId: string; name: string; startedAt: string; endedAt: string | null;
   placement: number; finalScore: number; umaPoints: number | null;
   /** Everyone who sat, in seat order, this player included. */
   table: TableSeat[];

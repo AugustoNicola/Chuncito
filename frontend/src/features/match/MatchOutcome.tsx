@@ -11,6 +11,7 @@ import { MP_BONUS, matchResults, mpLabel, mpOf, okaOf, placeLabel, resultLabel }
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel, seatWindOf } from './seats';
 import { WindMark } from './WindMark';
+import { durationLabel, matchDuration } from './duration';
 import { PlayerName } from '../players/PlayerName';
 
 const END_REASON: Record<string, string> = {
@@ -34,6 +35,7 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
   const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
   const best = bestHand(state);
   const hands = state.hands.length;
+  const took = matchDuration(state);
 
   return (
     <>
@@ -43,6 +45,7 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
         <span>{hands} hand{hands === 1 ? '' : 's'}</span>
         <span>·</span>
         <span>{roundLabel(state.round)}</span>
+        {took !== null && <><span>·</span><span className="endscreen__duration">{durationLabel(took)}</span></>}
       </div>
 
       <ol className="standings">

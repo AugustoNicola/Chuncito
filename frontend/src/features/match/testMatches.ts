@@ -60,8 +60,14 @@ export const scored = (winner: Seat, dealer: Seat) => ({
 
 /** A four-player match with one of everything the tracker can record. */
 export function playEverything(): MatchState {
-  let state = createMatch(fourPlayerConfig, new Date('2026-09-21T10:00:00.000Z'));
-  const play = (input: HandInput) => { state = recordHand(state, input).state; };
+  const start = new Date('2026-09-21T10:00:00.000Z');
+  let state = createMatch(fourPlayerConfig, start);
+  // A hand every nine minutes, so the fixtures stay put and the durations are known.
+  let hands = 0;
+  const play = (input: HandInput) => {
+    hands += 1;
+    state = recordHand(state, input, new Date(start.getTime() + hands * 9 * 60_000)).state;
+  };
 
   // A riichi, then a scored ron that collects the stick.
   state = toggleRiichi(state, 1);
@@ -110,7 +116,11 @@ export function playSanmaInProgress(): MatchState {
       { playerId: null, name: 'Cami' },
     ],
   }, new Date('2026-09-22T20:15:30.250Z'));
-  const play = (input: HandInput) => { state = recordHand(state, input).state; };
+  let hands = 0;
+  const play = (input: HandInput) => {
+    hands += 1;
+    state = recordHand(state, input, new Date(Date.parse('2026-09-22T20:15:30.250Z') + hands * 600_000)).state;
+  };
 
   state = toggleRiichi(state, 0);
   play({
@@ -129,5 +139,7 @@ export function playSanmaInProgress(): MatchState {
     }],
   });
   play({ kind: 'exhaustiveDraw', tenpai: [2, 1] });
-  return state;
+  // The first hand as one recorded before hands were timed: the wire and the
+  // database carry the null too.
+  return { ...state, hands: state.hands.map((h, i) => (i === 0 ? { ...h, recordedAt: null } : h)) };
 }

@@ -39,7 +39,8 @@ hands(id, match_id, seq, round_wind, round_number, honba, riichi_pot_before,
       abortive_reason NULL,             -- nine_terminals, four_riichi, ...
       deal_in_seat NULL,
       score_delta,                      -- "+8000,-8000,0,0" across seats (3 in sanma)
-      client_uuid UNIQUE)               -- sync idempotency key
+      client_uuid UNIQUE,               -- sync idempotency key
+      recorded_at)                      -- when it was recorded; null before 0006
       UNIQUE(match_id, seq)
 
 hand_wins(hand_id, winner_seat,         -- one row per winner; see below

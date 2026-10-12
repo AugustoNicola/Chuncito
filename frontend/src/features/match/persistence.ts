@@ -13,7 +13,7 @@
  * blocked site data). Losing the mirror must never break the tracker: the
  * authority is the in-memory state, and from Phase 3 the server.
  */
-import { DEFAULTS, type MatchState, uuid } from './matchState';
+import { DEFAULTS, type HandRow, type MatchState, uuid } from './matchState';
 
 const DB_NAME = 'chuncito';
 const DB_VERSION = 2;
@@ -91,14 +91,18 @@ export function upgrade(state: MatchState): { state: MatchState; changed: boolea
   const id = (state as Partial<MatchState>).id ?? uuid();
   // Before MAKApoints nothing was played for them.
   const ranked = (state as Partial<MatchState>).ranked ?? false;
+  // Hands recorded before their time was kept have none.
+  const untimed = state.hands.some((h) => (h as Partial<HandRow>).recordedAt === undefined);
+  const hands = untimed ? state.hands.map((h) => ({ ...h, recordedAt: h.recordedAt ?? null })) : state.hands;
   if (state.config.players === players && state.config.redFives === redFives
       && state.config.rules === rules && state.config.goalScore === goalScore
-      && state.config.targetScore === targetScore && state.id === id && state.ranked === ranked) {
+      && state.config.targetScore === targetScore && state.id === id && state.ranked === ranked
+      && !untimed) {
     return { state, changed: false };
   }
   const { returnScore: _dropped, ...config } = legacy as MatchState['config'] & { returnScore?: number };
   return {
-    state: { ...state, id, ranked, config: { ...config, players, redFives, rules, goalScore, targetScore } },
+    state: { ...state, id, ranked, hands, config: { ...config, players, redFives, rules, goalScore, targetScore } },
     changed: true,
   };
 }

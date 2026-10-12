@@ -66,6 +66,9 @@ class Hand(Wire):
     abortive_reason: str | None
     deal_in_seat: Seat | None
     score_delta: str = Field(pattern=r'^-?\d+(,-?\d+){2,3}$')
+    # Null on hands from before it was kept. Defaulted, unlike the rest, so a
+    # phone still running the previous version can keep saving its match.
+    recorded_at: str | None = None
 
 
 class HandWin(Wire):
@@ -238,6 +241,7 @@ class PlacedMatch(Wire):
     match_id: str
     name: str
     started_at: str
+    ended_at: str | None
     placement: int
     final_score: int
     uma_points: float | None

@@ -1126,6 +1126,11 @@ button {
 }
 .timeline__honba { color: #d03b4b; margin-left: 3px; }
 .timeline__what { font-size: 0.95rem; }
+/* How long the hand took: at the far end of the head, quiet. */
+.timeline__duration {
+  margin-left: auto; flex: none;
+  font-size: 0.72rem; color: var(--text-faint); font-variant-numeric: tabular-nums;
+}
 .timeline__value {
   display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
   font-size: 0.85rem; color: var(--text-dim);
@@ -1174,6 +1179,7 @@ button {
   display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
   color: var(--text-faint); font-size: 0.8rem;
 }
+.endscreen__duration { font-variant-numeric: tabular-nums; }
 
 .standings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .standings__row {

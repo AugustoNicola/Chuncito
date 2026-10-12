@@ -243,7 +243,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
             'riichi_pot_before': h.riichi_pot_before, 'outcome': h.outcome,
             'abortive_reason': h.abortive_reason, 'deal_in_seat': h.deal_in_seat,
             'score_delta': [int(x) for x in h.score_delta.split(',')],
-            'client_uuid': h.client_uuid,
+            'client_uuid': h.client_uuid, 'recorded_at': _parse_time(h.recorded_at),
         } for h in rows.hands]).returning(m.hands.c.id, m.hands.c.seq))
         hand_id = {row.seq: row.id for row in inserted}
 
@@ -332,6 +332,7 @@ def load_match(conn: Connection, match_id: str
             'riichi_pot_before': h.riichi_pot_before, 'outcome': h.outcome,
             'abortive_reason': h.abortive_reason, 'deal_in_seat': h.deal_in_seat,
             'score_delta': ','.join(str(x) for x in h.score_delta),
+            'recorded_at': _format_time(h.recorded_at),
         } for h in hand_rows],
         hand_wins=[{
             'hand_seq': seq_of[w.hand_id], 'winner_seat': w.winner_seat, 'han': w.han,
@@ -465,7 +466,7 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
             .subquery('mine'))
 
     placed = conn.execute(
-        select(c.id, c.name, c.started_at, mp.placement, mp.final_score, mp.uma_points)
+        select(c.id, c.name, c.started_at, c.ended_at, mp.placement, mp.final_score, mp.uma_points)
         .select_from(m.match_players.join(m.matches, c.id == mp.match_id))
         .join(mine, (mine.c.match_id == mp.match_id) & (mine.c.seat == mp.seat))
         .where(mp.placement.is_not(None))
@@ -542,6 +543,7 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         player=_player_out(who), players=players,
         matches_four=kinds.get(4, 0), matches_sanma=kinds.get(3, 0),
         matches=[PlacedMatch(match_id=p.id, name=p.name, started_at=_format_time(p.started_at),
+                             ended_at=_format_time(p.ended_at),
                              placement=p.placement, final_score=p.final_score,
                              uma_points=p.uma_points, table=tables.get(p.id, []))
                  for p in placed],

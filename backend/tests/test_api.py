@@ -100,6 +100,16 @@ def test_a_match_comes_back_exactly_as_it_was_sent(unlocked, name):
     assert got.json() == {'revision': 1, 'rows': rows, 'players': players_of(name)}
 
 
+def test_a_phone_on_the_previous_version_can_still_save(unlocked):
+    # It sends hands without `recordedAt`; they are stored untimed.
+    rows = fixture('four-player-finished', 'untimed')
+    for hand in rows['hands']:
+        del hand['recordedAt']
+    assert put(unlocked, rows).status_code == 200
+    got = unlocked.get(f"/api/matches/{rows['match']['id']}").json()['rows']['hands']
+    assert [h['recordedAt'] for h in got] == [None] * len(rows['hands'])
+
+
 def test_a_retried_save_is_not_a_second_write(unlocked):
     rows = fixture('four-player-finished', 'retry')
     assert put(unlocked, rows).json()['revision'] == 1
