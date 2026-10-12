@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import type { MatchState } from './matchState';
 import { MatchOutcome } from './MatchOutcome';
-import { matchResults, mpLabel } from './scoring';
+import { matchResults, mpLabel, mpOf } from './scoring';
 import { cachedPlayers, type Player } from '../players/players';
 import { refreshPlayers } from './syncClient';
 
@@ -32,7 +32,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline }: {
   const mpRows = results.map((r) => {
     const seat = state.config.seats[r.seat]!;
     const before = seat.playerId ? roster.find((p) => p.id === seat.playerId)?.mpPoints : undefined;
-    return { seat, gained: r.total, before };
+    return { seat, gained: mpOf(r), before };
   });
   /** Two taps, like discarding from Manual: a whole evening is one tap from gone. */
   const [confirmDiscard, setConfirmDiscard] = useState(false);

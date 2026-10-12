@@ -1017,8 +1017,9 @@ try {
   // All level at 25,000 against a 30,000 target: -5 each, then uma, and 1st's
   // oka of 20 -- which is what makes the four sum to zero.
   // Played for MPs by default, so the results are MAKApoints, and say so.
-  check(standings[0]?.uma === '+35.0 MP', `1st: -5 + 20 uma + 20 oka (got ${standings[0]?.uma})`);
-  check(standings[3]?.uma === '−25.0 MP', `4th: -5 - 20 uma (got ${standings[3]?.uma})`);
+  // A ranked match adds +5 MP each for playing.
+  check(standings[0]?.uma === '+40.0 MP', `1st: -5 + 20 uma + 20 oka + 5 bonus (got ${standings[0]?.uma})`);
+  check(standings[3]?.uma === '−20.0 MP', `4th: -5 - 20 uma + 5 bonus (got ${standings[3]?.uma})`);
   const rulesLine = await page.$eval('.standings__rules', (el) => el.textContent);
   check(rulesLine.includes('oka') && rulesLine.includes('sum to 0.0'),
         `the end screen explains the results and that they sum to zero (got "${rulesLine}")`);

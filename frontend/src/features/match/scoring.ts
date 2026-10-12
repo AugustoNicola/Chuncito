@@ -431,6 +431,17 @@ export const resultLabel = (points: number): string =>
 export const mpLabel = (points: number): string => `${resultLabel(points)} MP`;
 
 /** "1st", "2nd", ... -- a place as the table says it. */
+/**
+ * What every player gains for having played a ranked match, on top of their
+ * result: +5 MP each. It deliberately breaks the zero sum, so a regular's
+ * total reflects the matches they turned up for as well as how they did.
+ * The server adds the same (`store._mp_result`).
+ */
+export const MP_BONUS = 5000;
+
+/** A ranked match's MAKApoints for one player: the result plus the bonus. */
+export const mpOf = (result: MatchResult): number => result.total + MP_BONUS;
+
 export const placeLabel = (place: number): string =>
   `${place}${['st', 'nd', 'rd'][place - 1] ?? 'th'}`;
 

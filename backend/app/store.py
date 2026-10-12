@@ -112,16 +112,22 @@ def rename_player(conn: Connection, player_id: str, display_name: str) -> Player
     return _player_out(row)
 
 
+# Every player's bonus for a ranked match, in points (`MP_BONUS` in scoring.ts).
+MP_BONUS = 5000
+
+
 def _mp_result():
     """
     A seat's result in MAKApoints, in points: final score - target + uma, and
-    the oka, (target - start) x players, to 1st. The client's `matchResults`
-    computes the same from the same columns; placement ties were settled when
-    the match ended, so the stored placement is enough.
+    the oka, (target - start) x players, to 1st, then the +5 MP every player
+    gets for a ranked match (which breaks the zero sum on purpose). The
+    client's `matchResults` + `mpOf` computes the same from the same columns;
+    placement ties were settled when the match ended, so the stored placement
+    is enough.
     """
     c, mp = m.matches.c, m.match_players.c
     oka = case((mp.placement == 1, (c.target_score - c.starting_points) * c.players), else_=0)
-    return mp.final_score - c.target_score + func.coalesce(mp.uma_points, 0) * 1000 + oka
+    return mp.final_score - c.target_score + func.coalesce(mp.uma_points, 0) * 1000 + oka + MP_BONUS
 
 
 def _mp_totals(conn: Connection, player_id: str | None = None) -> dict[str, tuple[int, int]]:

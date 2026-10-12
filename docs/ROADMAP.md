@@ -776,6 +776,13 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
 - [x] **Honor keys in the middle of the keyboard** — the seven honours take
       columns 2–8 of the nine, winds then dragons side by side, a free
       column at each border (`.keyboard__row--honours`).
+- [x] **MAKApoints are no longer zero-sum** — a ranked match gives every
+      player their result **+5 MP** (`MP_BONUS` / `mpOf` in `scoring.ts`, and
+      the same constant in `store._mp_result`, so totals and rankings
+      include it for past ranked matches too — it is computed, not stored).
+      The standings' working lists the bonus, the rules line says so, and
+      the end screen's gains and new totals include it. Results (unranked,
+      or the "vs target · uma · oka" working) still sum to zero.
 
 ## Picking this up cold
 
@@ -809,7 +816,8 @@ Second backlog round (2026-10-12), appended to `backlog.md`:
   score results are measured against (oka = (target − start) × players, to
   1st); the **goal** score that ends the match (short of it, one extra wind).
   A result = final − target + uma (+ oka) and results sum to zero; a match's
-  **MAKApoints** are its results, if it was saved as "Played for MPs".
+  **MAKApoints** are its results **+5 MP each** (`MP_BONUS`, on purpose not
+  zero-sum), if it was saved as "Played for MPs".
 - Every end of a match settles the table: leftover riichi sticks to 1st, as
   an adjustment row. A match-ending hand leaves the round where it was.
 - 266 unit tests, 247 browser checks, 52 backend tests.

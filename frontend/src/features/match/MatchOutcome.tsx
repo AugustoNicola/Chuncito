@@ -7,7 +7,7 @@ import type { MatchState } from './matchState';
 import { bestHand } from './matchState';
 import { HandSummary } from '../hand/HandDisplay';
 import { decodeHandTiles } from '../hand/handTiles';
-import { matchResults, mpLabel, okaOf, placeLabel, resultLabel } from './scoring';
+import { MP_BONUS, matchResults, mpLabel, mpOf, okaOf, placeLabel, resultLabel } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel, seatWindOf } from './seats';
 import { WindMark } from './WindMark';
@@ -58,14 +58,15 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
             <span className={`standings__score${p.score < 0 ? ' standings__score--negative' : ''}`}>
               {p.score.toLocaleString()}
             </span>
-            <span className={`standings__uma${p.total < 0 ? ' standings__uma--negative' : ''}`}>
-              {/* A ranked match's results are MAKApoints, and say so. */}
-              {ranked ? mpLabel(p.total) : resultLabel(p.total)}
+            <span className={`standings__uma${(ranked ? mpOf(p) : p.total) < 0 ? ' standings__uma--negative' : ''}`}>
+              {/* A ranked match's results are MAKApoints, bonus included, and say so. */}
+              {ranked ? mpLabel(mpOf(p)) : resultLabel(p.total)}
             </span>
             {/* The working, so the result can be checked at the table. */}
             <span className="standings__working">
               {resultLabel(p.vsTarget)} vs target · {signed(p.umaPoints)} uma
               {p.oka !== 0 && ` · ${resultLabel(p.oka)} oka`}
+              {ranked && ` · ${resultLabel(MP_BONUS)} bonus`}
             </span>
           </li>
         ))}
@@ -78,6 +79,7 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
             state.config.startingPoints.toLocaleString()}) × ${state.config.players} = ${resultLabel(oka)}.`
           : ' No oka: the target is the starting score.'}
         {' '}The results sum to {resultLabel(sum)}.
+        {ranked && ` Played for MPs, everyone also gets ${mpLabel(MP_BONUS)} for playing.`}
       </p>
 
       {best && (

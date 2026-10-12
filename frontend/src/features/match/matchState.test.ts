@@ -8,7 +8,7 @@ import { fromRows, toRows } from './rows';
 import {
   type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, baseFromResult, basePoints, levelFor,
   manualReachable,
-  matchResults, paymentFor, placeLabel, placements, placesOf, resultLabel,
+  MP_BONUS, matchResults, mpOf, paymentFor, placeLabel, placements, placesOf, resultLabel,
 } from './scoring';
 import { dealerOf, seatWindOf } from './seats';
 import type { Seat } from './seats';
@@ -441,6 +441,13 @@ describe('placements', () => {
     expect(r.reduce((a, p) => a + p.total, 0)).toBe(0);
     expect(resultLabel(14500)).toBe('+14.5');
     expect(resultLabel(-22000)).toBe('−22.0');
+  });
+
+  it('adds +5 MP to everyone for a ranked match, so MPs do not sum to zero', () => {
+    const cfg = { players: 4 as const, startingPoints: 25000, targetScore: 30000, uma: [30, 10, -10, -30] };
+    const r = matchResults([34500, 42000, 15500, 8000] as Delta, cfg);
+    expect(mpOf(r[1]!)).toBe(14500 + 5000);
+    expect(r.reduce((a, p) => a + mpOf(p), 0)).toBe(4 * MP_BONUS);
   });
 
   it('has no oka when the target is the starting score', () => {
