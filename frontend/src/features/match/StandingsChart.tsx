@@ -73,7 +73,7 @@ export function StandingsChart({ state, over }: {
               ))}
             </g>
           ))}
-          <text x={x(0)} y={H - 6} className="linechart__axis linechart__axis--start">Start</text>
+          <text x={x(0)} y={H - 6} className="linechart__axis linechart__axis--start">St</text>
           {ticks.map((t) => (
             <text key={t.i} x={x(t.i)} y={H - 6} className="linechart__axis standchart__tick">{t.text}</text>
           ))}

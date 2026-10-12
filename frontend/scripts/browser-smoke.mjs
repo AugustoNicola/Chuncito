@@ -803,6 +803,8 @@ try {
   check(tiers[1] === 'draw', `a draw is themed as one (got ${JSON.stringify(tiers)})`);
   const loggedYakus = await page.$$eval('.timeline__hand:first-child .timeline__yaku',
                                         (els) => els.map((e) => e.textContent));
+  const firstTick = await page.$eval('.standchart .linechart__axis--start', (el) => el.textContent);
+  check(firstTick === 'St', `the start is labelled short enough to fit (got ${firstTick})`);
   check(JSON.stringify(loggedYakus) === JSON.stringify(['Pinfu', 'Tanyao', 'Sanshoku Doujun']),
         `the yaku are recorded against the hand (got ${JSON.stringify(loggedYakus)})`);
   // The point of storing hand_tiles: the hand can be looked at again.
