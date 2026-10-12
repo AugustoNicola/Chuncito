@@ -870,6 +870,20 @@ Feedback on that round (2026-10-12):
 - [x] The review's "Result = final score − target + uma …" line moved to the
       foot of the page (`ResultRules`, exported from `MatchOutcome`, which
       takes `explain={false}`). The end screen keeps it under the standings.
+- [x] **Removing a refused match from the phone.** After the `recordedAt`
+      deploy, every phone re-sent each match it kept (the rows had a new
+      field, so they no longer matched what was last sent). Matches from
+      before the group's players were re-created (2026-09-23/25, the nine
+      no longer on `main`) seat player ids `main` no longer has, so the
+      server refused them (422 "unknown player"; nothing was written —
+      the player check comes first) and the panel said "refused as
+      malformed". The panel now names the match and the reason, and a
+      finished one has **Remove from this phone** (two taps):
+      `SyncQueue.forget` drops a *refused* record only, and
+      `removeRefusedMatch` deletes the archived copies so the next load
+      does not queue it again. Never the match in progress. Lesson: **a new
+      field in `rows.ts` makes every phone re-send every kept match once**
+      — anything the server would now refuse surfaces then.
 
 ## Picking this up cold
 
@@ -911,7 +925,7 @@ Feedback on that round (2026-10-12):
   an adjustment row. A match-ending hand leaves the round where it was.
 - The second backlog round (2026-10-12, seven items at the end of
   `backlog.md`) is done, one commit each; see the Backlog section.
-- 279 unit tests, 267 browser checks, 53 backend tests.
+- 281 unit tests, 269 browser checks, 53 backend tests.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:

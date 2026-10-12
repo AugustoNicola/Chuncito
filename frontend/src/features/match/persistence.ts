@@ -130,6 +130,29 @@ export const clearMatch = (): Promise<unknown> =>
 export const archiveMatch = (state: MatchState): Promise<unknown> =>
   withStore('readwrite', (store) => store.put(state, `done:${state.startedAt}`));
 
+/** Removes every finished copy of a match kept on the phone; never the match in progress. */
+export async function removeArchived(id: string): Promise<void> {
+  const db = await openDb();
+  if (!db) return;
+  await new Promise<void>((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      const request = tx.objectStore(STORE).openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        if (cursor.key !== CURRENT && (cursor.value as MatchState | undefined)?.id === id) cursor.delete();
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
 export async function listArchived(): Promise<MatchState[]> {
   const db = await openDb();
   if (!db) return [];

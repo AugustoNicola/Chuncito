@@ -55,6 +55,8 @@ export interface SyncRecord {
   problem: 'conflict' | 'rejected' | null;
   /** The revision the server reported with a conflict, for `keepThisPhone`. */
   serverRevision?: number;
+  /** What the server said when it refused the match, when it said it in words. */
+  detail?: string;
 }
 
 export interface Response { status: number; body: unknown }
@@ -79,11 +81,22 @@ export type SyncState =
   /** A match needs a decision; see `SyncRecord.problem`. */
   | 'problem';
 
+/** A match that needs a decision, with enough to recognise it by. */
+export interface SyncProblem {
+  id: string;
+  problem: 'conflict' | 'rejected';
+  name: string;
+  startedAt: string | null;
+  finished: boolean;
+  /** Refused for seating a player the server does not have. */
+  unknownPlayer: boolean;
+}
+
 export interface SyncStatus {
   state: SyncState;
   /** Matches with a save or delete still to send. */
   pending: number;
-  problems: { id: string; problem: 'conflict' | 'rejected' }[];
+  problems: SyncProblem[];
 }
 
 const RETRY_MIN = 2_000;
@@ -207,6 +220,24 @@ export class SyncQueue {
     this.kick();
   }
 
+  /**
+   * Gives up on a match the server refused: this phone stops trying to send
+   * it. The caller removes the phone's own copy (`removeRefusedMatch`), or the
+   * next load would queue it again. Only for a refusal -- a conflict or a
+   * pending save is never dropped this way. True if it was dropped.
+   *
+   * Written for matches from before the group's players were re-created,
+   * which seat players the server no longer has and can never be saved.
+   */
+  forget(id: string): boolean {
+    const record = this.records.get(id);
+    if (!this.loaded || !record || record.problem !== 'rejected') return false;
+    this.records.delete(id);
+    void this.store.delete(id);
+    this.publish();
+    return true;
+  }
+
   /** Returns null when unlocked, or what to tell the person otherwise. */
   async unlock(pin: string): Promise<string | null> {
     let response: Response;
@@ -255,7 +286,15 @@ export class SyncQueue {
     const all = [...this.records.values()];
     const problems = all
       .filter((r): r is SyncRecord & { problem: 'conflict' | 'rejected' } => r.problem !== null)
-      .map((r) => ({ id: r.id, problem: r.problem }));
+      .map((r) => {
+        const match = r.pending?.kind === 'put' ? r.pending.payload.rows.match : null;
+        return {
+          id: r.id, problem: r.problem,
+          name: match?.name ?? '', startedAt: match?.startedAt ?? null,
+          finished: match?.status === 'finished',
+          unknownPlayer: r.detail?.startsWith('unknown player') ?? false,
+        };
+      });
     const pending = all.filter((r) => r.pending !== null).length;
     const state: SyncState = problems.length > 0 ? 'problem'
       : this.locked && pending > 0 ? 'locked'
@@ -360,6 +399,8 @@ export class SyncQueue {
       // Includes a seat naming a player this server has never had -- say, one
       // created against a different database. Nothing to retry until it changes.
       record.problem = 'rejected';
+      const detail = (response.body as { detail?: unknown } | null)?.detail;
+      if (typeof detail === 'string') record.detail = detail;
       console.error('the server refused match', record.id, response.body);
     }
     this.save(record);

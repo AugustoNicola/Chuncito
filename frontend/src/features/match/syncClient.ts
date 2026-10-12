@@ -7,7 +7,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import type { MatchState } from './matchState';
-import { SYNC_STORE, listArchived, loadMatch, withStore } from './persistence';
+import { SYNC_STORE, listArchived, loadMatch, removeArchived, withStore } from './persistence';
 import { type Player, nameOf, setCachedPlayers } from '../players/players';
 import { type MatchRows, fromRows } from './rows';
 import { type RecordStore, type SyncRecord, type SyncStatus, SyncQueue, type Transport } from './sync';
@@ -180,6 +180,11 @@ export function startSync(): Promise<void> {
 }
 
 export const queueMatch = (state: MatchState): void => { sync.enqueue(state); };
+
+/** Stops sending a refused match and removes this phone's finished copy of it. */
+export async function removeRefusedMatch(id: string): Promise<void> {
+  if (sync.forget(id)) await removeArchived(id);
+}
 
 export const useSyncStatus = (): SyncStatus =>
   useSyncExternalStore(sync.subscribe, sync.getStatus);

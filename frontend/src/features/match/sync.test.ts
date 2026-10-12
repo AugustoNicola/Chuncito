@@ -4,7 +4,7 @@
  * based on, and a repeat of what is already stored is accepted as-is.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createMatch, recordHand, toggleRiichi, undoLastHand } from './matchState';
+import { createMatch, endMatchManually, recordHand, toggleRiichi, undoLastHand } from './matchState';
 import { type MatchRows } from './rows';
 import { type RecordStore, type SyncRecord, SyncQueue, type Timers, type Transport } from './sync';
 import { fourPlayerConfig, manual } from './testMatches';
@@ -15,6 +15,8 @@ class FakeServer {
   pin = '1234';
   unlocked = false;
   down = false;
+  /** Refuses every save, as the real server does a match seating an unknown player. */
+  refuse = false;
   lastBody: unknown = null;
   /** Holds the next request until released, to test what happens mid-flight. */
   hold: (() => void) | null = null;
@@ -34,6 +36,7 @@ class FakeServer {
       this.matches.delete(id);
       return { status: 204, body: null };
     }
+    if (this.refuse) return { status: 422, body: { detail: 'unknown player: player-ana' } };
     const { baseRevision, rows } = body as { baseRevision: number; rows: MatchRows };
     this.lastBody = body;
     const json = JSON.stringify(rows);
@@ -264,6 +267,31 @@ describe('conflicts', () => {
     expect(server.matches.get('m1')?.revision).toBe(6);
     expect(server.rowsOf('m1').hands).toHaveLength(1);
     expect(queue.getStatus().state).toBe('synced');
+  });
+});
+
+describe('a match the server refuses', () => {
+  it('says which match and why, and can be dropped from the phone', async () => {
+    server.refuse = true;
+    const s = endMatchManually(ron(start()));
+    queue.enqueue({ ...s, name: 'old one' });
+    await settle();
+    expect(queue.getStatus()).toMatchObject({
+      state: 'problem',
+      problems: [{ id: 'm1', problem: 'rejected', name: 'old one', startedAt: s.startedAt,
+                   finished: true, unknownPlayer: true }],
+    });
+    expect(queue.forget('m1')).toBe(true);
+    expect(queue.getStatus().state).toBe('synced');
+    expect(store.data.size).toBe(0);
+  });
+
+  it('never drops a conflict or a save still to send', async () => {
+    server.down = true;
+    queue.enqueue(start());
+    await settle();
+    expect(queue.forget('m1')).toBe(false);
+    expect(queue.getStatus().pending).toBe(1);
   });
 });
 

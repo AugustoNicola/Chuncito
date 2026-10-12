@@ -1281,6 +1281,39 @@ try {
         && finished.matchPlayers.every((p) => p.placement !== null),
         'the finished match arrives with its hands and its placements');
 
+  // A match kept on the phone that seats a player the server no longer has
+  // (players re-created since) is refused, named, and can be removed.
+  await page.evaluate(async (rows) => {
+    const { fromRows } = await import('/src/features/match/rows.ts');
+    const ghost = structuredClone(rows);
+    ghost.match = { ...ghost.match, id: 'ghost-match', name: 'from before the reset',
+                    startedAt: '2026-09-23T22:12:00.000Z' };
+    ghost.hands = ghost.hands.map((h, i) => ({ ...h, clientUuid: `ghost-hand-${i}` }));
+    ghost.matchPlayers[0] = { ...ghost.matchPlayers[0], playerId: 'player-long-gone', guestName: null };
+    const state = fromRows(ghost, () => 'Gone');
+    await new Promise((resolve) => {
+      const open = indexedDB.open('chuncito');
+      open.onsuccess = () => {
+        const tx = open.result.transaction('matches', 'readwrite');
+        tx.objectStore('matches').put(state, `done:${state.startedAt}`);
+        tx.oncomplete = () => { open.result.close(); resolve(); };
+      };
+    });
+  }, finished);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.sync__problem', { timeout: 10_000 });
+  const refusal = await page.$eval('.sync__problem', (el) => el.textContent);
+  check(refusal.includes('from before the reset') && refusal.includes('a player the server does not have'),
+        `a refused match is named, with the reason (got "${refusal}")`);
+  await byText('Remove from this phone');
+  await byText('Yes, remove it');
+  await page.waitForFunction(() => !document.querySelector('.sync__problem'), { timeout: 10_000 });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.home__grid');
+  await new Promise((r) => setTimeout(r, 1500));
+  check(!(await page.$('.sync__problem')) && !api.matches.has('ghost-match'),
+        'once removed it stays gone, and never reached the server');
+
   // A new match goes up as soon as it starts, and the header says so.
   const before = api.matches.size;
   await byText('New match');

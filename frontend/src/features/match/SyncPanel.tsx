@@ -6,7 +6,7 @@
  * something the person can do or ought to know.
  */
 import { useState } from 'react';
-import { refreshPlayers, sync, useSyncStatus } from './syncClient';
+import { refreshPlayers, removeRefusedMatch, sync, useSyncStatus } from './syncClient';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -50,8 +50,17 @@ export function PinForm({ reason, onUnlocked, autoFocus }: {
   );
 }
 
+/** "“Name” of 23 Sept, 22:12", so a refused match can be told from the rest. */
+function matchLabel(name: string, startedAt: string | null): string {
+  const when = startedAt ? new Date(startedAt).toLocaleString(undefined, {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
+  return `${name ? `“${name}”` : 'An unnamed match'}${when ? ` of ${when}` : ''}`;
+}
+
 export function SyncPanel() {
   const status = useSyncStatus();
+  /** The refused match whose removal is awaiting its second tap. */
+  const [removing, setRemoving] = useState<string | null>(null);
 
   if (status.state === 'synced') return null;
 
@@ -74,7 +83,7 @@ export function SyncPanel() {
 
       {status.state === 'saving' && <p className="sync__text">Saving to the server…</p>}
 
-      {status.state === 'problem' && status.problems.map(({ id, problem }) => (
+      {status.state === 'problem' && status.problems.map(({ id, problem, name, startedAt, finished, unknownPlayer }) => (
         <div key={id} className="sync__problem">
           {problem === 'conflict' ? (
             <>
@@ -87,9 +96,28 @@ export function SyncPanel() {
               </button>
             </>
           ) : (
-            <p className="sync__text">
-              The server refused a match as malformed. It is still on this phone.
-            </p>
+            <>
+              <p className="sync__text">
+                {matchLabel(name, startedAt)} was refused by the server
+                {unknownPlayer ? ': it seats a player the server does not have' : ' as malformed'}.
+                {' '}It is still on this phone.
+              </p>
+              {/* Only a finished match: one in progress is the table itself. Two
+                  taps, as for discarding a match. */}
+              {finished && (removing === id ? (
+                <div className="sync__row">
+                  <button type="button" className="btn btn--danger"
+                          onClick={() => { setRemoving(null); void removeRefusedMatch(id); }}>
+                    Yes, remove it
+                  </button>
+                  <button type="button" className="btn" onClick={() => setRemoving(null)}>Keep it</button>
+                </div>
+              ) : (
+                <button type="button" className="btn" onClick={() => setRemoving(id)}>
+                  Remove from this phone
+                </button>
+              ))}
+            </>
           )}
         </div>
       ))}
