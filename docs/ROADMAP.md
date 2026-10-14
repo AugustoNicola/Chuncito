@@ -949,6 +949,10 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
   `…T160854Z`, the first dump holding the two 2026-10-13 matches: the
   13:00 daily ran before they were played). Both migrations add fields to
   `rows.ts`, so every phone re-sends every match it keeps, once.
+- **Deleted from `main` at the user's request** (2026-10-14): the first
+  match, `bcf824f8-…` (2026-09-24, unnamed, four guests, unranked, 4
+  hands). Backed up just before as `chuncito-main-20261014T161709Z.dump`;
+  15 matches left. A phone still keeping it would upload it again.
 
 - **`main` holds the group's real matches and is backed up daily**
   (2026-10-09; `DEPLOY.md`'s Backups section). Never delete or rewrite its
