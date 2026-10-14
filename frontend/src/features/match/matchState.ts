@@ -20,7 +20,7 @@
 import type {
   Flag, Level, Payment, Rule, SituationWind, WinMode, YakuHan,
 } from '../../scorer/types';
-import type { Seat, MatchLength, PlayerCount, Round } from './seats';
+import type { Seat, MatchLength, PlayerCount, Round, TableSide } from './seats';
 import {
   dealerOf, finalRound, isExtensionEnd, isSuddenDeath, nextRound, seatsOf, windIndex,
 } from './seats';
@@ -81,6 +81,11 @@ export interface MatchConfig {
   uma: readonly number[];
   /** Indexed by seat; one entry per player. */
   seats: readonly SeatPlayer[];
+  /**
+   * The side of the table nobody sits at, in sanma: chosen at setup so the
+   * screen matches the real table (`sidesOf`). Null with four players.
+   */
+  emptySide: TableSide | null;
 }
 
 /**

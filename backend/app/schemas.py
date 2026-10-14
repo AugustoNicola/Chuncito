@@ -44,6 +44,8 @@ class MatchTable(Wire):
     max_level: str | None
     is_test: bool
     ranked: bool
+    # Sanma only. Defaulted so a phone still on the previous version can save.
+    empty_side: Literal['bottom', 'right', 'top', 'left'] | None = None
 
 
 class MatchPlayer(Wire):
@@ -119,6 +121,8 @@ class MatchRows(Wire):
     def _consistent(self) -> Self:
         """The shape rules `rows.ts` guarantees, checked rather than trusted."""
         players = self.match.players
+        if players == 4 and self.match.empty_side is not None:
+            raise ValueError('only a sanma table has an empty side')
         seats = sorted(p.seat for p in self.match_players)
         if seats != list(range(players)):
             raise ValueError(f'a {players}-player match needs seats 0..{players - 1}, got {seats}')

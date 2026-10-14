@@ -94,7 +94,10 @@ export function upgrade(state: MatchState): { state: MatchState; changed: boolea
   // Hands recorded before their time was kept have none.
   const untimed = state.hands.some((h) => (h as Partial<HandRow>).recordedAt === undefined);
   const hands = untimed ? state.hands.map((h) => ({ ...h, recordedAt: h.recordedAt ?? null })) : state.hands;
-  if (state.config.players === players && state.config.redFives === redFives
+  // Sanma begun before the empty side was a choice had the left one empty.
+  const emptySide = state.config.emptySide !== undefined
+    ? state.config.emptySide : (players === 3 ? 'left' : null);
+  if (state.config.emptySide === emptySide && state.config.players === players && state.config.redFives === redFives
       && state.config.rules === rules && state.config.goalScore === goalScore
       && state.config.targetScore === targetScore && state.id === id && state.ranked === ranked
       && !untimed) {
@@ -102,7 +105,7 @@ export function upgrade(state: MatchState): { state: MatchState; changed: boolea
   }
   const { returnScore: _dropped, ...config } = legacy as MatchState['config'] & { returnScore?: number };
   return {
-    state: { ...state, id, ranked, hands, config: { ...config, players, redFives, rules, goalScore, targetScore } },
+    state: { ...state, id, ranked, hands, config: { ...config, players, redFives, rules, goalScore, targetScore, emptySide } },
     changed: true,
   };
 }

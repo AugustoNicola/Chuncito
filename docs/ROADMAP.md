@@ -896,6 +896,20 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
       (`scoreAxis`, tested: the range of every point plus a little room, and
       gridlines at the round spacing — 1k, 2k, 5k, 10k… — that puts at most
       five inside it, labelled "25k").
+- [x] **Sanma's empty side, chosen at setup.** `MatchConfig.emptySide`
+      (`matches.empty_side`, **migration `0007`**, additive; null with four
+      players). The seats take the other three sides in turn order, East at
+      the bottom unless the bottom is the empty one (`sidesOf`, tested). So
+      the gap is a place in the turn order — after East (right empty), after
+      South (top), after West (left, the old fixed layout, or bottom) — not
+      a wind. Setup draws the table in miniature under the seats; tap the
+      side nobody sits at. **Choose dealer moves the gap too**
+      (`emptySideAfterRotation`, tested): the same people stay in the same
+      chairs, so the gap stays between the same two of them. Shuffle all
+      leaves it. Old sanma (local mirrors and server rows) read as left. The
+      wire field is defaulted on the server, so a phone on the previous
+      version still saves (tested), and a four-player match with a side is
+      refused. The smoke test plays its sanma with the right side empty.
 
 ## Picking this up cold
 

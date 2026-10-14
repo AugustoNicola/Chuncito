@@ -17,7 +17,8 @@
       "endedAt": null,
       "maxLevel": "mangan",
       "isTest": false,
-      "ranked": false
+      "ranked": false,
+      "emptySide": "top"
     },
     "matchPlayers": [
       {

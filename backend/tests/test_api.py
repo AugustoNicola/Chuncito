@@ -110,6 +110,22 @@ def test_a_phone_on_the_previous_version_can_still_save(unlocked):
     assert [h['recordedAt'] for h in got] == [None] * len(rows['hands'])
 
 
+def test_a_sanma_saved_before_the_empty_side_was_chosen_still_saves(unlocked):
+    rows = fixture('sanma-in-progress', 'no-side')
+    del rows['match']['emptySide']
+    assert put(unlocked, rows).status_code == 200
+    got = unlocked.get(f"/api/matches/{rows['match']['id']}").json()['rows']['match']
+    assert got['emptySide'] is None
+
+
+def test_only_sanma_has_an_empty_side(unlocked):
+    rows = fixture('four-player-finished', 'four-sided')
+    rows['match']['emptySide'] = 'top'
+    response = put(unlocked, rows)
+    assert response.status_code == 422
+    assert 'only a sanma table' in response.text
+
+
 def test_a_retried_save_is_not_a_second_write(unlocked):
     rows = fixture('four-player-finished', 'retry')
     assert put(unlocked, rows).json()['revision'] == 1

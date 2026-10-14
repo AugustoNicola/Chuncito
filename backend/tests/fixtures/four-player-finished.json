@@ -19,7 +19,8 @@
       "endedAt": "2026-09-21T11:30:00.000Z",
       "maxLevel": "mangan",
       "isTest": false,
-      "ranked": true
+      "ranked": true,
+      "emptySide": null
     },
     "matchPlayers": [
       {

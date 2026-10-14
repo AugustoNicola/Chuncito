@@ -115,3 +115,42 @@ export const roundName = (wind: SituationWind): string => ROUND_NAME[wind];
 /** "East 3", for the timeline and the centre box. */
 export const roundLabel = (round: Round): string =>
   `${ROUND_NAME[round.wind]} ${round.number}`;
+
+/**
+ * The four sides of the table as the screen draws it, counter-clockwise from
+ * the bottom -- turn order, the way the dealership moves round.
+ */
+export type TableSide = 'bottom' | 'right' | 'top' | 'left';
+export const TABLE_SIDES: readonly TableSide[] = ['bottom', 'right', 'top', 'left'];
+
+/**
+ * Where each seat is drawn. Four players fill the table, East at the bottom.
+ *
+ * In sanma one side is empty, and which one is chosen at setup so the screen
+ * can match where the three actually sit. The seats take the other three
+ * sides in turn order, East at the bottom unless the bottom is the empty one
+ * (then East is on the right). So the gap is not a wind -- nobody is North --
+ * but a place in the turn order: after East with the right side empty, after
+ * South with the top, after West with the left or the bottom.
+ */
+export function sidesOf(players: PlayerCount, empty: TableSide | null): Record<Seat, TableSide> {
+  const free = players === 3 ? TABLE_SIDES.filter((s) => s !== (empty ?? 'left')) : TABLE_SIDES;
+  return { 0: free[0]!, 1: free[1]!, 2: free[2]!, 3: free[3] ?? 'left' };
+}
+
+/** The seat the empty side follows in turn order: 0 (right), 1 (top) or 2 (left, bottom). */
+const gapAfter = (empty: TableSide): Seat =>
+  (empty === 'right' ? 0 : empty === 'top' ? 1 : 2);
+
+/**
+ * The empty side once the seats are rotated so that seat `by` deals: the same
+ * three people in the same chairs, so the gap has to stay between the same two
+ * of them. What "Choose dealer" needs in sanma, where only East should move.
+ */
+export function emptySideAfterRotation(empty: TableSide, by: number): TableSide {
+  const after = (gapAfter(empty) - by + 3) % 3;
+  if (after === 0) return 'right';
+  if (after === 1) return 'top';
+  // Left and bottom both put the gap after West; keep whichever it was.
+  return empty === 'bottom' ? 'bottom' : 'left';
+}

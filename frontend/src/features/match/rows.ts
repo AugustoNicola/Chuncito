@@ -23,7 +23,8 @@ import {
 } from './matchState';
 import { type Delta, RIICHI_STICK, deltaOf, placements } from './scoring';
 import {
-  type MatchLength, type PlayerCount, type Round, type Seat, dealerOf, nextRound, seatsOf,
+  type MatchLength, type PlayerCount, type Round, type Seat, type TableSide, dealerOf, nextRound,
+  seatsOf,
 } from './seats';
 
 export interface MatchTableRow {
@@ -48,6 +49,8 @@ export interface MatchTableRow {
   maxLevel: Level | null;
   isTest: boolean;
   ranked: boolean;
+  /** Sanma's empty side of the table (`sidesOf`); null with four players. */
+  emptySide: TableSide | null;
 }
 
 export interface MatchPlayerRow {
@@ -135,6 +138,7 @@ export function toRows(state: MatchState): MatchRows {
       maxLevel: maxLevel(state),
       isTest: false,
       ranked: state.ranked,
+      emptySide: state.config.emptySide,
     },
     matchPlayers: seatsOf(state.config.players).map((seat) => {
       const player = state.config.seats[seat]!;
@@ -258,6 +262,8 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     goalScore: rows.match.goalScore,
     uma: JSON.parse(rows.match.umaJson) as MatchConfig['uma'],
     seats,
+    // Sanma saved before the side was chosen had the left one empty.
+    emptySide: rows.match.emptySide ?? (rows.match.players === 3 ? 'left' : null),
   };
 
   const bySeq = <T extends { handSeq: number }>(list: T[], seq: number): T[] =>

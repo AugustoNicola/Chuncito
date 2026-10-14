@@ -10,8 +10,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MatchConfig, SeatPlayer } from './matchState';
 import { DEFAULTS } from './matchState';
-import type { MatchLength, PlayerCount, Seat } from './seats';
-import { roundKanji, roundName, seatsOf } from './seats';
+import type { MatchLength, PlayerCount, Seat, TableSide } from './seats';
+import {
+  TABLE_SIDES, emptySideAfterRotation, roundKanji, roundName, seatsOf, sidesOf,
+} from './seats';
 import { SITUATION_WINDS, type Rule } from '../../scorer/types';
 import {
   type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
@@ -37,10 +39,48 @@ function shuffled<T>(names: readonly T[]): T[] {
 /**
  * The same order, starting from someone else: everyone keeps their neighbours,
  * only who sits East changes. A uniform pick, so it can land where it was.
+ * `by` is who deals now, as a seat of the old order.
  */
-function rotated<T>(names: readonly T[]): T[] {
+function rotated<T>(names: readonly T[]): { order: T[]; by: number } {
   const by = Math.floor(Math.random() * names.length);
-  return names.map((_, i) => names[(i + by) % names.length]!);
+  return { order: names.map((_, i) => names[(i + by) % names.length]!), by };
+}
+
+/**
+ * Sanma's table as the match screen will draw it: tap the side nobody sits
+ * at. Each other side shows the wind and name that will be there, so the
+ * screen can be made to match the real table before anyone plays.
+ */
+function TableLayout({ empty, seated, onPick }: {
+  empty: TableSide;
+  seated: readonly (SeatPlayer | null)[];
+  onPick: (side: TableSide) => void;
+}) {
+  const sides = sidesOf(3, empty);
+  return (
+    <div className="setup__layout" role="group" aria-label="Empty side of the table">
+      {TABLE_SIDES.map((side) => {
+        const seat = seatsOf(3).find((s) => sides[s] === side);
+        const isEmpty = seat === undefined;
+        return (
+          <button key={side} type="button" data-side={side} data-seat={seat}
+                  className={`setup__side${isEmpty ? ' setup__side--empty' : ''}`}
+                  aria-pressed={isEmpty}
+                  aria-label={isEmpty ? `The ${side} side is empty`
+                    : `Leave the ${side} side empty`}
+                  onClick={() => onPick(side)}>
+            {isEmpty ? <span className="setup__sidename">Empty</span> : (
+              <>
+                <span className="setup__sidewind">{roundKanji(SITUATION_WINDS[seat]!)}</span>
+                <span className="setup__sidename">{seated[seat]?.name ?? roundName(SITUATION_WINDS[seat]!)}</span>
+              </>
+            )}
+          </button>
+        );
+      })}
+      <span className="setup__layoutnote">Tap the side nobody sits at</span>
+    </div>
+  );
 }
 
 export function SetupScreen({ onStart, onCancel }: {
@@ -58,6 +98,8 @@ export function SetupScreen({ onStart, onCancel }: {
   const [open, setOpen] = useState<Seat | null>(null);
   const [roster, setRoster] = useState<Player[]>(() => byName(cachedPlayers()));
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  /** Sanma's empty side; kept while four are chosen, so switching back keeps it. */
+  const [emptySide, setEmptySide] = useState<TableSide>('left');
   const [length, setLength] = useState<MatchLength>('south');
   const [redFives, setRedFives] = useState(true);
   /** Off by default: an open riichi ron is worth its 2 han like any other. */
@@ -168,6 +210,7 @@ export function SetupScreen({ onStart, onCancel }: {
       goalScore,
       uma: umaValues,
       seats: chosen,
+      emptySide: players === 3 ? emptySide : null,
     });
   }
 
@@ -209,8 +252,10 @@ export function SetupScreen({ onStart, onCancel }: {
           <div className="setup__shuffles">
             <button type="button" className="btn" disabled={!filled}
                     onClick={() => {
-                      const order = rotated(seated);
+                      const { order, by } = rotated(seated);
                       setAllSeats([...order, ...allSeats.slice(players)]);
+                      // In sanma the gap stays between the same two people.
+                      if (players === 3) setEmptySide(emptySideAfterRotation(emptySide, by));
                       setDealerNote(`${order[0]?.name ?? ''} deals first.`);
                     }}>
               Choose dealer
@@ -298,6 +343,9 @@ export function SetupScreen({ onStart, onCancel }: {
           })}
           {duplicate && (
             <span className="setup__warn">Two seats have the same name.</span>
+          )}
+          {players === 3 && (
+            <TableLayout empty={emptySide} seated={seated} onPick={setEmptySide} />
           )}
         </div>
 

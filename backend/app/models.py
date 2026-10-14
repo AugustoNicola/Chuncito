@@ -40,6 +40,7 @@ WINDS = ('este', 'sur', 'oeste', 'norte')
 OUTCOMES = ('tsumo', 'ron', 'exhaustive_draw', 'abortive_draw', 'nagashi_mangan', 'chombo')
 STATUSES = ('in_progress', 'finished', 'abandoned')
 END_REASONS = ('final_round', 'bust', 'manual')
+TABLE_SIDES = ('bottom', 'right', 'top', 'left')
 
 # The client's `LEVEL_RANK`, extended: anything unrecognised is some yakuman
 # variant, which is what the client assumes too.
@@ -99,6 +100,9 @@ matches = Table(
     Column('is_test', Boolean, nullable=False, server_default='false'),
     # Played for MAKApoints: chosen when the match is saved (0005).
     Column('ranked', Boolean, nullable=False, server_default='false'),
+    # Sanma's empty side of the table, as the screen draws it (0007). Null with
+    # four players, and on sanma saved before it was chosen (then: left).
+    Column('empty_side', Text),
     # When the server last took a write, for the sync status and for spotting
     # a phone that has been offline a long time.
     Column('updated_at', DateTime(timezone=True), nullable=False, server_default=func.now()),
@@ -110,6 +114,8 @@ matches = Table(
     CheckConstraint(_in('length', ('east', 'south')), name='length'),
     CheckConstraint(_in('status', STATUSES), name='status'),
     CheckConstraint(f"end_reason IS NULL OR {_in('end_reason', END_REASONS)}", name='end_reason'),
+    CheckConstraint(f"empty_side IS NULL OR (players = 3 AND {_in('empty_side', TABLE_SIDES)})",
+                    name='empty_side'),
     Index(None, 'started_at'),
     Index(None, 'max_level_rank'),
 )

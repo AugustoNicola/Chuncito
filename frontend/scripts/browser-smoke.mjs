@@ -1132,19 +1132,27 @@ try {
   const sanmaUma = await page.$$eval('.setup__uma input', (els) => els.map((e) => e.value));
   check(JSON.stringify(sanmaUma) === JSON.stringify(['15', '0', '-15']),
         `sanma uma is three fields (got ${JSON.stringify(sanmaUma)})`);
+  // The empty side: left by default, then the right one, as at a table where
+  // nobody sits between East and South.
+  const layout = () => page.$$eval('.setup__side', (els) => els.map((e) => e.textContent).join(' | '));
+  check((await layout()) === '東Ana | 南Beto | 西Cami | Empty',
+        `sanma leaves the left side empty by default (got ${await layout()})`);
+  await page.click('.setup__side[data-side="right"]');
+  check((await layout()) === '東Ana | Empty | 南Beto | 西Cami',
+        `tapping a side empties it; the three keep turn order (got ${await layout()})`);
   await shot('30-sanma-setup.png');
   await byText('Start match');
   await page.waitForSelector('.table');
 
-  const boxes = await page.$$eval('.seat', (els) => els.map((e) => e.className));
-  check(boxes.length === 3 && !boxes.some((c) => c.includes('seat--left')),
-        `the table has no North box (got ${JSON.stringify(boxes)})`);
+  const boxes = await page.$$eval('.seat', (els) => els.map((e) => `${e.dataset.seat}:${e.className}`));
+  check(JSON.stringify(boxes) === JSON.stringify(['0:seat seat--bottom', '1:seat seat--top', '2:seat seat--left']),
+        `the table leaves the chosen side empty (got ${JSON.stringify(boxes)})`);
   check(JSON.stringify(await scores()) === JSON.stringify(['35,000', '35,000', '35,000']),
         'everyone starts on 35,000');
   await shot('31-sanma-table.png');
 
   // A 1 han 30 fu non-dealer tsumo: 500 + 300, the third payer is gone.
-  await page.click('.seat--right .playerbox__main');     // Beto
+  await page.click('.seat--top .playerbox__main');       // Beto
   await page.waitForSelector('.winmenu');
   await byText('Tsumo');
   await byText('1');
@@ -1160,7 +1168,7 @@ try {
         `the dealer pays 500 and the other 300 (got ${JSON.stringify(await scores())})`);
 
   // The same tanyao as the unit test, with two Norths pulled, entered as tiles.
-  await page.click('.seat--top .playerbox__main');       // Cami
+  await page.click('.seat--left .playerbox__main');      // Cami
   await page.waitForSelector('.winmenu');
   await byText('Tsumo');
   await byText('Enter the hand and score it');
@@ -1478,7 +1486,7 @@ try {
   check(await page.$('.table') !== null && await at() === '/match',
         `a back gesture at the table does not leave the match (at ${await at()})`);
   // A half-entered hand survives one too.
-  await page.click('.seat--right .playerbox__main');
+  await page.click('.seat[data-seat="1"] .playerbox__main');
   await page.waitForSelector('.winmenu');
   await page.goBack(); await settle();
   check(await page.$('.winmenu') !== null, 'a back gesture does not close the win menu');

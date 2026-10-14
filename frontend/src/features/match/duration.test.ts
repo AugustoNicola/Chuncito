@@ -7,6 +7,7 @@ const config: MatchConfig = {
   startingPoints: 25000, targetScore: 30000, goalScore: 30000, uma: [20, 10, -10, -20],
   seats: [{ playerId: null, name: 'A' }, { playerId: null, name: 'B' },
           { playerId: null, name: 'C' }, { playerId: null, name: 'D' }],
+  emptySide: null,
 };
 const at = (minutes: number) => new Date(Date.UTC(2026, 9, 12, 20, minutes));
 const draw: HandInput = { kind: 'exhaustiveDraw', tenpai: [] };

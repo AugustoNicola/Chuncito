@@ -19,7 +19,8 @@
       "endedAt": null,
       "maxLevel": null,
       "isTest": false,
-      "ranked": false
+      "ranked": false,
+      "emptySide": null
     },
     "matchPlayers": [
       {

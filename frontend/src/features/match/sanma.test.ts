@@ -16,7 +16,8 @@ import {
 } from './scoring';
 import { fromRows, toRows } from './rows';
 import {
-  dealerOf, finalRound, lastWind, nextRound, seatWindOf, seatsOf, turnDistance, type Seat,
+  TABLE_SIDES, type TableSide, dealerOf, emptySideAfterRotation, finalRound, lastWind, nextRound,
+  seatWindOf, seatsOf, sidesOf, turnDistance, type Seat,
 } from './seats';
 
 const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
@@ -31,6 +32,7 @@ const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
   seats: [
     { playerId: null, name: 'A' }, { playerId: null, name: 'B' }, { playerId: null, name: 'C' },
   ],
+  emptySide: 'left',
   ...over,
 });
 
@@ -84,6 +86,35 @@ describe('sanma seats and rounds', () => {
   it('measures turn order around three seats', () => {
     expect(turnDistance(2, 0, 3)).toBe(1);
     expect(turnDistance(0, 2, 3)).toBe(2);
+  });
+});
+
+describe('the empty side of a sanma table', () => {
+  it('seats the three in turn order round the other sides, East at the bottom if it can', () => {
+    expect(sidesOf(3, 'left')).toMatchObject({ 0: 'bottom', 1: 'right', 2: 'top' });
+    expect(sidesOf(3, 'top')).toMatchObject({ 0: 'bottom', 1: 'right', 2: 'left' });
+    expect(sidesOf(3, 'right')).toMatchObject({ 0: 'bottom', 1: 'top', 2: 'left' });
+    expect(sidesOf(3, 'bottom')).toMatchObject({ 0: 'right', 1: 'top', 2: 'left' });
+    expect(sidesOf(4, null)).toEqual({ 0: 'bottom', 1: 'right', 2: 'top', 3: 'left' });
+  });
+
+  /** Who sits where, going round from the empty side: the real table. */
+  const roundTheTable = (people: readonly string[], empty: TableSide) => {
+    const sides = sidesOf(3, empty);
+    const at = TABLE_SIDES.map((side) => people[seatsOf(3).find((s) => sides[s] === side) ?? -1] ?? '-');
+    const gap = at.indexOf('-');
+    return [...at.slice(gap), ...at.slice(0, gap)].join(' ');
+  };
+
+  it('keeps everyone in their chair when the dealer is chosen again', () => {
+    const people = ['Ana', 'Beto', 'Cami'];
+    for (const empty of TABLE_SIDES) {
+      for (const by of [0, 1, 2]) {
+        const rotated = people.map((_, i) => people[(i + by) % 3]!);
+        expect(roundTheTable(rotated, emptySideAfterRotation(empty, by)))
+          .toBe(roundTheTable(people, empty));
+      }
+    }
   });
 });
 

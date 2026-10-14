@@ -1,6 +1,6 @@
 /**
  * The table: a player box per seat around a centre box, as seen from above.
- * In sanma the fourth chair -- the one that would start North -- stays empty.
+ * In sanma one side stays empty -- whichever was chosen at setup (`sidesOf`).
  *
  * Seat 0 sits at the bottom and the others run clockwise around the screen,
  * which puts the player to your right on the right -- the same arrangement every
@@ -10,17 +10,14 @@
  */
 import type { MatchState } from './matchState';
 import { dealerSeat, potOnTable, seatsIn } from './matchState';
-import type { Seat } from './seats';
-import { roundKanji, roundLabel, roundName, seatWindOf } from './seats';
+import type { Seat, TableSide } from './seats';
+import { roundKanji, roundLabel, roundName, seatWindOf, sidesOf } from './seats';
 import { placeLabel, placesOf } from './scoring';
 
-const SEAT_POSITION: Record<Seat, string> = {
-  0: 'bottom', 1: 'right', 2: 'top', 3: 'left',
-};
-
-function PlayerBox({ state, seat, place, onOpen, onRiichi }: {
+function PlayerBox({ state, seat, side, place, onOpen, onRiichi }: {
   state: MatchState;
   seat: Seat;
+  side: TableSide;
   /** Where this seat stands right now; null while everyone is level. */
   place: number | null;
   onOpen: (seat: Seat) => void;
@@ -34,7 +31,7 @@ function PlayerBox({ state, seat, place, onOpen, onRiichi }: {
   const live = state.status === 'in_progress';
 
   return (
-    <div className={`seat seat--${SEAT_POSITION[seat]}`} data-seat={seat}>
+    <div className={`seat seat--${side}`} data-seat={seat}>
       <div className={`playerbox${isDealer ? ' playerbox--dealer' : ''}${declared ? ' playerbox--riichi' : ''}`}>
         <button type="button" className="playerbox__main"
                 disabled={!live}
@@ -76,11 +73,12 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
 }) {
   const pot = potOnTable(state);
   const places = placesOf(state.scores);
+  const sides = sidesOf(state.config.players, state.config.emptySide);
 
   return (
     <div className="table">
       {seatsIn(state).map((seat) => (
-        <PlayerBox key={seat} state={state} seat={seat} place={places?.[seat] ?? null}
+        <PlayerBox key={seat} state={state} seat={seat} side={sides[seat]} place={places?.[seat] ?? null}
                    onOpen={onOpenSeat} onRiichi={onRiichi} />
       ))}
 

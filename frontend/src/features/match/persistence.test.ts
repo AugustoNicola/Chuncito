@@ -15,6 +15,14 @@ describe('an old mirror on a phone', () => {
     expect(goalScore).toBeGreaterThan(0);
   });
 
+  it('gives a sanma begun before the choice the left side empty, as it was drawn', () => {
+    const { emptySide: _, ...rest } = playSanmaInProgress().config;
+    const old = { ...playSanmaInProgress(), config: rest } as unknown as MatchState;
+    const { state, changed } = upgrade(old);
+    expect(changed).toBe(true);
+    expect(state.config.emptySide).toBe('left');
+  });
+
   it('leaves a current one alone', () => {
     expect(upgrade(playSanmaInProgress()).changed).toBe(false);
   });

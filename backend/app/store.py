@@ -219,6 +219,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
         'uma': json.loads(t.uma_json), 'status': t.status, 'end_reason': t.end_reason,
         'started_at': _parse_time(t.started_at), 'ended_at': _parse_time(t.ended_at),
         'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
+        'empty_side': t.empty_side,
         'revision': revision, 'content_hash': digest, 'updated_at': func.now(),
     }
     if current is None:
@@ -320,6 +321,7 @@ def load_match(conn: Connection, match_id: str
             'status': t.status, 'end_reason': t.end_reason,
             'started_at': _format_time(t.started_at), 'ended_at': _format_time(t.ended_at),
             'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
+            'empty_side': t.empty_side,
         },
         match_players=[{
             'seat': p.seat, 'player_id': p.player_id, 'guest_name': p.guest_name,

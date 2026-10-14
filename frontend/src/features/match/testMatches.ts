@@ -28,6 +28,7 @@ export const fourPlayerConfig: MatchConfig = {
     { playerId: 'player-ana', name: 'Ana' }, { playerId: 'player-beto', name: 'Beto' },
     { playerId: null, name: 'Cami' }, { playerId: null, name: 'Dani' },
   ],
+  emptySide: null,
 };
 
 /** Display names for the registered seats above, as `fromRows` wants them. */
@@ -115,6 +116,8 @@ export function playSanmaInProgress(): MatchState {
       { playerId: null, name: 'Ana' }, { playerId: null, name: 'Beto' },
       { playerId: null, name: 'Cami' },
     ],
+    // Not the default, so the wire and the database carry a real choice.
+    emptySide: 'top',
   }, new Date('2026-09-22T20:15:30.250Z'));
   let hands = 0;
   const play = (input: HandInput) => {
