@@ -47,14 +47,15 @@ frontend/src/features/match/ match tracker: seats + scoring + matchState (pure),
                              (saving to the server), and the table/menu/timeline
                              components
 frontend/src/features/players/ the Players screen and the cached player list
-frontend/src/features/history/ match list (filters live in the URL) and match review
+frontend/src/features/history/ match list (filters live in the URL) and match review;
+                             a played match is entered with SetupScreen's onEnter
 frontend/src/ui/             Tile, theme.css
 frontend/scripts/            browser-smoke.mjs, the real-browser end-to-end test
 backend/app/                 FastAPI: settings (dev/main target), db, models (the
                              tables), schemas (the wire format = MatchRows), store
                              (save/load a whole match), auth (the PIN), main (routes)
 backend/migrations/          Alembic; 0001 is the schema, then one per change (0002 rules, 0003 goal_score, 0004 target_score, 0005 ranked, 0006 hand recorded_at,
-                             0007 sanma empty_side)
+                             0007 sanma empty_side, 0008 imported)
 backend/tests/               pytest on real Postgres; fixtures/ written by wire.test.ts
 backend/scripts/             db_backup, check_migrations (the release phase)
 docs/                        contract, gaps, architecture, data model, deploy, roadmap

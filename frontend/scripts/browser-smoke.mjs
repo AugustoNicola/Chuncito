@@ -147,7 +147,8 @@ try {
           playerIds: m.rows.matchPlayers.map((p) => p.playerId),
           scores: m.rows.matchPlayers.map((p) => p.finalScore),
           placements: m.rows.matchPlayers.map((p) => p.placement),
-          maxLevel: m.rows.match.maxLevel, ranked: m.rows.match.ranked, revision: m.revision,
+          maxLevel: m.rows.match.maxLevel, ranked: m.rows.match.ranked,
+          imported: m.rows.match.imported ?? false, revision: m.revision,
         })));
     }
     const id = decodeURIComponent(path.replace('/matches/', ''));
@@ -1666,6 +1667,58 @@ try {
   await byText('Back');
   await page.waitForSelector('.history__filters');
   check(await at() === '/matches', `Back from a linked match goes to the list (got ${await at()})`);
+
+  // --- a match played without the tracker, entered afterwards ---
+  await page.click('.history__enter');
+  await page.waitForSelector('.setup');
+  check(await at() === '/matches/add', `the list leads to entering a played match (at ${await at()})`);
+  check(!(await page.$('.setup__shuffles')) && !(await page.$('.setup__layout')),
+        'a played match has no dealer to choose and no table to lay out');
+  await seatGuests(['Fede', 'Gabi', 'Hugo', 'Iris']);
+  const finalInputs = await page.$$('.setup__final');
+  check(finalInputs.length === 4, `each seat takes a final score (got ${finalInputs.length})`);
+  for (const [i, v] of ['41000', '30000', '21000', '9000'].entries()) await finalInputs[i].type(v);
+  const saveEntered = () => page.$eval('.app__footer .btn--primary', (b) => ({ text: b.textContent, disabled: b.disabled }));
+  const sumWarn = await page.$eval('.setup__warn', (e) => e.textContent);
+  check(sumWarn.includes('101,000') && sumWarn.includes('100,000') && (await saveEntered()).disabled,
+        `scores that do not add up are refused (got "${sumWarn}")`);
+  await finalInputs[3].focus();
+  await page.keyboard.down('Control'); await page.keyboard.press('a'); await page.keyboard.up('Control');
+  await finalInputs[3].type('8,000');
+  await page.waitForSelector('.endscreen .standings');
+  const enteredStandings = await page.$$eval('.standings__row', (els) => els.map((e) =>
+    `${e.querySelector('.standings__place').textContent} ${e.querySelector('.standings__name').textContent}`));
+  check(JSON.stringify(enteredStandings) === JSON.stringify(['1st 東Fede', '2nd 南Gabi', '3rd 西Hugo', '4th 北Iris']),
+        `the result is worked out before saving (got ${JSON.stringify(enteredStandings)})`);
+  check(await page.$eval('.endscreen__meta', (e) => e.textContent) === 'Entered after it was played',
+        'with no hands, rounds or duration to show');
+  await page.type('input[placeholder="e.g. the one at the club"]', 'at the club');
+  await shot('55-entered-form.png', { fullPage: true });
+  check(JSON.stringify(await saveEntered()) === JSON.stringify({ text: 'Save match', disabled: false }),
+        'and can be saved once it adds up');
+  await byText('Save match');
+  await waitListed(() => [...document.querySelectorAll('.history__name')].some((e) => e.textContent === 'at the club'));
+  check(await at() === '/matches', `saving goes back to the list (at ${await at()})`);
+  const entered = [...api.matches.values()].find((m) => m.rows.match.name === 'at the club').rows;
+  check(entered.match.imported === true && entered.match.status === 'finished' && entered.hands.length === 0
+        && entered.match.endedAt === null && entered.match.ranked === true
+        && JSON.stringify(entered.matchPlayers.map((p) => [p.finalScore, p.placement]))
+          === JSON.stringify([[41000, 1], [30000, 2], [21000, 3], [8000, 4]]),
+        `the server gets a finished, hand-less match with its places (got ${JSON.stringify(entered.match)})`);
+  const enteredMeta = await page.$$eval('.history__item', (els) => els
+    .find((e) => e.querySelector('.history__name').textContent === 'at the club')
+    .querySelector('.history__meta').textContent);
+  check(enteredMeta.includes('Entered afterwards') && !enteredMeta.includes('hand'),
+        `its card says it was entered, not how many hands (got "${enteredMeta}")`);
+  await page.$$eval('.history__item', (els) => els
+    .find((e) => e.querySelector('.history__name').textContent === 'at the club').click());
+  await page.waitForSelector('.review');
+  const enteredNote = await page.$eval('.review__hands .timeline__empty', (e) => e.textContent);
+  check(enteredNote.includes('only the final scores') && !(await page.$('.standchart')),
+        `its review has no timeline or chart (got "${enteredNote}")`);
+  await shot('56-entered-review.png', { fullPage: true });
+  await byText('Back');
+  await page.waitForSelector('.history__filters');
 
   // Locked after the gate (the PIN changed, say), the history asks for it
   // itself rather than showing nothing.

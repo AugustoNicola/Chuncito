@@ -116,6 +116,8 @@ export interface ServerMatch {
   placements: (number | null)[];
   /** Played for MAKApoints. */
   ranked: boolean;
+  /** Played without the tracker and entered afterwards: no hands to count. */
+  imported: boolean;
   /** The best limit reached, as the engine's atom; null if nobody has won. */
   maxLevel: string | null;
   revision: number;

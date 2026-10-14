@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UMA, type HandInput, type MatchConfig, type MatchState,
   LEFTOVER_NOTE, adjustScore, adjustScores, advanceRoundManually, createMatch, endMatchManually,
-  canSaveAsEast, continueAsSouth, maxLevel, potOnTable, recordHand, saveAsEast, standingsOverTime, toggleRiichi, undoLastHand,
+  IMPORTED_NOTE, canSaveAsEast, continueAsSouth, enteredMatch, enteredScoresProblem, maxLevel, potOnTable, recordHand, saveAsEast, standingsOverTime, toggleRiichi, undoLastHand,
 } from './matchState';
-import { playEverything } from './testMatches';
+import { enterPlayedMatch, fourPlayerConfig, nameOfTest, playEverything } from './testMatches';
 import { fromRows, toRows } from './rows';
 import {
   type Delta, type ManualShape, MANUAL_FU, MANUAL_HAN, baseFromResult, basePoints, levelFor,
@@ -737,5 +737,52 @@ describe('changing the length of a finished match', () => {
     t = play(t, win(1, 3, { dealIn: 2, han: 5, fu: 30 }));
     expect(t.status).toBe('finished');
     expect(continueAsSouth(t)).toBeNull();
+  });
+});
+
+
+describe('a match entered after it was played', () => {
+  it('is finished, with the final scores and nothing else', () => {
+    const state = enterPlayedMatch();
+    expect(state.status).toBe('finished');
+    expect(state.imported).toBe(true);
+    expect(state.scores).toEqual([33000, 33000, 26000, 8000]);
+    expect(state.hands).toEqual([]);
+    // Nobody knows how long it took, so nothing will say.
+    expect(state.endedAt).toBeNull();
+    expect(state.startedAt).toBe('2026-10-10T21:00:00.000Z');
+    expect(state.adjustments.every((a) => a.note === IMPORTED_NOTE && a.afterSeq === 0)).toBe(true);
+    expect(state.adjustments.map((a) => a.seat)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('places a tie by the starting winds, and pays MAKApoints like any other', () => {
+    const state = enterPlayedMatch();
+    const results = matchResults(state.scores, state.config);
+    expect(results.map((r) => r.seat)).toEqual([0, 1, 2, 3]);
+    expect(results.reduce((a, r) => a + r.total, 0)).toBe(0);
+    expect(state.ranked).toBe(true);
+  });
+
+  it('round-trips through the rows', () => {
+    const state = enterPlayedMatch();
+    expect(fromRows(toRows(state), nameOfTest)).toEqual(state);
+    expect(toRows(state).matchPlayers.map((p) => p.placement)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('leaves out a seat that ended where it started', () => {
+    const state = enteredMatch(fourPlayerConfig, [25000, 35000, 20000, 20000],
+      { name: '', ranked: false, playedAt: new Date() });
+    expect(state.adjustments.map((a) => a.seat)).toEqual([1, 2, 3]);
+  });
+
+  it('refuses scores that could not have come out of the starting points', () => {
+    expect(enteredScoresProblem(fourPlayerConfig, [33000, 33000, 26000, 8000])).toBeNull();
+    expect(enteredScoresProblem(fourPlayerConfig, [33000, 33000, 26000, 9000]))
+      .toMatch(/add up to 101,000.*100,000 \(\+1,000\)/);
+    expect(enteredScoresProblem(fourPlayerConfig, [33050, 32950, 26000, 8000])).toMatch(/hundreds/);
+    expect(enteredScoresProblem(fourPlayerConfig, [33000, 33000, 34000])).toMatch(/Every player/);
+    expect(enteredScoresProblem(fourPlayerConfig, [33000, NaN, 26000, 8000])).toMatch(/Every player/);
+    // A bust is a score like any other.
+    expect(enteredScoresProblem(fourPlayerConfig, [52000, 30000, 20000, -2000])).toBeNull();
   });
 });

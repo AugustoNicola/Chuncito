@@ -219,7 +219,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
         'uma': json.loads(t.uma_json), 'status': t.status, 'end_reason': t.end_reason,
         'started_at': _parse_time(t.started_at), 'ended_at': _parse_time(t.ended_at),
         'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
-        'empty_side': t.empty_side,
+        'empty_side': t.empty_side, 'imported': t.imported,
         'revision': revision, 'content_hash': digest, 'updated_at': func.now(),
     }
     if current is None:
@@ -321,7 +321,7 @@ def load_match(conn: Connection, match_id: str
             'status': t.status, 'end_reason': t.end_reason,
             'started_at': _format_time(t.started_at), 'ended_at': _format_time(t.ended_at),
             'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
-            'empty_side': t.empty_side,
+            'empty_side': t.empty_side, 'imported': t.imported,
         },
         match_players=[{
             'seat': p.seat, 'player_id': p.player_id, 'guest_name': p.guest_name,
@@ -440,6 +440,7 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
         placements=[s.placement for s in by_match.get(t.id, [])],
         max_level=t.max_level,
         ranked=t.ranked,
+        imported=t.imported,
         revision=t.revision,
     ) for t in matches]
 

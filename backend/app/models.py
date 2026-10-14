@@ -103,6 +103,8 @@ matches = Table(
     # Sanma's empty side of the table, as the screen draws it (0007). Null with
     # four players, and on sanma saved before it was chosen (then: left).
     Column('empty_side', Text),
+    # Played without the tracker and entered afterwards: final scores only (0008).
+    Column('imported', Boolean, nullable=False, server_default='false'),
     # When the server last took a write, for the sync status and for spotting
     # a phone that has been offline a long time.
     Column('updated_at', DateTime(timezone=True), nullable=False, server_default=func.now()),

@@ -50,7 +50,7 @@ def put(client, rows: dict, base: int = 0):
 
 
 def test_the_fixtures_are_there():
-    assert set(FIXTURES) == {'four-player-finished', 'sanma-in-progress', 'empty'}
+    assert set(FIXTURES) == {'four-player-finished', 'sanma-in-progress', 'empty', 'entered'}
 
 
 # --- the PIN ---
@@ -88,7 +88,7 @@ def test_a_forged_cookie_does_not_unlock(client):
 
 # --- saving and loading ---
 
-@pytest.mark.parametrize('name', ['four-player-finished', 'sanma-in-progress', 'empty'])
+@pytest.mark.parametrize('name', ['four-player-finished', 'sanma-in-progress', 'empty', 'entered'])
 def test_a_match_comes_back_exactly_as_it_was_sent(unlocked, name):
     rows = fixture(name, f'rt-{name}')
     saved = put(unlocked, rows)
@@ -124,6 +124,14 @@ def test_only_sanma_has_an_empty_side(unlocked):
     response = put(unlocked, rows)
     assert response.status_code == 422
     assert 'only a sanma table' in response.text
+
+
+def test_an_entered_match_has_no_hands(unlocked):
+    rows = fixture('entered', 'entered-with-hands')
+    rows['hands'] = copy.deepcopy(FIXTURES['four-player-finished']['rows']['hands'][:1])
+    response = put(unlocked, rows)
+    assert response.status_code == 422
+    assert 'no hands' in response.text
 
 
 def test_a_retried_save_is_not_a_second_write(unlocked):
@@ -377,6 +385,26 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     s = unlocked.get(f"/api/players/{beto['slug']}/stats", params={'players': 3}).json()
     assert s['players'] == 3 and s['matches'] == [] and s['placementCounts'] == [0, 0, 0]
     assert s['matchesFour'] == 1
+
+
+def test_an_entered_match_counts_for_places_and_makapoints(unlocked):
+    eli = unlocked.post('/api/players', json={'displayName': 'Entered Eli'}).json()
+    rows = fixture('entered', 'stats-entered')
+    rows['matchPlayers'][0]['playerId'] = eli['id']
+    assert put(unlocked, rows).status_code == 200
+
+    e = unlocked.get(f"/api/players/{eli['slug']}/stats").json()
+    assert e['matchesFour'] == 1 and e['placementCounts'] == [1, 0, 0, 0]
+    # 1st on 33,000 (a tie, won on the starting wind) against a 30,000
+    # target, +20 uma, +20 oka, +5 for playing.
+    assert (e['mpPoints'], e['mpMatches']) == (3000 + 20000 + 20000 + 5000, 1)
+    # No hands, so nothing that is counted per hand moves.
+    assert (e['hands'], e['wins'], e['dealIns']) == (0, 0, 0)
+    assert e['matches'][0]['endedAt'] is None
+
+    listed = {m['id']: m for m in unlocked.get('/api/matches').json()}
+    assert listed['stats-entered']['imported'] is True
+    assert listed['stats-entered']['hands'] == 0
 
 
 def test_a_profile_needs_a_real_player(unlocked, client):

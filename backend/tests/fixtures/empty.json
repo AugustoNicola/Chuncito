@@ -20,7 +20,8 @@
       "maxLevel": null,
       "isTest": false,
       "ranked": false,
-      "emptySide": null
+      "emptySide": null,
+      "imported": false
     },
     "matchPlayers": [
       {

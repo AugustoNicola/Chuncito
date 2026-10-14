@@ -46,6 +46,8 @@ class MatchTable(Wire):
     ranked: bool
     # Sanma only. Defaulted so a phone still on the previous version can save.
     empty_side: Literal['bottom', 'right', 'top', 'left'] | None = None
+    # Entered after it was played, with no hands. Defaulted, as above.
+    imported: bool = False
 
 
 class MatchPlayer(Wire):
@@ -123,6 +125,8 @@ class MatchRows(Wire):
         players = self.match.players
         if players == 4 and self.match.empty_side is not None:
             raise ValueError('only a sanma table has an empty side')
+        if self.match.imported and (self.hands or self.match.status != 'finished'):
+            raise ValueError('an entered match is finished and has no hands')
         seats = sorted(p.seat for p in self.match_players)
         if seats != list(range(players)):
             raise ValueError(f'a {players}-player match needs seats 0..{players - 1}, got {seats}')
@@ -212,6 +216,7 @@ class MatchSummary(Wire):
     # has won a hand.
     max_level: str | None
     ranked: bool
+    imported: bool
     revision: int
 
 

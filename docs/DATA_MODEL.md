@@ -29,8 +29,10 @@ matches(id, name, players ENUM(3,4), red_fives BOOL,
         max_level,        -- denormalised: best limit hand in the match
         is_test,          -- dev rows, hidden from the UI by default
         ranked,           -- played for MAKApoints, chosen when saved (0005)
-        empty_side NULL)  -- sanma: the side of the table nobody sits at, as the
+        empty_side NULL,  -- sanma: the side of the table nobody sits at, as the
                           -- screen draws it (0007); null = left, as before
+        imported)         -- played without the tracker, entered afterwards (0008):
+                          -- no hands, ended_at NULL, final scores as adjustments
 
 match_players(match_id, seat 0..players-1, player_id NULL, guest_name NULL,
               final_score, placement, uma_points)

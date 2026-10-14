@@ -60,7 +60,12 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
             </div>
             <section className="review__hands">
               <h2 className="home__heading review__heading">Hands</h2>
-              <TimelineList state={state} linkPlayers />
+              {state.imported ? (
+                <p className="timeline__empty">
+                  Played without Chuncito and entered afterwards: only the final
+                  scores were kept.
+                </p>
+              ) : <TimelineList state={state} linkPlayers />}
             </section>
           </div>
           {/* The working behind the results, out of the way at the foot of the page. */}

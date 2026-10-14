@@ -62,12 +62,19 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
   return (
     <>
       <div className="endscreen__meta">
-        <span>{END_REASON[state.endReason ?? ''] ?? 'Finished'}</span>
-        <span>·</span>
-        <span>{hands} hand{hands === 1 ? '' : 's'}</span>
-        <span>·</span>
-        <span>{roundLabel(state.round)}</span>
-        {took !== null && <><span>·</span><span className="endscreen__duration">{durationLabel(took)}</span></>}
+        {state.imported ? (
+          // Played without the tracker: no hands, no round, no time to show.
+          <span>Entered after it was played</span>
+        ) : (
+          <>
+            <span>{END_REASON[state.endReason ?? ''] ?? 'Finished'}</span>
+            <span>·</span>
+            <span>{hands} hand{hands === 1 ? '' : 's'}</span>
+            <span>·</span>
+            <span>{roundLabel(state.round)}</span>
+            {took !== null && <><span>·</span><span className="endscreen__duration">{durationLabel(took)}</span></>}
+          </>
+        )}
       </div>
 
       <ol className="standings">

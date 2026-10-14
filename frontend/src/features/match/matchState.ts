@@ -181,8 +181,15 @@ export interface MatchState {
   ranked: boolean;
   /** Set on the end screen. */
   name: string;
+  /** When it was played; for an entered match, when it was said to be. */
   startedAt: string;
+  /** Null until it ends, and on an entered match, whose length nobody knows. */
   endedAt: string | null;
+  /**
+   * Played somewhere else and entered afterwards (`enteredMatch`): its final
+   * scores and nothing else -- no hands, no rounds, no time taken.
+   */
+  imported: boolean;
 }
 
 /** The value of a win, however it was arrived at. */
@@ -286,6 +293,7 @@ export function createMatch(config: MatchConfig, now = new Date(), id = uuid()):
     name: '',
     startedAt: now.toISOString(),
     endedAt: null,
+    imported: false,
   };
 }
 
@@ -667,6 +675,53 @@ export function endMatchManually(state: MatchState, now = new Date()): MatchStat
     endReason: 'manual',
     endedAt: now.toISOString(),
   });
+}
+
+// --- a match played without the tracker ---
+
+/** The note on the adjustments that carry an entered match's final scores. */
+export const IMPORTED_NOTE = 'Final score, entered after the match';
+
+/**
+ * Why these final scores cannot be entered, or null if they can. Points move
+ * in hundreds and only between players, so the scores must be whole hundreds
+ * summing to what the table started with -- a typo almost never does both.
+ */
+export function enteredScoresProblem(config: MatchConfig, finals: readonly number[]): string | null {
+  if (finals.length !== config.players || finals.some((n) => !Number.isInteger(n))) {
+    return 'Every player needs a final score.';
+  }
+  if (finals.some((n) => n % 100 !== 0)) return 'Scores move in hundreds; check the last two digits.';
+  const sum = finals.reduce((a, b) => a + b, 0);
+  const expected = config.startingPoints * config.players;
+  if (sum !== expected) {
+    return `The scores add up to ${sum.toLocaleString()}, but ${config.players} players starting on ${
+      config.startingPoints.toLocaleString()} make ${expected.toLocaleString()} (${
+      sum > expected ? '+' : '−'}${Math.abs(sum - expected).toLocaleString()}).`;
+  }
+  return null;
+}
+
+/**
+ * A match played without the tracker, from its final scores: finished, with
+ * no hands, the scores reached by one adjustment per seat that moved -- so
+ * `scores` is still the starting points plus the adjustments, the same as
+ * for any other match, and the results, placements and MAKApoints follow
+ * as they would on an end screen. Its end time stays null: how long it took
+ * is not known, so no duration is ever shown for it.
+ */
+export function enteredMatch(
+  config: MatchConfig, finals: readonly number[],
+  meta: { name: string; ranked: boolean; playedAt: Date }, id = uuid(),
+): MatchState {
+  const started = createMatch(config, meta.playedAt, id);
+  return {
+    ...adjustScores(started, finals, IMPORTED_NOTE),
+    status: 'finished',
+    name: meta.name,
+    ranked: meta.ranked,
+    imported: true,
+  };
 }
 
 // --- changing the length once the match is over ---

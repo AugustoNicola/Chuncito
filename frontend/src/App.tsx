@@ -10,6 +10,7 @@
  * | `/players`    | adding and renaming players |
  * | `/players/:slug` | a player's stats; `?players=3` for sanma |
  * | `/matches`    | finished matches; the filters are the query string |
+ * | `/matches/add`| a match played without the tracker, entered afterwards |
  * | `/matches/:id`| one finished match, read back |
  *
  * The match lives here rather than in a route, since home, setup and the table
@@ -31,7 +32,7 @@ import { HandBuilder } from './features/hand/HandBuilder';
 import { MatchScreen } from './features/match/MatchScreen';
 import { SetupScreen } from './features/match/SetupScreen';
 import { createMatch, type MatchConfig, type MatchState } from './features/match/matchState';
-import { clearMatch, loadMatch } from './features/match/persistence';
+import { archiveMatch, clearMatch, loadMatch } from './features/match/persistence';
 import { roundLabel } from './features/match/seats';
 import { PinForm, SyncPanel } from './features/match/SyncPanel';
 import { PlayersScreen } from './features/players/PlayersScreen';
@@ -39,8 +40,8 @@ import { ProfileScreen } from './features/players/ProfileScreen';
 import { MatchList } from './features/history/MatchList';
 import { MatchReview } from './features/history/MatchReview';
 import {
-  type ServerMatch, matchesInProgress, resumeFromServer, sessionLocked, startSync, sync,
-  useSyncStatus,
+  type ServerMatch, matchesInProgress, queueMatch, resumeFromServer, sessionLocked, startSync,
+  sync, useSyncStatus,
 } from './features/match/syncClient';
 
 export function App() {
@@ -233,6 +234,18 @@ export function App() {
       <Route path="/players" element={<PlayersScreen onBack={back()} />} />
       <Route path="/players/:slug" element={<ProfileScreen onBack={back('/players')} />} />
       <Route path="/matches" element={<MatchList onBack={back()} />} />
+      <Route path="/matches/add" element={
+        <SetupScreen
+          onCancel={back('/matches')}
+          onEnter={(entered) => {
+            // Saved like a match finished at the table: queued for the server,
+            // and kept on the phone until it is there.
+            queueMatch(entered);
+            void archiveMatch(entered);
+            back('/matches')();
+          }}
+        />
+      } />
       <Route path="/matches/:id" element={<MatchReview onBack={back('/matches')} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

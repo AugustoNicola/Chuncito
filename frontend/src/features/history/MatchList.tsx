@@ -13,7 +13,7 @@ import { levelName, levelTier } from '../hand/yakuNames';
 import { PinForm } from '../match/SyncPanel';
 import { placeLabel } from '../match/scoring';
 import { durationLabel, matchDuration } from '../match/duration';
-import { type ServerMatch, refreshPlayers } from '../match/syncClient';
+import { type ServerMatch, refreshPlayers, useSyncStatus } from '../match/syncClient';
 import { type Player, byRecent, cachedPlayers } from '../players/players';
 import {
   type Fetched, type HistoryFilters, LEVELS, NO_FILTERS, YAKU_CHOICES, fetchHistory,
@@ -39,6 +39,8 @@ export function MatchList({ onBack }: { onBack: () => void }) {
   const [players, setPlayers] = useState<Player[]>(() => byRecent(cachedPlayers()));
   const [reload, setReload] = useState(0);
   const key = paramsOf(filters).toString();
+  // Asked again when a save lands, so a match just entered shows up.
+  const syncState = useSyncStatus().state;
 
   useEffect(() => { void refreshPlayers().then((fresh) => { if (fresh) setPlayers(byRecent(fresh)); }); }, [reload]);
 
@@ -51,7 +53,7 @@ export function MatchList({ onBack }: { onBack: () => void }) {
     }, filters.text ? TYPING_MS : 0);
     return () => { cancelled = true; clearTimeout(timer); };
     // `filters.text` only decides the delay; `key` already carries it.
-  }, [key, reload]);
+  }, [key, reload, syncState]);
 
   const change = (next: Partial<HistoryFilters>) =>
     setParams(paramsOf({ ...filters, ...next }), { replace: true });
@@ -130,6 +132,11 @@ export function MatchList({ onBack }: { onBack: () => void }) {
             Clear filters
           </button>
         )}
+
+        {/* A match played without the tracker, so it still counts. */}
+        <Link className="btn btn--wide history__enter" to="/matches/add">
+          Enter a played match
+        </Link>
       </section>
 
       <div className="history__results">
@@ -184,7 +191,8 @@ function MatchItem({ match }: { match: ServerMatch }) {
         {matchDate(match.startedAt)}
         {match.players === 3 && ' · Sanma'}
         {match.ranked && ' · For MPs'}
-        {` · ${match.hands} hand${match.hands === 1 ? '' : 's'}`}
+        {match.imported ? ' · Entered afterwards'
+          : ` · ${match.hands} hand${match.hands === 1 ? '' : 's'}`}
         {took !== null && ` · ${durationLabel(took)}`}
       </span>
       <span className="history__standings">

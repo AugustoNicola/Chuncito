@@ -1,0 +1,106 @@
+{
+  "rows": {
+    "match": {
+      "id": "fixture-entered",
+      "name": "at the club",
+      "players": 4,
+      "redFives": true,
+      "rules": [
+        "riichiAbiertoRonYakuman"
+      ],
+      "length": "south",
+      "startingPoints": 25000,
+      "targetScore": 30000,
+      "goalScore": 30000,
+      "umaJson": "[20,10,-10,-20]",
+      "status": "finished",
+      "endReason": null,
+      "startedAt": "2026-10-10T21:00:00.000Z",
+      "endedAt": null,
+      "maxLevel": null,
+      "isTest": false,
+      "ranked": true,
+      "emptySide": null,
+      "imported": true
+    },
+    "matchPlayers": [
+      {
+        "seat": 0,
+        "playerId": "player-ana",
+        "guestName": null,
+        "finalScore": 33000,
+        "placement": 1,
+        "umaPoints": 20
+      },
+      {
+        "seat": 1,
+        "playerId": "player-beto",
+        "guestName": null,
+        "finalScore": 33000,
+        "placement": 2,
+        "umaPoints": 10
+      },
+      {
+        "seat": 2,
+        "playerId": null,
+        "guestName": "Cami",
+        "finalScore": 26000,
+        "placement": 3,
+        "umaPoints": -10
+      },
+      {
+        "seat": 3,
+        "playerId": null,
+        "guestName": "Dani",
+        "finalScore": 8000,
+        "placement": 4,
+        "umaPoints": -20
+      }
+    ],
+    "hands": [],
+    "handWins": [],
+    "handRiichi": [],
+    "handTenpai": [],
+    "handYakus": [],
+    "adjustments": [
+      {
+        "clientUuid": "fixture-entered-adj-1",
+        "afterSeq": 0,
+        "seat": 0,
+        "delta": 8000,
+        "note": "Final score, entered after the match"
+      },
+      {
+        "clientUuid": "fixture-entered-adj-2",
+        "afterSeq": 0,
+        "seat": 1,
+        "delta": 8000,
+        "note": "Final score, entered after the match"
+      },
+      {
+        "clientUuid": "fixture-entered-adj-3",
+        "afterSeq": 0,
+        "seat": 2,
+        "delta": 1000,
+        "note": "Final score, entered after the match"
+      },
+      {
+        "clientUuid": "fixture-entered-adj-4",
+        "afterSeq": 0,
+        "seat": 3,
+        "delta": -17000,
+        "note": "Final score, entered after the match"
+      }
+    ]
+  },
+  "players": [
+    {
+      "id": "player-ana",
+      "displayName": "Ana"
+    },
+    {
+      "id": "player-beto",
+      "displayName": "Beto"
+    }
+  ]
+}

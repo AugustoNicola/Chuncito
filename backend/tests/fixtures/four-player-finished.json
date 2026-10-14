@@ -20,7 +20,8 @@
       "maxLevel": "mangan",
       "isTest": false,
       "ranked": true,
-      "emptySide": null
+      "emptySide": null,
+      "imported": false
     },
     "matchPlayers": [
       {

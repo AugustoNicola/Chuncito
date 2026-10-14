@@ -910,6 +910,29 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
       wire field is defaulted on the server, so a phone on the previous
       version still saves (tested), and a four-player match with a side is
       refused. The smoke test plays its sanma with the right side empty.
+- [x] **Entering a match played without Chuncito.** History → **Enter a
+      played match** (`/matches/add`): `SetupScreen` with `onEnter` — the same
+      players (by starting wind, which breaks ties) and rules, plus each
+      seat's final score, when it was played (`datetime-local`, not in the
+      future), a name and **Played for MPs / Just for fun** (MPs by default,
+      as on the end screen). No Choose dealer, Shuffle or table layout. The
+      results are worked out below (`MatchOutcome`) before **Save match**
+      is enabled. Scores must be whole hundreds summing to start × players
+      (`enteredScoresProblem`, tested; the message gives the difference).
+      `enteredMatch` (tested) makes a finished match with **no hands** and
+      the final scores as one adjustment per seat that moved
+      (`IMPORTED_NOTE`, after hand 0), so scores are still start +
+      adjustments and placements, uma and MPs come out as for any match.
+      `endedAt` stays null, so no duration is shown anywhere. Saved like a
+      match finished at the table (queued and archived), so it works
+      offline. `MatchState.imported` / `matches.imported` (**migration
+      `0008`**, additive, defaulted on the wire); the server refuses an
+      entered match with hands or not finished. The review says "Entered
+      after it was played" with no timeline or chart; the history card says
+      "Entered afterwards" instead of a hand count (`MatchSummary.imported`).
+      The history list now refetches when the sync state changes, so the new
+      match appears once its save lands. Backend test: an entered match
+      counts for places and MPs, and for nothing per-hand.
 
 ## Picking this up cold
 

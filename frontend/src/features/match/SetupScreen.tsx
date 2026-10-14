@@ -1,6 +1,11 @@
 /**
  * Match setup: who is playing, where they sit, and the rules.
  *
+ * Also, with `onEnter`, the form for a match played without the tracker: the
+ * same players and rules, plus each seat's final score, when it was played,
+ * its name and whether it was for MAKApoints. Its results are shown worked
+ * out before it is saved, as an end screen would show them.
+ *
  * Each seat is chosen from the group's players (`players.ts`). Typing only
  * searches; a name nobody has can be added as a player, but only by tapping
  * the option that says so -- Enter never creates one, so a typo cannot invent
@@ -8,8 +13,9 @@
  * guest: on this match only, marked as such. Works offline from the cached list.
  */
 import { useEffect, useRef, useState } from 'react';
-import type { MatchConfig, SeatPlayer } from './matchState';
-import { DEFAULTS } from './matchState';
+import type { MatchConfig, MatchState, SeatPlayer } from './matchState';
+import { DEFAULTS, enteredMatch, enteredScoresProblem } from './matchState';
+import { MatchOutcome } from './MatchOutcome';
 import type { MatchLength, PlayerCount, Seat, TableSide } from './seats';
 import {
   TABLE_SIDES, emptySideAfterRotation, roundKanji, roundName, seatsOf, sidesOf,
@@ -83,10 +89,19 @@ function TableLayout({ empty, seated, onPick }: {
   );
 }
 
-export function SetupScreen({ onStart, onCancel }: {
-  onStart: (config: MatchConfig) => void;
+/** A `datetime-local` value for now, in the phone's own time zone. */
+function localNow(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+export function SetupScreen({ onStart, onEnter, onCancel }: {
+  onStart?: (config: MatchConfig) => void;
+  /** Makes this the form for a match already played; called with it, finished. */
+  onEnter?: (state: MatchState) => void;
   onCancel?: () => void;
 }) {
+  const entering = onEnter !== undefined;
   const [players, setPlayers] = useState<PlayerCount>(4);
   /**
    * Always four slots, so switching to sanma and back does not lose whoever
@@ -113,6 +128,12 @@ export function SetupScreen({ onStart, onCancel }: {
   const [addError, setAddError] = useState<{ seat: Seat; text: string } | null>(null);
   /** Who "Choose dealer" picked -- said, since it can pick whoever already deals. */
   const [dealerNote, setDealerNote] = useState<string | null>(null);
+  // Entering a played match only.
+  const [finals, setFinals] = useState<string[]>(['', '', '', '']);
+  const [playedAt, setPlayedAt] = useState(localNow);
+  const [name, setName] = useState('');
+  /** For MAKApoints unless said otherwise, as on the end screen. */
+  const [ranked, setRanked] = useState(true);
 
   // The cache is enough to start with; the server's list replaces it if it answers.
   useEffect(() => {
@@ -196,22 +217,41 @@ export function SetupScreen({ onStart, onCancel }: {
   const rules: Rule[] = openRiichiYakuman ? ['riichiAbiertoRonYakuman'] : [];
   const ready = filled && !duplicate && rulesValid;
 
+  const config = (): MatchConfig => ({
+    players,
+    redFives,
+    rules,
+    length,
+    startingPoints,
+    targetScore,
+    goalScore,
+    uma: umaValues,
+    seats: seated as SeatPlayer[],
+    // There is no table to draw for a match entered afterwards.
+    emptySide: players === 3 && !entering ? emptySide : null,
+  });
+
+  // Entering a played match: the scores must be able to have come out of the
+  // table, and it cannot have been played later than now.
+  const finalValues = finals.slice(0, players).map((v) => (v.trim() === '' ? NaN : Number(v.trim())));
+  const scoresProblem = entering ? enteredScoresProblem(config(), finalValues) : null;
+  const scoresTyped = finals.slice(0, players).every((v) => v.trim() !== '');
+  const playedDate = new Date(playedAt);
+  const whenProblem = Number.isNaN(playedDate.getTime()) ? 'Say when it was played.'
+    : playedDate.getTime() > Date.now() ? 'That is still to come.' : null;
+  const preview = entering && ready && !scoresProblem && !whenProblem
+    ? enteredMatch(config(), finalValues, { name: name.trim(), ranked, playedAt: playedDate })
+    : null;
+
   function start() {
     if (!ready) return;
     const chosen = seated as SeatPlayer[];
     markSeated(chosen.flatMap((c) => (c.playerId ? [c.playerId] : [])));
-    onStart({
-      players,
-      redFives,
-      rules,
-      length,
-      startingPoints,
-      targetScore,
-      goalScore,
-      uma: umaValues,
-      seats: chosen,
-      emptySide: players === 3 ? emptySide : null,
-    });
+    if (entering) {
+      if (preview) onEnter(preview);
+      return;
+    }
+    onStart?.(config());
   }
 
   return (
@@ -220,7 +260,7 @@ export function SetupScreen({ onStart, onCancel }: {
         {onCancel && (
           <button type="button" className="btn btn--quiet" onClick={onCancel}>Back</button>
         )}
-        <h1 className="app__title">New match</h1>
+        <h1 className="app__title">{entering ? 'Enter a played match' : 'New match'}</h1>
         <span className="app__barspacer" />
       </header>
 
@@ -247,9 +287,15 @@ export function SetupScreen({ onStart, onCancel }: {
 
         <div className="field">
           <span className="field__label">Players</span>
+          {entering && (
+            <span className="field__hint">
+              Each by the wind they started on, and their score at the end.
+            </span>
+          )}
           {/* Choose dealer is for a table already sat down: the seats stay as
-              they are and only East moves round. Shuffle all re-seats everyone. */}
-          <div className="setup__shuffles">
+              they are and only East moves round. Shuffle all re-seats everyone.
+              Neither means anything once the match has been played. */}
+          {!entering && <div className="setup__shuffles">
             <button type="button" className="btn" disabled={!filled}
                     onClick={() => {
                       const { order, by } = rotated(seated);
@@ -267,7 +313,7 @@ export function SetupScreen({ onStart, onCancel }: {
                     }}>
               Shuffle all
             </button>
-          </div>
+          </div>}
           {dealerNote && <span className="field__hint setup__dealer">{dealerNote}</span>}
           {seats.map((seat) => {
             const wind = roundName(SITUATION_WINDS[seat]!);
@@ -302,6 +348,13 @@ export function SetupScreen({ onStart, onCancel }: {
                              else if (options.guest) choose(seat, { playerId: null, name: options.guest });
                            }}
                            aria-label={`${wind} seat`} />
+                  )}
+                  {entering && (
+                    <input className="setup__number setup__final" type="text" inputMode="numeric"
+                           value={finals[seat]} placeholder="Score"
+                           aria-label={`${wind}'s final score`}
+                           onChange={(e) => setFinals(
+                             (f) => f.map((v, i) => (i === seat ? e.target.value.replace(/[\s,.]/g, '') : v)))} />
                   )}
                 </div>
                 {options && (
@@ -344,7 +397,10 @@ export function SetupScreen({ onStart, onCancel }: {
           {duplicate && (
             <span className="setup__warn">Two seats have the same name.</span>
           )}
-          {players === 3 && (
+          {entering && scoresTyped && scoresProblem && (
+            <span className="setup__warn">{scoresProblem}</span>
+          )}
+          {players === 3 && !entering && (
             <TableLayout empty={emptySide} seated={seated} onPick={setEmptySide} />
           )}
         </div>
@@ -468,6 +524,51 @@ export function SetupScreen({ onStart, onCancel }: {
             <span className="setup__warn">The target cannot be below the starting points.</span>
           )}
         </details>
+
+        {entering && (
+          <>
+          <label className="field">
+            <span className="field__label">Played on</span>
+            <input className="setup__name" type="datetime-local" value={playedAt}
+                   max={localNow()}
+                   onChange={(e) => setPlayedAt(e.target.value)} />
+            {whenProblem && <span className="setup__warn">{whenProblem}</span>}
+          </label>
+
+          <div className="field">
+            <span className="field__label">MAKApoints</span>
+            <div className="segmented" role="group" aria-label="MAKApoints">
+              {[true, false].map((opt) => (
+                <button key={String(opt)} type="button"
+                        className={`segmented__btn${ranked === opt ? ' segmented__btn--on' : ''}`}
+                        aria-pressed={ranked === opt}
+                        onClick={() => setRanked(opt)}>
+                  {opt ? 'Played for MPs' : 'Just for fun'}
+                </button>
+              ))}
+            </div>
+            {!ranked && (
+              <span className="field__hint">Saved to the history, but no MAKApoints change hands.</span>
+            )}
+          </div>
+
+          <label className="field">
+            <span className="field__label">Name this match</span>
+            <input className="setup__name" value={name}
+                   placeholder="e.g. the one at the club"
+                   onChange={(e) => setName(e.target.value)} />
+          </label>
+
+          {/* The results worked out, as the end screen would show them, so a
+              wrong score or seat is caught before it counts. */}
+          {preview && (
+            <div className="field endscreen">
+              <span className="field__label">Result</span>
+              <MatchOutcome state={preview} />
+            </div>
+          )}
+          </>
+        )}
       </div>
 
       <div className="app__spacer" />
@@ -475,8 +576,8 @@ export function SetupScreen({ onStart, onCancel }: {
       {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
       <div className="app__footer">
         <button type="button" className="btn btn--primary btn--wide"
-                disabled={!ready} onClick={start}>
-          Start match
+                disabled={entering ? preview === null : !ready} onClick={start}>
+          {entering ? 'Save match' : 'Start match'}
         </button>
       </div>
     </div>

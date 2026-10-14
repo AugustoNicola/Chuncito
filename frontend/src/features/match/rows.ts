@@ -51,6 +51,8 @@ export interface MatchTableRow {
   ranked: boolean;
   /** Sanma's empty side of the table (`sidesOf`); null with four players. */
   emptySide: TableSide | null;
+  /** Played without the tracker and entered afterwards: no hands (`enteredMatch`). */
+  imported: boolean;
 }
 
 export interface MatchPlayerRow {
@@ -139,6 +141,7 @@ export function toRows(state: MatchState): MatchRows {
       isTest: false,
       ranked: state.ranked,
       emptySide: state.config.emptySide,
+      imported: state.imported,
     },
     matchPlayers: seatsOf(state.config.players).map((seat) => {
       const player = state.config.seats[seat]!;
@@ -341,6 +344,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     name: rows.match.name,
     startedAt: rows.match.startedAt,
     endedAt: rows.match.endedAt,
+    imported: rows.match.imported ?? false,
   };
 }
 

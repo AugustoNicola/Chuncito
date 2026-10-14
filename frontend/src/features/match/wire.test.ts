@@ -20,7 +20,9 @@ import { createMatch } from './matchState';
 import { type MatchRows, fromRows, toRows } from './rows';
 import { type MatchState } from './matchState';
 import { payloadOf } from './sync';
-import { fourPlayerConfig, nameOfTest, playEverything, playSanmaInProgress } from './testMatches';
+import {
+  enterPlayedMatch, fourPlayerConfig, nameOfTest, playEverything, playSanmaInProgress,
+} from './testMatches';
 
 interface Fixture {
   rows: MatchRows;
@@ -49,6 +51,7 @@ function stable(state: MatchState, id: string): Fixture {
 const cases: Record<string, Fixture> = {
   'four-player-finished': stable(playEverything(), 'fixture-4p'),
   'sanma-in-progress': stable(playSanmaInProgress(), 'fixture-3p'),
+  'entered': stable(enterPlayedMatch(), 'fixture-entered'),
   'empty': stable(createMatch(fourPlayerConfig, new Date('2026-09-23T00:00:00.000Z')),
     'fixture-empty'),
 };

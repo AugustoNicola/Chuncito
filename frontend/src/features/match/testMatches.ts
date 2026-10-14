@@ -7,7 +7,8 @@
  */
 import {
   type HandInput, type MatchConfig, type MatchState,
-  adjustScores, createMatch, endMatchManually, recordHand, setMatchName, setRanked, toggleRiichi,
+  adjustScores, createMatch, endMatchManually, enteredMatch, recordHand, setMatchName, setRanked,
+  toggleRiichi,
 } from './matchState';
 import { DEFAULTS } from './matchState';
 import { basePoints, levelFor, paymentFor } from './scoring';
@@ -145,4 +146,15 @@ export function playSanmaInProgress(): MatchState {
   // The first hand as one recorded before hands were timed: the wire and the
   // database carry the null too.
   return { ...state, hands: state.hands.map((h, i) => (i === 0 ? { ...h, recordedAt: null } : h)) };
+}
+
+/**
+ * A four-player match played without the tracker and entered afterwards,
+ * for MAKApoints: a guest dead last, and a tie between two registered seats
+ * that only the starting winds break.
+ */
+export function enterPlayedMatch(): MatchState {
+  return enteredMatch(fourPlayerConfig, [33000, 33000, 26000, 8000], {
+    name: 'at the club', ranked: true, playedAt: new Date('2026-10-10T21:00:00.000Z'),
+  });
 }
