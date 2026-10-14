@@ -936,7 +936,15 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
 
 ## Picking this up cold
 
-**State as of 2026-10-12** (the Backlog section above has the detail):
+**State as of 2026-10-14** (the Backlog section above has the detail):
+
+- **Not pushed, and `main` is not migrated for it:** the third round
+  (2026-10-14: the chart's points view, sanma's empty side, entering a
+  played match) needs **`0007` and `0008`** on `main` before the push, or the
+  release phase refuses it. Both are additive. Rehearse first on a copy of
+  the day's backup (recipe below), then `make db-migrate TARGET=main`, then
+  push — only when the user asks. Both add fields to `rows.ts`, so after the
+  deploy every phone re-sends every match it keeps, once.
 
 - **`main` holds the group's real matches and is backed up daily**
   (2026-10-09; `DEPLOY.md`'s Backups section). Never delete or rewrite its
@@ -987,7 +995,7 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
   every match, drop the schema — it never connects to `main`); cap the
   standings chart's height on desktop; a honba counter in the plain
   calculator (honba shows only from the tracker now).
-- 281 unit tests, 269 browser checks, 53 backend tests.
+- 294 unit tests, 284 browser checks, 58 backend tests (2026-10-14).
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:
