@@ -940,20 +940,22 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
 
 **State as of 2026-10-14** (the Backlog section above has the detail):
 
-- **Not pushed, and `main` is not migrated for it:** the third round
+- **`main` is migrated to `0008` and the third round is pushed**
   (2026-10-14: the chart's points view, sanma's empty side, entering a
-  played match) needs **`0007` and `0008`** on `main` before the push, or the
-  release phase refuses it. Both are additive. Rehearse first on a copy of
-  the day's backup (recipe below), then `make db-migrate TARGET=main`, then
-  push — only when the user asks. Both add fields to `rows.ts`, so after the
-  deploy every phone re-sends every match it keeps, once.
+  played match). Rehearsed first on a copy of that day's backup in a
+  throwaway dev schema: 16 matches, 116 hands, counts, MP totals and every
+  final score unchanged, all loaded. Backed up just before as
+  `backups/chuncito-main-20261014T161130Z.dump` (and
+  `…T160854Z`, the first dump holding the two 2026-10-13 matches: the
+  13:00 daily ran before they were played). Both migrations add fields to
+  `rows.ts`, so every phone re-sends every match it keeps, once.
 
 - **`main` holds the group's real matches and is backed up daily**
   (2026-10-09; `DEPLOY.md`'s Backups section). Never delete or rewrite its
   data by hand. On 2026-10-09 it had 7 matches; nine of the ten in the
   2026-10-01 JSON export (`backups/`) were no longer there, short finished
   matches from 2026-09-23/25 — asked the user whether that was a cleanup.
-- **`main` is migrated to `0006` and everything is pushed** (2026-10-12):
+- `main` was migrated to `0006` and pushed on 2026-10-12:
   `hands.recorded_at`, additive, rehearsed first on a copy of the day's
   backup in a throwaway dev schema (all 14 matches loaded and rebuilt).
   Backed up just before as `backups/chuncito-main-20261012T171257Z.dump`. `0003`/`0004` were not additive (see
