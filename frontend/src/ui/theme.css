@@ -38,11 +38,13 @@
   --place-1: var(--limit-yakuman);
   --place-2: var(--limit-sanbaiman);
   --place-3: var(--limit-baiman);
-  /* A player's colour in the standings chart, by the wind they started on. */
+  /* A player's colour in the standings chart, by the wind they started on:
+     blue, red, green, orange. */
   --wind-east:  var(--accent);
   --wind-south: #ff6b6b;
   --wind-west:  var(--limit-mangan);
-  --wind-north: var(--limit-haneman);
+  /* Orange: clear of South's red and of bronze, 3rd place's metal. */
+  --wind-north: #ff9a3c;
 
   --tile-w: 40px;
   /* The glyph artwork is drawn nearly edge to edge on its 300x400 canvas, so

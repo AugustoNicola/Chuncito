@@ -1,12 +1,12 @@
 /**
  * The match's standings over time: one line per player, their place after
- * every hand, 1st at the top -- or, toggled, their score, which shows how far
- * apart the places are. Shown above the timeline, at the table and in a
+ * every hand, 1st at the top -- or their score, the default, which shows how
+ * far apart the places are. Shown above the timeline, at the table and in a
  * review, so who led when can be read at a glance. The deal-in is left out:
  * everyone is level there, so it said nothing but took a column.
  *
  * Each player keeps the colour of the wind they started on -- East blue,
- * South red, West green, North purple (`--wind-*`) -- the same seat, as
+ * South red, West green, North orange (`--wind-*`) -- the same seat, as
  * drawn, that the standings mark with its kanji. Plain SVG, like the
  * profile's placement line, whose look and tooltip it shares.
  */
@@ -58,7 +58,8 @@ export function StandingsChart({ state, over }: {
   over: readonly Standing[];
 }) {
   const [hot, setHot] = useState<number | null>(null);
-  const [view, setView] = useState<View>('place');
+  // Points first: the gaps between players say more than the order alone.
+  const [view, setView] = useState<View>('points');
   const players = state.config.players;
   const seats = seatsOf(players);
   /** Point `i` is the table after hand `i`. */

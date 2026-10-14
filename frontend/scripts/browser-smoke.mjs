@@ -810,16 +810,17 @@ try {
   check(firstTick === 'E1', `the chart starts at the first hand (got ${firstTick})`);
   const axisOf = () => page.$$eval('.standchart .linechart__axis:not(.standchart__tick)',
                                    (els) => els.map((e) => e.textContent));
-  check((await axisOf()).join() === '1st,2nd,3rd,4th', `places by default (got ${await axisOf()})`);
-  await page.$$eval('.standchart__view .segmented__btn', (els) => els.find((e) => e.textContent === 'Points').click());
-  await page.waitForFunction(() => document.querySelector('.standchart .linechart__axis')?.textContent.endsWith('k'));
   const pointsAxis = await axisOf();
-  const pointsChart = await series();
-  check(pointsAxis.length >= 2 && pointsAxis.every((t) => /^-?\d+(\.\d+)?k$/.test(t))
-        && JSON.stringify(pointsChart) !== JSON.stringify(chart),
-        `Points redraws the lines on a score axis (got ${JSON.stringify(pointsAxis)})`);
+  check(pointsAxis.length >= 2 && pointsAxis.every((t) => /^-?\d+(\.\d+)?k$/.test(t)),
+        `points on a score axis by default (got ${JSON.stringify(pointsAxis)})`);
+  const northColour = await page.$eval('.standchart__series[data-wind="norte"] .standchart__line',
+                                       (el) => getComputedStyle(el).stroke);
+  check(northColour === 'rgb(255, 154, 60)', `North's line is orange (got ${northColour})`);
   await shot('14b-standings-points.png');
   await page.$$eval('.standchart__view .segmented__btn', (els) => els.find((e) => e.textContent === 'Place').click());
+  await page.waitForFunction(() => document.querySelector('.standchart .linechart__axis')?.textContent === '1st');
+  check((await axisOf()).join() === '1st,2nd,3rd,4th' && JSON.stringify(await series()) !== JSON.stringify(chart),
+        `Place redraws the lines by place (got ${await axisOf()})`);
   const newestPlaces = await page.$$eval('.timeline__hand:first-child .timeline__place',
                                          (els) => els.map((e) => e.textContent));
   check([...newestPlaces].sort().join() === '1st,2nd,3rd,4th',

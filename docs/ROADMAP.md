@@ -935,6 +935,9 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
       counts for places and MPs, and for nothing per-hand.
 - [x] Feedback: an entered match's history card is **red** with **Manual**
       where a limit hand's name goes (`data-tier="manual"`, `--loss`).
+- [x] Feedback: the chart opens on **Points** (Place is the switch), and
+      North's line is **orange** (`--wind-north: #ff9a3c`, clear of South's
+      red and of bronze) instead of purple.
 
 ## Picking this up cold
 
