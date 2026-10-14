@@ -1681,6 +1681,9 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
 .standchart__line { fill: none; stroke: var(--wind); stroke-width: 2px; stroke-linejoin: round; }
 .standchart__dot { fill: var(--wind); stroke: var(--bg-raised); stroke-width: 1.5px; }
 .standchart__tick { text-anchor: middle; }
+/* Place or points: a small switch over the chart's right corner, not a field. */
+.segmented--small .segmented__btn { flex: 0 0 auto; padding: 4px 12px; font-size: 0.8rem; }
+.standchart__view { align-self: flex-end; }
 .standchart__hit { fill: transparent; }
 .standchart__legend {
   list-style: none; margin: 0; padding: 0;

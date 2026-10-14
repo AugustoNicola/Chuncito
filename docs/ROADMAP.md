@@ -885,6 +885,18 @@ Feedback on that round (2026-10-12):
       field in `rows.ts` makes every phone re-send every kept match once**
       — anything the server would now refuse surfaces then.
 
+Third round (2026-10-14, the end of `backlog.md`; given in chat):
+
+- [x] **Standings chart from E1, and a points view.** The deal-in column is
+      gone: the first point is the table after the first hand (`over.slice(1)`;
+      `standingsOverTime` still starts at the deal-in, which the timeline's
+      boxes index by). A one-hand match draws its point in the middle. A small
+      **Place / Points** switch over the chart's corner (`.segmented--small`),
+      Place by default and not remembered: Points puts scores on the y axis
+      (`scoreAxis`, tested: the range of every point plus a little room, and
+      gridlines at the round spacing — 1k, 2k, 5k, 10k… — that puts at most
+      five inside it, labelled "25k").
+
 ## Picking this up cold
 
 **State as of 2026-10-12** (the Backlog section above has the detail):

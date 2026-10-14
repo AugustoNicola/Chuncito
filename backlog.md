@@ -197,3 +197,9 @@ Remember that the matches played so far will not have this information available
 - There's a new feature I forgot to ask: when creating a match, add a new "Choose Dealer" button that shuffles players without changing the relative order. This is useful for shuffling once we're seated in, so we don't have to change seats. Also relabel the current shuffling to "Shuffle All".
 - Change the positions of the "Continue as South Match" and "Save and finish" buttons, so Save and finish (which is the primary action) is larger.
 - Move the explainer text on the Match Review screen ("Result = final score - target + uma ...") to the bottom of the page.
+
+# Third round (2026-10-14)
+
+- When creating a sanma match, I'd like to be able to select which slot of the four is not occupied. Not as wind seats (North is always missing), but as which player box is free. This is useful for accomodating different layouts on physical play.
+- I'd like a way to load a match into the system without the need to play it using the match tracker. This would look like loading the players, their initial winds, and final scores, alongside match name and rules settings. These matches won't have round/match duration or other data like the new "placements-per-round" graph. The main goal is to load matches played outside Chuncito so that they are tracked for MPs (though we must be able to load For Fun as well).
+- On the new placement-per-round graph, scrap the first "St" column; it would be better to start the graph at the result of E1. Also, I'd like there to be a toggle between the current graph view, and another one that instead of showing placement in the y-axis, shows actual point values. That way, point differences become more clear. The default should be the placement view though.

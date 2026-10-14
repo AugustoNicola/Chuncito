@@ -796,15 +796,29 @@ try {
   const handTimes = await page.$$eval('.timeline__duration', (els) => els.map((e) => e.textContent));
   check(handTimes.length === 3 && handTimes.every((t) => t === '<1 min'),
         `each hand says how long it took (got ${JSON.stringify(handTimes)})`);
-  // The standings chart above it: a line per player, the start and one point per hand.
-  const chart = await page.$$eval('.standchart__series', (els) => els.map((e) => ({
-    wind: e.dataset.wind, points: e.querySelector('polyline').getAttribute('points').split(' ').length,
+  // The standings chart above it: a line per player, a point per hand (the
+  // deal-in, where everyone is level, is not drawn).
+  const series = () => page.$$eval('.standchart__series', (els) => els.map((e) => ({
+    wind: e.dataset.wind, points: e.querySelector('polyline').getAttribute('points').split(' '),
   })));
-  check(chart.length === 4 && chart.every((s) => s.points === 4)
+  const chart = await series();
+  check(chart.length === 4 && chart.every((s) => s.points.length === 3)
         && chart.map((s) => s.wind).join() === 'este,sur,oeste,norte',
-        `the standings chart has a line per starting wind, start plus 3 hands (got ${JSON.stringify(chart)})`);
-  const firstTick = await page.$eval('.standchart .linechart__axis--start', (el) => el.textContent);
-  check(firstTick === 'St', `the start is labelled short enough to fit (got ${firstTick})`);
+        `the standings chart has a line per starting wind, a point per hand (got ${JSON.stringify(chart)})`);
+  const firstTick = await page.$eval('.standchart__tick', (el) => el.textContent);
+  check(firstTick === 'E1', `the chart starts at the first hand (got ${firstTick})`);
+  const axisOf = () => page.$$eval('.standchart .linechart__axis:not(.standchart__tick)',
+                                   (els) => els.map((e) => e.textContent));
+  check((await axisOf()).join() === '1st,2nd,3rd,4th', `places by default (got ${await axisOf()})`);
+  await page.$$eval('.standchart__view .segmented__btn', (els) => els.find((e) => e.textContent === 'Points').click());
+  await page.waitForFunction(() => document.querySelector('.standchart .linechart__axis')?.textContent.endsWith('k'));
+  const pointsAxis = await axisOf();
+  const pointsChart = await series();
+  check(pointsAxis.length >= 2 && pointsAxis.every((t) => /^-?\d+(\.\d+)?k$/.test(t))
+        && JSON.stringify(pointsChart) !== JSON.stringify(chart),
+        `Points redraws the lines on a score axis (got ${JSON.stringify(pointsAxis)})`);
+  await shot('14b-standings-points.png');
+  await page.$$eval('.standchart__view .segmented__btn', (els) => els.find((e) => e.textContent === 'Place').click());
   const newestPlaces = await page.$$eval('.timeline__hand:first-child .timeline__place',
                                          (els) => els.map((e) => e.textContent));
   check([...newestPlaces].sort().join() === '1st,2nd,3rd,4th',

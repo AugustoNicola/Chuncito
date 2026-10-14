@@ -1,7 +1,9 @@
 /**
- * The match's standings over time: one line per player, their place at the
- * start and after every hand, 1st at the top. Shown above the timeline, at
- * the table and in a review, so who led when can be read at a glance.
+ * The match's standings over time: one line per player, their place after
+ * every hand, 1st at the top -- or, toggled, their score, which shows how far
+ * apart the places are. Shown above the timeline, at the table and in a
+ * review, so who led when can be read at a glance. The deal-in is left out:
+ * everyone is level there, so it said nothing but took a column.
  *
  * Each player keeps the colour of the wind they started on -- East blue,
  * South red, West green, North purple (`--wind-*`) -- the same seat, as
@@ -20,44 +22,95 @@ const PAD = { left: 30, right: 10, top: 10, bottom: 22 };
 const START = { wind: 'este', number: 1 } as const;
 const SHORT: Record<SituationWind, string> = { este: 'E', sur: 'S', oeste: 'W', norte: 'N' };
 
+type View = 'place' | 'points';
+
+/** Gridline spacings to choose from, so the score axis reads in round thousands. */
+const STEPS = [1000, 2000, 5000, 10000, 20000, 50000];
+
+/**
+ * The score axis: the range every point falls in, with a little room so a
+ * line is never drawn on the frame, and gridlines at whichever round spacing
+ * puts at most five inside it. Never flat, even when nobody's score has moved.
+ */
+export function scoreAxis(over: readonly Standing[], seats: readonly Seat[]): {
+  lo: number; hi: number; ticks: number[];
+} {
+  const all = over.flatMap((s) => seats.map((seat) => s.scores[seat]));
+  const min = Math.min(...all), max = Math.max(...all);
+  const room = Math.max(500, (max - min) * 0.06);
+  const lo = min - room, hi = max + room;
+  const within = (d: number) => {
+    const out: number[] = [];
+    // `+ 0` turns the -0 that rounding up a negative can give into 0.
+    for (let t = Math.ceil(lo / d) * d + 0; t <= hi; t += d) out.push(t);
+    return out;
+  };
+  const step = STEPS.find((d) => within(d).length <= 5) ?? STEPS.at(-1)!;
+  return { lo, hi, ticks: within(step) };
+}
+
+/** "25k", "-3k", "12.5k": thousands, as the gridlines fall on them. */
+const thousands = (n: number) => `${n / 1000}k`;
+
 export function StandingsChart({ state, over }: {
   state: MatchState;
   /** `standingsOverTime(state)`: the start, then one entry per hand. */
   over: readonly Standing[];
 }) {
   const [hot, setHot] = useState<number | null>(null);
+  const [view, setView] = useState<View>('place');
   const players = state.config.players;
   const seats = seatsOf(players);
-  const n = over.length;
-  const x = (i: number) => PAD.left + (i / Math.max(1, n - 1)) * (W - PAD.left - PAD.right);
-  const y = (place: number) => PAD.top + ((place - 1) / (players - 1)) * (H - PAD.top - PAD.bottom);
+  /** Point `i` is the table after hand `i`. */
+  const points = over.slice(1);
+  const n = points.length;
+  const plotW = W - PAD.left - PAD.right, plotH = H - PAD.top - PAD.bottom;
+  // A single hand sits in the middle rather than against the axis.
+  const x = (i: number) => PAD.left + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const axis = scoreAxis(points, seats);
+  const yPlace = (place: number) => PAD.top + ((place - 1) / (players - 1)) * plotH;
+  const yScore = (score: number) => PAD.top + ((axis.hi - score) / (axis.hi - axis.lo)) * plotH;
+  const y = (s: Standing, seat: Seat) =>
+    (view === 'place' ? yPlace(s.places[seat]!) : yScore(s.scores[seat]));
+  const grid = view === 'place'
+    ? seats.map((s) => ({ at: yPlace(s + 1), text: placeLabel(s + 1) }))
+    : axis.ticks.map((t) => ({ at: yScore(t), text: thousands(t) }));
   const windOf = (seat: Seat) => seatWindOf(seat, START, players);
-  /** What point `i` is: the start, or the hand it is after. */
+  /** The hand point `i` comes after. */
   const label = (i: number) => {
-    if (i === 0) return 'Start';
-    const row = state.hands[i - 1]!;
+    const row = state.hands[i]!;
     return `${roundLabel({ wind: row.roundWind, number: row.roundNumber })}${row.honba > 0 ? ` +${row.honba}` : ''}`;
   };
   // A tick per round, not per repeat: "E1" once however many honba it ran to.
   const ticks = state.hands.flatMap((row, i) => {
     const prev = state.hands[i - 1];
     return prev && prev.roundWind === row.roundWind && prev.roundNumber === row.roundNumber
-      ? [] : [{ i: i + 1, text: `${SHORT[row.roundWind]}${row.roundNumber}` }];
+      ? [] : [{ i, text: `${SHORT[row.roundWind]}${row.roundNumber}` }];
   });
   // Past a few dozen points the dots would merge into the lines.
   const dots = n <= 30;
-  const focus = hot === null ? null : over[hot] ?? null;
-  const step = (W - PAD.left - PAD.right) / Math.max(1, n - 1);
+  const focus = hot === null ? null : points[hot] ?? null;
+  const step = n === 1 ? plotW : plotW / (n - 1);
 
   return (
     <div className="standchart">
+      <div className="segmented segmented--small standchart__view" role="group" aria-label="Chart shows">
+        {(['place', 'points'] as View[]).map((opt) => (
+          <button key={opt} type="button"
+                  className={`segmented__btn${view === opt ? ' segmented__btn--on' : ''}`}
+                  aria-pressed={view === opt}
+                  onClick={() => setView(opt)}>
+            {opt === 'place' ? 'Place' : 'Points'}
+          </button>
+        ))}
+      </div>
       <div className="linechart">
         <svg className="linechart__svg" viewBox={`0 0 ${W} ${H}`} role="img"
-             aria-label={`Standings over ${n - 1} hand${n === 2 ? '' : 's'}`}>
-          {seats.map((s) => (
-            <g key={s}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(s + 1)} y2={y(s + 1)} className="linechart__grid" />
-              <text x={PAD.left - 7} y={y(s + 1)} className="linechart__axis">{placeLabel(s + 1)}</text>
+             aria-label={`${view === 'place' ? 'Places' : 'Scores'} over ${n} hand${n === 1 ? '' : 's'}`}>
+          {grid.map((g) => (
+            <g key={g.text}>
+              <line x1={PAD.left} x2={W - PAD.right} y1={g.at} y2={g.at} className="linechart__grid" />
+              <text x={PAD.left - 7} y={g.at} className="linechart__axis">{g.text}</text>
             </g>
           ))}
           {focus && hot !== null && (
@@ -66,19 +119,18 @@ export function StandingsChart({ state, over }: {
           {seats.map((seat) => (
             <g key={seat} className="standchart__series" data-wind={windOf(seat)}>
               <polyline className="standchart__line"
-                        points={over.map((s, i) => `${x(i).toFixed(1)},${y(s.places[seat]!).toFixed(1)}`).join(' ')} />
-              {over.map((s, i) => (dots || hot === i) && (
-                <circle key={i} cx={x(i)} cy={y(s.places[seat]!)} r={hot === i ? 4 : 2.5}
+                        points={points.map((s, i) => `${x(i).toFixed(1)},${y(s, seat).toFixed(1)}`).join(' ')} />
+              {points.map((s, i) => (dots || hot === i) && (
+                <circle key={i} cx={x(i)} cy={y(s, seat)} r={hot === i ? 4 : 2.5}
                         className="standchart__dot" />
               ))}
             </g>
           ))}
-          <text x={x(0)} y={H - 6} className="linechart__axis linechart__axis--start">St</text>
           {ticks.map((t) => (
             <text key={t.i} x={x(t.i)} y={H - 6} className="linechart__axis standchart__tick">{t.text}</text>
           ))}
           {/* A column per point, a thumb wide, for the tooltip. */}
-          {over.map((_, i) => (
+          {points.map((_, i) => (
             <rect key={i} x={x(i) - step / 2} y={0} width={step} height={H} className="standchart__hit"
                   onPointerEnter={() => setHot(i)} onPointerLeave={() => setHot(null)}
                   onClick={() => setHot(i)} />
