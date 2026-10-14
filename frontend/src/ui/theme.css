@@ -1383,6 +1383,8 @@ button {
 [data-tier="yakuman"]   { --tier: var(--limit-yakuman); }
 /* Draws are not a limit of anything, so they get their own. */
 [data-tier="draw"]      { --tier: #c45a6a; }
+/* A match entered afterwards: no hands, so no limit to colour it by. */
+[data-tier="manual"]    { --tier: var(--loss); }
 
 /* Idle they only tint the text, so the row stays calm; armed they fill, the
    same bargain the mode buttons on the hand screen strike. */

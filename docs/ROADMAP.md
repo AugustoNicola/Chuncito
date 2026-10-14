@@ -933,6 +933,8 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
       The history list now refetches when the sync state changes, so the new
       match appears once its save lands. Backend test: an entered match
       counts for places and MPs, and for nothing per-hand.
+- [x] Feedback: an entered match's history card is **red** with **Manual**
+      where a limit hand's name goes (`data-tier="manual"`, `--loss`).
 
 ## Picking this up cold
 

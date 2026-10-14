@@ -1710,6 +1710,13 @@ try {
     .querySelector('.history__meta').textContent);
   check(enteredMeta.includes('Entered afterwards') && !enteredMeta.includes('hand'),
         `its card says it was entered, not how many hands (got "${enteredMeta}")`);
+  const enteredCard = await page.$$eval('.history__item', (els) => {
+    const card = els.find((e) => e.querySelector('.history__name').textContent === 'at the club');
+    return { tier: card.dataset.tier, badge: card.querySelector('.history__level')?.textContent };
+  });
+  check(enteredCard.tier === 'manual' && enteredCard.badge === 'Manual',
+        `and is marked Manual in red where a limit hand would go (got ${JSON.stringify(enteredCard)})`);
+  await shot('55b-entered-card.png');
   await page.$$eval('.history__item', (els) => els
     .find((e) => e.querySelector('.history__name').textContent === 'at the club').click());
   await page.waitForSelector('.review');

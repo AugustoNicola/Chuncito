@@ -179,13 +179,16 @@ function MatchItem({ match }: { match: ServerMatch }) {
   })).sort((a, b) => a.place - b.place);
   const level = match.maxLevel && match.maxLevel !== 'sinNombre' ? match.maxLevel : null;
   const took = matchDuration(match);
+  // An entered match has no hands, so its corner says how it got here instead.
+  const tier = match.imported ? 'manual' : level ? levelTier(level) : undefined;
+  const badge = match.imported ? 'Manual' : level ? levelName(level) : null;
 
   return (
     <Link className="history__item" to={`/matches/${encodeURIComponent(match.id)}`}
-          data-tier={level ? levelTier(level) : undefined}>
+          data-tier={tier}>
       <span className="history__top">
         <span className="history__name">{match.name || 'Unnamed match'}</span>
-        {level && <span className="history__level">{levelName(level)}</span>}
+        {badge && <span className="history__level">{badge}</span>}
       </span>
       <span className="history__meta">
         {matchDate(match.startedAt)}
