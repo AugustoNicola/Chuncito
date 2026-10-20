@@ -390,6 +390,14 @@ describe('carrying a hand on', () => {
     expect(state.uraIndicators).toEqual([]);
   });
 
+  it('keeps the red fives chosen in the draft over the match default', () => {
+    const plain = setRedFives({ ...draft, concealed: T('m5 m5 m5 m5') }, false);
+    const { state } = startingHand(setting, plain);
+    expect(state.redFives).toBe(false);
+    expect(state.concealed).toEqual(T('m5 m5 m5 m5'));
+    expect(startingHand({ ...setting, redFives: false }).state.redFives).toBe(false);
+  });
+
   it('keeps an open or double riichi when the table only says "riichi"', () => {
     const open = { ...draft, melds: [], riichi: 'riichiAbierto' as const };
     expect(startingHand({ ...setting, riichiDeclared: true }, open).state.riichi).toBe('riichiAbierto');

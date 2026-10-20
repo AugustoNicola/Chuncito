@@ -66,7 +66,7 @@ const RIICHI_LABEL: Readonly<Record<RiichiChoice, string>> = {
 
 export function HandContextPanel({
   state, update, showWinds = true, showWinMode = true, riichiDeclared, showPlayers = false, onSanma,
-  showRedFives = false, onRedFives, showRules = false,
+  onRedFives, showRules = false,
 }: {
   state: HandState;
   update: (patch: Partial<HandState>) => void;
@@ -89,8 +89,10 @@ export function HandContextPanel({
   /** Only in the plain calculator; the tracker's match already says. */
   showPlayers?: boolean;
   onSanma?: (on: boolean) => void;
-  /** Likewise only in the plain calculator. */
-  showRedFives?: boolean;
+  /**
+   * Offered in the tracker too: the match's setting is only the default, since
+   * a hand may be played with a set that differs from it.
+   */
   onRedFives?: (on: boolean) => void;
   /** The house rules, as toggles; only in the plain calculator. */
   showRules?: boolean;
@@ -109,7 +111,7 @@ export function HandContextPanel({
                    render={(v) => (v === 'four' ? 'Four' : 'Three (sanma)')} />
       )}
 
-      {showRedFives && onRedFives && (
+      {onRedFives && (
         <Segmented label="Red fives" value={state.redFives ? 'on' : 'off'}
                    options={['on', 'off'] as const}
                    onChange={(v) => onRedFives(v === 'on')}

@@ -939,6 +939,14 @@ Third round (2026-10-14, the end of `backlog.md`; given in chat):
       North's line is **orange** (`--wind-north: #ff9a3c`, clear of South's
       red and of bronze) instead of purple.
 
+Asked in chat (2026-10-20), one commit each:
+- [x] **Red fives per hand.** The calculator's With/Without toggle is now on
+      the Details flap inside a match too: `HandBuilderProps.redFives` (the
+      match's setting) is only the default, unlike the winds, since the set
+      on the table may differ from it. A hand put aside keeps the choice made
+      in it (`startingHand`, tested). Nothing new is stored: the hand's tiles
+      say it (four plain fives) and its yaku carry no red dora.
+
 ## Picking this up cold
 
 **State as of 2026-10-14** (the Backlog section above has the detail):

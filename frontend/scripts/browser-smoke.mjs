@@ -742,6 +742,13 @@ try {
   });
   check(riichiRow[0][2] === 'true' && riichiRow[1][1] === true && riichiRow[2][1] === true,
         `an undeclared riichi cannot be claimed in the builder (got ${JSON.stringify(riichiRow)})`);
+  // Red fives, unlike the winds, are only the match's default: the set on the
+  // table may differ, so one hand can be scored without them.
+  check(JSON.stringify(await groupState('Red fives')) === '[["With",false,"true"],["Without",false,"false"]]',
+        `the builder offers red fives, defaulting to the match's (got ${JSON.stringify(await groupState('Red fives'))})`);
+  await byText('Without');
+  check((await groupState('Red fives'))[1][2] === 'true', 'and they can be turned off for this hand');
+  await byText('With');
   await shot('17-nowinds.png');
   await page.click('.flaps__tab:nth-child(1)');
 

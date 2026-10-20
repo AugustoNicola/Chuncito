@@ -51,9 +51,10 @@ export interface HandBuilderProps {
    */
   players?: PlayerCount;
   /**
-   * Whether the match plays with red fives. Without them the Red Five modifier
-   * is gone and all four fives are plain. The tracker fixes it; the plain
-   * calculator offers a toggle instead.
+   * Whether the match plays with red fives: only the default, unlike the props
+   * above. The toggle stays on the Details flap either way, so one hand can be
+   * scored without reds even in a match that has them. Without them the Red
+   * Five modifier is gone and all four fives are plain.
    */
   redFives?: boolean;
   /**
@@ -219,7 +220,6 @@ export function HandBuilder({
                           showWinds={!winds} showWinMode={!winMode}
                           showPlayers={players === undefined}
                           onSanma={(on) => apply((s) => setSanma(s, on))}
-                          showRedFives={redFives === undefined}
                           onRedFives={(on) => apply((s) => setRedFives(s, on))}
                           showRules={rules === undefined}
                           riichiDeclared={riichiDeclared} />

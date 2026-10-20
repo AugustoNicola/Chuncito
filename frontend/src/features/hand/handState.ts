@@ -115,6 +115,10 @@ export interface HandSetting {
  * The table's riichi is the one fact that can contradict the tiles: a riichi
  * hand is closed, so a declared riichi takes the draft's open calls away, and
  * says so. Everything else is `reconcile`'s usual work.
+ *
+ * Red fives are the exception the other way: the setting is only a default,
+ * since the set on the table may not match the match's, so a draft keeps the
+ * choice made in it.
  */
 export function startingHand(setting: HandSetting, draft?: HandState): {
   state: HandState; notice: string | null;
@@ -122,7 +126,7 @@ export function startingHand(setting: HandSetting, draft?: HandState): {
   let s: HandState = {
     ...(draft ?? initialHandState),
     mode: null, red: false,
-    sanma: setting.sanma, redFives: setting.redFives, rules: setting.rules,
+    sanma: setting.sanma, redFives: draft ? draft.redFives : setting.redFives, rules: setting.rules,
     ...setting.winds,
     ...(setting.winMode ? { winMode: setting.winMode } : {}),
   };
@@ -469,7 +473,7 @@ export const clearHand = (state: HandState): HandState => reconcile({
 });
 
 /**
- * Switches the plain calculator's red fives on or off. Turning them off keeps
+ * Switches red fives on or off for this hand. Turning them off keeps
  * the hand and makes any red five plain -- always legal, since without reds all
  * four fives are plain. Turning them on changes nothing already entered.
  */
