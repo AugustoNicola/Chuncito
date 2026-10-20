@@ -946,10 +946,18 @@ Asked in chat (2026-10-20), one commit each:
       on the table may differ from it. A hand put aside keeps the choice made
       in it (`startingHand`, tested). Nothing new is stored: the hand's tiles
       say it (four plain fives) and its yaku carry no red dora.
+- [x] **Ranked / Casual**, renamed from "Played for MPs" / "Just for fun"
+      everywhere (setup's entered match, end screen, history filter and
+      card, the rules line), and **Casual is the default** now. The end
+      screen starts from `MatchState.ranked`, which is false until saved.
+      The history URL keeps `mp=1|0`, so old links still work.
 
 ## Picking this up cold
 
-**State as of 2026-10-14** (the Backlog section above has the detail):
+**State as of 2026-10-20** (the Backlog section above has the detail):
+
+- 2026-10-20: red fives per hand in the tracker, and Ranked / Casual (Casual
+  by default). No migration; pushed.
 
 - **`main` is migrated to `0008` and the third round is pushed**
   (2026-10-14: the chart's points view, sanma's empty side, entering a
@@ -996,7 +1004,7 @@ Asked in chat (2026-10-20), one commit each:
   1st); the **goal** score that ends the match (short of it, one extra wind).
   A result = final − target + uma (+ oka) and results sum to zero; a match's
   **MAKApoints** are its results **+5 MP each** (`MP_BONUS`, on purpose not
-  zero-sum), if it was saved as "Played for MPs".
+  zero-sum), if it was saved as **Ranked** (not Casual, the default).
 - Every end of a match settles the table: leftover riichi sticks to 1st, as
   an adjustment row. A match-ending hand leaves the round where it was.
 - The second backlog round (2026-10-12, seven items at the end of
@@ -1014,7 +1022,7 @@ Asked in chat (2026-10-20), one commit each:
   every match, drop the schema — it never connects to `main`); cap the
   standings chart's height on desktop; a honba counter in the plain
   calculator (honba shows only from the tracker now).
-- 294 unit tests, 284 browser checks, 58 backend tests (2026-10-14).
+- 295 unit tests, 58 backend tests (2026-10-20); the browser test had 284 checks on 2026-10-14 and six more now.
 
 Read this file, then `CLAUDE.md` for the invariants. The short version of what
 was learned building Phases 1 to 3 and the sanma round:

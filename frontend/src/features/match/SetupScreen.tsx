@@ -132,8 +132,8 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
   const [finals, setFinals] = useState<string[]>(['', '', '', '']);
   const [playedAt, setPlayedAt] = useState(localNow);
   const [name, setName] = useState('');
-  /** For MAKApoints unless said otherwise, as on the end screen. */
-  const [ranked, setRanked] = useState(true);
+  /** Casual unless said otherwise, as on the end screen. */
+  const [ranked, setRanked] = useState(false);
 
   // The cache is enough to start with; the server's list replaces it if it answers.
   useEffect(() => {
@@ -543,7 +543,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
                         className={`segmented__btn${ranked === opt ? ' segmented__btn--on' : ''}`}
                         aria-pressed={ranked === opt}
                         onClick={() => setRanked(opt)}>
-                  {opt ? 'Played for MPs' : 'Just for fun'}
+                  {opt ? 'Ranked' : 'Casual'}
                 </button>
               ))}
             </div>

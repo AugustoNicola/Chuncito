@@ -25,8 +25,8 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
   onTimeline: () => void;
 }) {
   const [name, setName] = useState(state.name);
-  /** For MAKApoints unless said otherwise: that is what the ranking is for. */
-  const [ranked, setRanked] = useState(true);
+  /** Casual unless said otherwise (or chosen before, for a match saved once already). */
+  const [ranked, setRanked] = useState(state.ranked);
   /** Totals before this match, from the server if it answers, else the cache. */
   const [roster, setRoster] = useState<Player[]>(cachedPlayers);
   useEffect(() => { void refreshPlayers().then((list) => { if (list) setRoster(list); }); }, []);
@@ -58,7 +58,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
                       className={`segmented__btn${ranked === opt ? ' segmented__btn--on' : ''}`}
                       aria-pressed={ranked === opt}
                       onClick={() => setRanked(opt)}>
-                {opt ? 'Played for MPs' : 'Just for fun'}
+                {opt ? 'Ranked' : 'Casual'}
               </button>
             ))}
           </div>

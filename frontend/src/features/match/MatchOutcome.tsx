@@ -37,7 +37,7 @@ export function ResultRules({ state, ranked = state.ranked }: { state: MatchStat
           state.config.startingPoints.toLocaleString()}) × ${state.config.players} = ${resultLabel(oka)}.`
         : ' No oka: the target is the starting score.'}
       {' '}The results sum to {resultLabel(sum)}.
-      {ranked && ` Played for MPs, everyone also gets ${mpLabel(MP_BONUS)} for playing.`}
+      {ranked && ` Ranked, so everyone also gets ${mpLabel(MP_BONUS)} for playing.`}
     </p>
   );
 }

@@ -27,7 +27,7 @@ export interface HistoryFilters {
   yaku: string | null;
   /** 4, or 3 for sanma. */
   players: 3 | 4 | null;
-  /** Played for MAKApoints (true) or just for fun (false). */
+  /** Ranked, for MAKApoints (true), or casual (false). */
   ranked: boolean | null;
 }
 

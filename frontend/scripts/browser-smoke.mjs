@@ -1068,19 +1068,25 @@ try {
   // The wind each started on, however far the deal went.
   check(JSON.stringify(standings.map((r) => r.wind)) === JSON.stringify(['東', '南', '西', '北']),
         `the standings show each player's starting wind (got ${JSON.stringify(standings.map((r) => r.wind))})`);
+  // Casual by default, so the results are plain; ranked, they are MAKApoints.
+  const mpChoice = await groupState('MAKApoints');
+  check(mpChoice[0][0] === 'Ranked' && mpChoice[1][0] === 'Casual' && mpChoice[1][2] === 'true',
+        `a match is casual unless said otherwise (got ${JSON.stringify(mpChoice)})`);
+  check(!(await page.$('.mpgain')), 'a casual match lists no MAKApoints changing hands');
+  check((await page.$eval('.standings__uma', (e) => e.textContent)) === '+35.0',
+        `a casual match's results are plain (got ${await page.$eval('.standings__uma', (e) => e.textContent)})`);
+  await byText('Ranked');
+  await page.waitForSelector('.mpgain');
   // All level at 25,000 against a 30,000 target: -5 each, then uma, and 1st's
   // oka of 20 -- which is what makes the four sum to zero.
-  // Played for MPs by default, so the results are MAKApoints, and say so.
-  // A ranked match adds +5 MP each for playing.
-  check(standings[0]?.uma === '+40.0 MP', `1st: -5 + 20 uma + 20 oka + 5 bonus (got ${standings[0]?.uma})`);
-  check(standings[3]?.uma === '−20.0 MP', `4th: -5 - 20 uma + 5 bonus (got ${standings[3]?.uma})`);
+  // A ranked match's results are MAKApoints, and say so, with +5 MP each for playing.
+  const results = await page.$$eval('.standings__uma', (els) => els.map((e) => e.textContent));
+  check(results[0] === '+40.0 MP', `1st: -5 + 20 uma + 20 oka + 5 bonus (got ${results[0]})`);
+  check(results[3] === '−20.0 MP', `4th: -5 - 20 uma + 5 bonus (got ${results[3]})`);
   const rulesLine = await page.$eval('.standings__rules', (el) => el.textContent);
   check(rulesLine.includes('oka') && rulesLine.includes('sum to 0.0'),
         `the end screen explains the results and that they sum to zero (got "${rulesLine}")`);
   await shot('16-endscreen.png');
-  const mpChoice = await groupState('MAKApoints');
-  check(mpChoice[0][0] === 'Played for MPs' && mpChoice[0][2] === 'true',
-        `a match is played for MAKApoints unless said otherwise (got ${JSON.stringify(mpChoice)})`);
   const guestRows = await page.$$eval('.mpgain__guest', (els) => els.length);
   check(guestRows === 4, `guests are listed as not counted (got ${guestRows})`);
   const endButtons = () => page.$$eval('.app__footer .btn', (els) => els.map((e) => e.textContent));
@@ -1557,7 +1563,7 @@ try {
     rows.hands = rows.hands.map((h, i) => ({ ...h, recordedAt: at(20 * (i + 1)) }));
     api.matches.set(id, { revision: 1, rows: edit(rows) });
   };
-  // One played just for fun, one for MPs.
+  // One casual, one ranked.
   seed('hist-kita', 'the kita one', 'haneman', '2026-09-10T20:00:00.000Z', (r) => {
     r.match.ranked = false;
     return r;
@@ -1651,18 +1657,18 @@ try {
   await waitListed(() => document.querySelectorAll('.history__item').length > 0);
   check((await page.evaluate(() => location.search)) === '?players=3', 'sanma only is in the URL too');
   await byText('Clear filters');
-  await byText('For fun');
+  await byText('Casual');
   await page.waitForFunction(() => location.search === '?mp=0');
   await new Promise((r) => setTimeout(r, 300));
   const funMetas = await page.$$eval('.history__meta', (els) => els.map((e) => e.textContent));
-  check(funMetas.length > 0 && funMetas.every((m) => !m.includes('For MPs')),
-        `the list filters to matches played just for fun (got ${JSON.stringify(funMetas)})`);
-  await byText('For MPs');
+  check(funMetas.length > 0 && funMetas.every((m) => !m.includes('Ranked')),
+        `the list filters to casual matches (got ${JSON.stringify(funMetas)})`);
+  await byText('Ranked');
   await page.waitForFunction(() => location.search === '?mp=1');
   await new Promise((r) => setTimeout(r, 300));
   const mpMetas = await page.$$eval('.history__meta', (els) => els.map((e) => e.textContent));
-  check(mpMetas.length > 0 && mpMetas.every((m) => m.includes('For MPs')),
-        `and to those played for MPs (got ${JSON.stringify(mpMetas)})`);
+  check(mpMetas.length > 0 && mpMetas.every((m) => m.includes('Ranked')),
+        `and to ranked ones (got ${JSON.stringify(mpMetas)})`);
   // Filters replace the history entry, so Back leaves the list rather than
   // stepping back through every filter. (One entry was added by the review.)
   check(await page.evaluate(() => history.length) === entriesBefore + 1,
@@ -1701,6 +1707,9 @@ try {
   check(await page.$eval('.endscreen__meta', (e) => e.textContent) === 'Entered after it was played',
         'with no hands, rounds or duration to show');
   await page.type('input[placeholder="e.g. the one at the club"]', 'at the club');
+  // Entered matches are mostly for the ranking, but still casual unless said so.
+  check((await groupState('MAKApoints'))[1][2] === 'true', 'an entered match starts casual too');
+  await byText('Ranked');
   await shot('55-entered-form.png', { fullPage: true });
   check(JSON.stringify(await saveEntered()) === JSON.stringify({ text: 'Save match', disabled: false }),
         'and can be saved once it adds up');
