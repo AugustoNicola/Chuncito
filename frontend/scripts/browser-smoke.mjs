@@ -1868,7 +1868,8 @@ try {
   const notYet = await page.$$eval('.profile__notyetlist li', (els) => els.map((e) => e.textContent));
   check(notYet.length > 10 && !notYet.includes('Riichi') && !notYet.includes('Tanyao') && !notYet.includes('Dora'),
         `the yaku still to come leave out what was won, and dora (${notYet.length} listed)`);
-  check(!notYet.includes('Sanshoku Doujun'), 'sanma does not ask for a sanshoku it cannot make');
+  // Over both kinds of match, so sanma's page still lists what only four can make.
+  check(notYet.includes('Sanshoku Doujun'), 'the yaku still to come are the same on the sanma tab');
   const listTime = await page.$eval('.profile__matchdate', (el) => el.textContent);
   check(/\d{1,2}:\d{2}/.test(listTime), `a match is dated to the minute (got "${listTime}")`);
   await shot('70-profile.png', { fullPage: true });

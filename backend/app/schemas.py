@@ -317,5 +317,7 @@ class PlayerStats(Wire):
     riichis: int
     win_methods: WinMethods
     best_hand: BestHand | None
+    # Over every kind of match, four-player and sanma alike, like the
+    # MAKApoints: the one other exception to `players`.
     yakus: list[YakuCount]
     win_values: list[WinValue]

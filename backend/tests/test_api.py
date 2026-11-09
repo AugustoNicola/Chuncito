@@ -385,6 +385,10 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     s = unlocked.get(f"/api/players/{beto['slug']}/stats", params={'players': 3}).json()
     assert s['players'] == 3 and s['matches'] == [] and s['placementCounts'] == [0, 0, 0]
     assert s['matchesFour'] == 1
+    assert s['wins'] == 0 and s['winValues'] == []
+    # ...except the yaku won with, which are over both kinds, so that list does
+    # not change with the toggle.
+    assert s['yakus'] == b['yakus']
 
 
 def test_an_entered_match_counts_for_places_and_makapoints(unlocked):

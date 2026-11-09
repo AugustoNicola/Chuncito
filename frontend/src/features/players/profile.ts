@@ -4,7 +4,8 @@
  *
  * Four-player and sanma records are never mixed (a 1st of three is not a 1st
  * of four), so everything here is for one `players` at a time, and the server
- * is asked for one at a time.
+ * is asked for one at a time -- except the yaku, which the server counts over
+ * both, and the MAKApoints.
  */
 import { type Fetched, YAKU_CHOICES, fetchJson } from '../history/history';
 import { isDora, yakuName } from '../hand/yakuNames';
@@ -95,16 +96,13 @@ export const yakuRows = (yakus: PlayerStats['yakus']) =>
   yakus.filter((y) => !isDora(y.yaku)).map((y) => ({ ...y, name: yakuName(y.yaku) }));
 
 /**
- * Sanma has only 1m and 9m of manzu, so there is no manzu run and a sanshoku
- * doujun cannot be made: it is not "yet to come", and is left out.
+ * Every yaku this player has still to win with, by name. Over both kinds of
+ * match, like the counts it is read off: sanshoku doujun cannot be made in
+ * sanma, but it can at a four-player table, so it stays on the list.
  */
-const IMPOSSIBLE_IN_SANMA = new Set(['sanshokuDoujun']);
-
-/** Every yaku this player has still to win with, in this kind of match, by name. */
-export function yakuNotYet(yakus: PlayerStats['yakus'], players: 3 | 4): { atom: string; name: string }[] {
+export function yakuNotYet(yakus: PlayerStats['yakus']): { atom: string; name: string }[] {
   const won = new Set(yakus.map((y) => y.yaku));
-  return YAKU_CHOICES.filter((y) => !won.has(y.atom)
-    && !(players === 3 && IMPOSSIBLE_IN_SANMA.has(y.atom)));
+  return YAKU_CHOICES.filter((y) => !won.has(y.atom));
 }
 
 export interface ValueBin {

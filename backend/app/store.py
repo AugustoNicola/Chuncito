@@ -524,10 +524,20 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         .order_by(w.level_rank.desc().nulls_last(), w.base_points.desc().nulls_last(), c.started_at)
         .limit(1)).first()
 
+    # The yaku, unlike the rest, are over every kind of match: a pinfu is a
+    # pinfu at either table, and "not won with yet" should not reset when the
+    # page switches to sanma.
+    every_kind = (select(mp.match_id, mp.seat)
+                  .join(m.matches, c.id == mp.match_id)
+                  .where(mp.player_id == who.id, counted)
+                  .subquery('every_kind'))
     yakus = conn.execute(
         select(m.hand_yakus.c.yaku, func.count().label('n'))
-        .select_from(my_wins.join(m.hand_yakus, (m.hand_yakus.c.hand_id == h.id)
-                                  & (m.hand_yakus.c.winner_seat == w.winner_seat)))
+        .select_from(m.hands
+                     .join(every_kind, every_kind.c.match_id == h.match_id)
+                     .join(m.hand_wins, (w.hand_id == h.id) & (w.winner_seat == every_kind.c.seat))
+                     .join(m.hand_yakus, (m.hand_yakus.c.hand_id == h.id)
+                           & (m.hand_yakus.c.winner_seat == w.winner_seat)))
         .where(won)
         .group_by(m.hand_yakus.c.yaku)
         .order_by(func.count().desc(), m.hand_yakus.c.yaku)).all()

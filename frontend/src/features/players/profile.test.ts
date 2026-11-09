@@ -32,12 +32,12 @@ describe('profile arithmetic', () => {
       .toEqual([{ yaku: 'pinfu', count: 2, name: 'Pinfu' }]);
   });
 
-  it('lists the yaku still to win with, without the dora or what sanma cannot make', () => {
-    const four = yakuNotYet([{ yaku: 'pinfu', count: 2 }, { yaku: 'dora', count: 1 }], 4).map((y) => y.atom);
-    expect(four).not.toContain('pinfu');
-    expect(four).toContain('sanshokuDoujun');
-    expect(four).not.toContain('dora');
-    expect(yakuNotYet([], 3).map((y) => y.atom)).not.toContain('sanshokuDoujun');
+  it('lists the yaku still to win with, without the dora, the same for either kind', () => {
+    const left = yakuNotYet([{ yaku: 'pinfu', count: 2 }, { yaku: 'dora', count: 1 }]).map((y) => y.atom);
+    expect(left).not.toContain('pinfu');
+    expect(left).not.toContain('dora');
+    // Not makeable in sanma, but the list is over both kinds.
+    expect(left).toContain('sanshokuDoujun');
   });
 });
 

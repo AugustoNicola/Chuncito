@@ -7,6 +7,9 @@
  * than an empty four-player page; a choice, once made, is always written out
  * (`?players=4` too), so that redirect cannot undo it.
  *
+ * The yaku won with are the exception: over both kinds, so that section does
+ * not change with the toggle.
+ *
  * Guest seats never count (a guest is not a player), and only finished matches
  * do: the server applies both.
  */
@@ -107,7 +110,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
   const ranking = byMakapoints(roster).find((r) => r.player.id === stats.player.id);
   const avg = averagePlacement(stats.placementCounts);
   const yakus = yakuRows(stats.yakus);
-  const notYet = yakuNotYet(stats.yakus, stats.players);
+  const notYet = yakuNotYet(stats.yakus);
   const best = stats.bestHand;
   const sanma = stats.players === 3;
 
@@ -198,6 +201,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
       )}
 
       <section className="profile__section">
+        {/* Both kinds of match together, whichever the toggle shows. */}
         <h2 className="home__heading">Yaku won with</h2>
         {yakus.length > 0
           ? <Bars rows={yakus.map((y) => ({ key: y.yaku, name: y.name, count: y.count }))} limit={8} />
