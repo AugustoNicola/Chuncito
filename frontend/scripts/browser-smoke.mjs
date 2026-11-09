@@ -1824,6 +1824,11 @@ try {
     .find((s) => s.querySelector('.stat__label').textContent === 'Win rate')
     .querySelector('.stat__value').textContent);
   check(winRate === '20%', `4 wins in 20 hands is a 20% win rate (got ${winRate})`);
+  const avgPlaceDetail = await page.evaluate(() => [...document.querySelectorAll('.stat')]
+    .find((s) => s.querySelector('.stat__label').textContent === 'Average place')
+    .querySelector('.stat__detail')?.textContent);
+  check(/^across \d+ games?$/.test(avgPlaceDetail ?? ''),
+        `the average place says how many games it is over (got ${avgPlaceDetail})`);
   const placeRows = await page.$$eval('.profile__section:first-of-type .donut__label',
     (els) => els.map((e) => e.textContent));
   check(JSON.stringify(placeRows) === JSON.stringify(['1st', '2nd', '3rd']),

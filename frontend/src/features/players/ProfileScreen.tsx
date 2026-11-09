@@ -111,6 +111,7 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
   const avg = averagePlacement(stats.placementCounts);
   const yakus = yakuRows(stats.yakus);
   const notYet = yakuNotYet(stats.yakus);
+  const placed = stats.placementCounts.reduce((a, b) => a + b, 0);
   const best = stats.bestHand;
   const sanma = stats.players === 3;
 
@@ -135,7 +136,8 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
             </span>
           )}
         </div>
-        <Stat tone="place" label="Average place" value={avg === null ? '–' : avg.toFixed(2)} />
+        <Stat tone="place" label="Average place" value={avg === null ? '–' : avg.toFixed(2)}
+              detail={`across ${placed} game${placed === 1 ? '' : 's'}`} />
         <Stat tone="win" label="Win rate" value={percent(stats.wins, stats.hands)}
               detail={`${stats.wins} of ${stats.hands} hands`} />
         <Stat tone="tsumo" label="Tsumo rate" value={percent(stats.tsumoWins, stats.wins)}
