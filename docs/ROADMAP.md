@@ -993,8 +993,7 @@ Asked in chat (2026-11-09), one commit each, in this order:
 
 - 2026-11-09: dice reminder, landscape layout, profile tweaks (yaku over
   both kinds, latest 15 placements, "across N games", Dama) and the NEW
-  yaku badge. Committed, **not pushed**. No migration, but the yaku change
-  is in the backend, so the push redeploys the API with it.
+  yaku badge. No migration; pushed (with the backend's yaku change).
 - 2026-10-20: red fives per hand in the tracker, and Ranked / Casual (Casual
   by default). No migration; pushed.
 
