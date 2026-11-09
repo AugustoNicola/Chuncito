@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  averagePlacement, percent, placementSlices, ronValue, valueBins, winMethodSlices, yakuNotYet,
+  averagePlacement, latestMatches, percent, placementSlices, ronValue, valueBins, winMethodSlices, yakuNotYet,
   yakuRows,
 } from './profile';
 
@@ -38,6 +38,13 @@ describe('profile arithmetic', () => {
     expect(left).not.toContain('dora');
     // Not makeable in sanma, but the list is over both kinds.
     expect(left).toContain('sanshokuDoujun');
+  });
+
+  it('draws the latest fifteen matches on the placement line, oldest first', () => {
+    const matches = Array.from({ length: 20 }, (_, i) => ({ matchId: `m${i}` })) as never[];
+    expect(latestMatches(matches).map((m: { matchId: string }) => m.matchId))
+      .toEqual(Array.from({ length: 15 }, (_, i) => `m${i + 5}`));
+    expect(latestMatches(matches.slice(0, 3))).toHaveLength(3);
   });
 });
 

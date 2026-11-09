@@ -105,6 +105,13 @@ export function yakuNotYet(yakus: PlayerStats['yakus']): { atom: string; name: s
   return YAKU_CHOICES.filter((y) => !won.has(y.atom));
 }
 
+/** The placement line shows this many of the latest matches; the donut keeps them all. */
+export const PLACEMENT_LINE_MATCHES = 15;
+
+/** The matches the placement line draws: the latest few, still oldest first. */
+export const latestMatches = (matches: readonly PlacedMatch[]): PlacedMatch[] =>
+  matches.slice(-PLACEMENT_LINE_MATCHES);
+
 export interface ValueBin {
   key: string;
   /** Short, for under a narrow bar. */

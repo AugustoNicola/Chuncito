@@ -29,7 +29,7 @@ import { byMakapoints, cachedPlayers, type Player } from './players';
 import { Bars, Donut, Histogram, PlacementLine } from './charts';
 import {
   type PlayerStats, averagePlacement, fetchStats, percent, placementSlices, winMethodSlices,
-  valueBins, yakuNotYet, yakuRows,
+  PLACEMENT_LINE_MATCHES, latestMatches, valueBins, yakuNotYet, yakuRows,
 } from './profile';
 
 const PLACE_COLOR = (key: string) => `var(--viz-place-${key.slice(1)})`;
@@ -152,8 +152,13 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
       <div className="profile__grid">
       <section className="profile__section">
         <h2 className="home__heading">Placements</h2>
-        <PlacementLine matches={stats.matches} players={stats.players} me={stats.player.id}
-                       onOpen={onOpen} />
+        <PlacementLine matches={latestMatches(stats.matches)} players={stats.players}
+                       me={stats.player.id} onOpen={onOpen} />
+        {stats.matches.length > PLACEMENT_LINE_MATCHES && (
+          <p className="field__hint">
+            The latest {PLACEMENT_LINE_MATCHES} of {stats.matches.length} matches; the ring counts them all.
+          </p>
+        )}
         <Donut slices={placementSlices(stats.placementCounts)} colorOf={PLACE_COLOR}
                caption="matches" unit={(n) => `${n} match${n === 1 ? '' : 'es'}`} />
       </section>
