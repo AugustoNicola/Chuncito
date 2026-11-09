@@ -108,7 +108,8 @@ try {
         winValues: mine.length ? [{ level: 'sinNombre', basePoints: 240, count: 2 },
                                   { level: 'mangan', basePoints: 2000, count: 1 },
                                   { level: 'haneman', basePoints: 3000, count: 1 }] : [],
-        yakus: mine.length ? [{ yaku: 'riichi', count: 3 }, { yaku: 'dora', count: 3 },
+        // Over both kinds of match, as the server counts them.
+        yakus: sat.length ? [{ yaku: 'riichi', count: 3 }, { yaku: 'dora', count: 3 },
                               { yaku: 'tanyao', count: 2 }, { yaku: 'pinfu', count: 1 }] : [],
       });
     }
@@ -1468,6 +1469,48 @@ try {
   check(seatedRows?.matchPlayers.filter((p) => p.playerId).length === 3
         && seatedRows.matchPlayers[3].playerId === null,
         'three registered players and a guest reach the server as such');
+
+  // A yaku new to the winner is marked on the score. Beto has no finished
+  // match yet, so every yaku of the reference hand is a first.
+  const scoreBeto = async () => {
+    await page.click('.seat--bottom .playerbox__main');
+    await page.waitForSelector('.winmenu');
+    await byText('Tsumo');
+    await byText('Enter the hand and score it');
+    await page.waitForSelector('.keyboard');
+    for (const t of HAND) await page.click(`.keyboard [data-key="${t}"]`);
+    await page.waitForFunction(
+      () => !document.querySelector('.btn--primary')?.disabled, { timeout: 30_000 });
+    await byText('Score hand');
+    await page.waitForSelector('.score');
+  };
+  const marked = (row) => page.$$eval(row, (els) => els.map((e) => [
+    e.firstChild.textContent.trim(), e.querySelector('.yaku__new') !== null]));
+  await scoreBeto();
+  await page.waitForSelector('.yaku__new', { timeout: 10_000 }).catch(() => {});
+  const firstTime = await marked('.score__yaku:not(.score__yaku--extra) > span:first-child');
+  check(firstTime.length === 4 && firstTime.every(([, isNew]) => isNew),
+        `a registered player's first win with a yaku marks it NEW (got ${JSON.stringify(firstTime)})`);
+  check((await page.$eval('.yaku__new', (el) => getComputedStyle(el).color)) === 'rgb(255, 210, 74)',
+        'NEW is in the yakuman gold');
+  await shot('54-new-yaku.png');
+  await byText('Record this hand');
+  await page.waitForSelector('.confirm');
+  const confirmed = await marked('.confirm__yaku');
+  check(confirmed.length === 4 && confirmed.every(([, isNew]) => isNew),
+        `the confirmation marks them too (got ${JSON.stringify(confirmed)})`);
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+  // Won with now, in this match: the server does not count it yet, the match does.
+  await scoreBeto();
+  await new Promise((r) => setTimeout(r, 500));
+  check(await page.$('.yaku__new') === null, 'a yaku won earlier in the match is no longer new');
+  await byText('Edit the hand');
+  await page.waitForSelector('.keyboard');
+  await byText('Back');
+  await page.waitForSelector('.winmenu');
+  await byText('Cancel');
+  await page.waitForSelector('.table');
   await byText('Manual');
   await page.waitForSelector('.manual');
   await byText('Discard this match');

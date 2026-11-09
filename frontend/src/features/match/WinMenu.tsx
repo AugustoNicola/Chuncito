@@ -24,6 +24,7 @@
 import { useState } from 'react';
 import type { Rule, ScoreResult, WinMode } from '../../scorer/types';
 import { HandBuilder } from '../hand/HandBuilder';
+import { isNewYaku, useYakusWonBefore } from './yakuHistory';
 import { encodeHandTiles } from '../hand/handTiles';
 import { isHandOpen, toFlags, type HandState } from '../hand/handState';
 import { levelName, levelTier } from '../hand/yakuNames';
@@ -93,6 +94,7 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
   const [staged, setStaged] = useState<WinEntry[]>(draft?.staged ?? []);
   /** Null right after staging a winner, until the next one is picked. */
   const [current, setCurrent] = useState<Seat | null>(draft ? draft.current : winner);
+  const wonBefore = useYakusWonBefore(state);
   const [han, setHan] = useState<number | null>(draft?.han ?? null);
   const [fu, setFu] = useState<number | null>(draft?.fu ?? null);
   const [limit, setLimit] = useState<string | null>(draft?.limit ?? null);
@@ -206,6 +208,7 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
         winMode={mode}
         riichiDeclared={state.pendingRiichi.includes(current)}
         rules={rulesForHand}
+        isNewYaku={(yaku) => isNewYaku(yaku, wonBefore(current))}
         draft={hand ?? undefined}
         onCancel={(tiles) => { setHand(tiles); setRoute('menu'); }}
         onConfirm={(result, tiles) => record(scored(result, tiles), 'tiles', tiles)}

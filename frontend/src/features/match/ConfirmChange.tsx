@@ -14,6 +14,8 @@ import type { HandRow, MatchState } from './matchState';
 import { LEFTOVER_NOTE, potOnTable, seatsIn } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
+import { NewMark } from '../hand/ScoreResultView';
+import { isNewYaku, useYakusWonBefore } from './yakuHistory';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import { roundLabel, seatWindOf } from './seats';
@@ -25,8 +27,10 @@ function roundPhrase(label: string, honba: number): string {
   return `${label} · ${honba} repeat${honba === 1 ? '' : 's'}`;
 }
 
-function ValueLine({ win, name, showName, sanma }: {
+function ValueLine({ win, name, showName, sanma, wonBefore }: {
   win: HandRow['wins'][number]; name: string; showName: boolean; sanma: boolean;
+  /** What the winner had won with before this hand; null when unknown. */
+  wonBefore: ReadonlySet<string> | null;
 }) {
   const real = win.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const level = win.level && win.level !== 'sinNombre' ? levelName(win.level) : null;
@@ -49,7 +53,10 @@ function ValueLine({ win, name, showName, sanma }: {
       {real.length > 0 && (
         <div className="confirm__yakus">
           {real.map((y) => (
-            <span key={y.yaku} className="confirm__yaku">{yakuName(y.yaku)}</span>
+            <span key={y.yaku} className="confirm__yaku">
+              {yakuName(y.yaku)}
+              {isNewYaku(y.yaku, wonBefore) && <NewMark />}
+            </span>
           ))}
         </div>
       )}
@@ -75,6 +82,7 @@ export function ConfirmChange({
   onCancel: () => void;
 }) {
   const names = before.config.seats.map((p) => p.name);
+  const wonBefore = useYakusWonBefore(before);
   // What the players will actually see move, which is the honest thing to show:
   // a riichi declared this hand already came off the score before this screen.
   const seats = seatsIn(before);
@@ -142,7 +150,8 @@ export function ConfirmChange({
               <ValueLine key={win.winnerSeat} win={win}
                          name={names[win.winnerSeat] ?? ''}
                          showName={row.wins.length > 1}
-                         sanma={before.config.players === 3} />
+                         sanma={before.config.players === 3}
+                         wonBefore={wonBefore(win.winnerSeat)} />
             ))}
           </div>
         )}

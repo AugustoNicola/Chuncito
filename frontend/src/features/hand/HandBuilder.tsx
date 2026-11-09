@@ -92,6 +92,11 @@ export interface HandBuilderProps {
    * calculator, which offers them as toggles instead.
    */
   rules?: Rule[];
+  /**
+   * True for a yaku the winner has never won with, marked NEW on the score.
+   * The tracker's only: the plain calculator has nobody whose history to ask.
+   */
+  isNewYaku?: (yaku: string) => boolean;
 }
 
 function buildQuery(state: HandState): ScoreQuery | null {
@@ -108,7 +113,7 @@ function buildQuery(state: HandState): ScoreQuery | null {
 
 export function HandBuilder({
   winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
-  attribution, honba, rules, draft,
+  attribution, honba, rules, draft, isNewYaku,
 }: HandBuilderProps = {}) {
   const [start] = useState(() => startingHand({
     sanma: players === 3, redFives: redFives ?? true, rules: rules ?? [],
@@ -148,6 +153,7 @@ export function HandBuilder({
     return (
       <div className="app">
         <ScoreResultView result={result} hand={state} attribution={attribution} honba={honba}
+                         isNewYaku={isNewYaku}
                          onBack={() => setResult(null)}
                          onConfirm={onConfirm ? () => onConfirm(result, state) : undefined}
                          onAddAnother={onAddAnother ? () => onAddAnother(result, state) : undefined} />

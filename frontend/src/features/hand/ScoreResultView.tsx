@@ -48,8 +48,13 @@ export interface ScoreAttribution {
   dealIn?: string;
 }
 
+/** "NEW", in gold, beside a yaku the winner has never won with before. */
+export function NewMark() {
+  return <span className="yaku__new" title="The first time this player wins with it">New</span>;
+}
+
 export function ScoreResultView({
-  result, hand, attribution, honba = 0, onBack, onConfirm, confirmLabel, onAddAnother,
+  result, hand, attribution, honba = 0, onBack, onConfirm, confirmLabel, onAddAnother, isNewYaku,
 }: {
   result: ScoreResult;
   /**
@@ -70,6 +75,8 @@ export function ScoreResultView({
    * winner's, instead of ending the flow here.
    */
   onAddAnother?: () => void;
+  /** Marks a yaku the winner has never won with before. The tracker's only. */
+  isNewYaku?: (yaku: string) => boolean;
 }) {
   const real = result.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const extras = result.yakus.filter((y) => PSEUDO_YAKU.has(y.yaku));
@@ -89,7 +96,10 @@ export function ScoreResultView({
       <div className="score__yakus">
         {real.map((y) => (
           <div className="score__yaku" key={y.yaku}>
-            <span>{yakuName(y.yaku)}</span>
+            <span>
+              {yakuName(y.yaku)}
+              {isNewYaku?.(y.yaku) && <NewMark />}
+            </span>
             <span className="score__han">{y.han} han</span>
           </div>
         ))}

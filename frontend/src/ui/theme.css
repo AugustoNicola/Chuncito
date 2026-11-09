@@ -1454,6 +1454,17 @@ button {
   .centre__counter { grid-template-columns: auto auto; }
 }
 
+/* A yaku the winner has never won with before: the profile's "not won with
+   yet" list, crossed off. Gold, the yakuman colour, as the rarest thing on
+   the score screen is gold too. */
+.yaku__new {
+  margin-left: 0.5em;
+  color: var(--limit-yakuman);
+  font-size: 0.72em; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  vertical-align: 0.1em;
+}
+
 /* ---------- uma fields ---------- */
 
 .setup__uma { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
