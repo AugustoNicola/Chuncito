@@ -960,10 +960,17 @@ button {
   color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.playerbox__windname {
-  display: block;
+/* The wind's word on the left, the dice totals that point at this seat on the
+   right: both small, so the name and the score stay what the eye lands on. */
+.playerbox__windline {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 6px;
   font-size: 0.72rem; color: var(--text-faint);
-  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.playerbox__windname { text-transform: uppercase; letter-spacing: 0.08em; }
+.playerbox__dice {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .playerbox__score {

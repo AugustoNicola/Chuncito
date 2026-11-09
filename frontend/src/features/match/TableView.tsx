@@ -11,7 +11,7 @@
 import type { MatchState } from './matchState';
 import { dealerSeat, potOnTable, seatsIn } from './matchState';
 import type { Seat, TableSide } from './seats';
-import { roundKanji, roundLabel, roundName, seatWindOf, sidesOf } from './seats';
+import { diceTotalsFor, roundKanji, roundLabel, roundName, seatWindOf, sidesOf } from './seats';
 import { placeLabel, placesOf } from './scoring';
 
 function PlayerBox({ state, seat, side, place, onOpen, onRiichi }: {
@@ -29,6 +29,7 @@ function PlayerBox({ state, seat, side, place, onOpen, onRiichi }: {
   const declared = state.pendingRiichi.includes(seat);
   const score = state.scores[seat];
   const live = state.status === 'in_progress';
+  const dice = diceTotalsFor(wind, state.config.players);
 
   return (
     <div className={`seat seat--${side}`} data-seat={seat}>
@@ -42,7 +43,14 @@ function PlayerBox({ state, seat, side, place, onOpen, onRiichi }: {
             {player.name}
             {/* The kanji alone is quick to read once you know it; the word is
                 for everyone else at the table. */}
-            <span className="playerbox__windname">{roundName(wind)}</span>
+            <span className="playerbox__windline">
+              <span className="playerbox__windname">{roundName(wind)}</span>
+              {/* Which dice totals land on this player, for whoever breaks the
+                  wall: the count starts at the dealer, so it moves with the deal. */}
+              <span className="playerbox__dice" aria-label={`Dice ${dice.join(', ')}`}>
+                {dice.join('\u2009·\u2009')}
+              </span>
+            </span>
           </span>
           <span className={`playerbox__score${score < 0 ? ' playerbox__score--negative' : ''}`}>
             {score.toLocaleString()}

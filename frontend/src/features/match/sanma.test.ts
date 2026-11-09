@@ -16,7 +16,7 @@ import {
 } from './scoring';
 import { fromRows, toRows } from './rows';
 import {
-  TABLE_SIDES, type TableSide, dealerOf, emptySideAfterRotation, finalRound, lastWind, nextRound,
+  TABLE_SIDES, type TableSide, dealerOf, diceTotalsFor, emptySideAfterRotation, finalRound, lastWind, nextRound,
   seatWindOf, seatsOf, sidesOf, turnDistance, type Seat,
 } from './seats';
 
@@ -81,6 +81,12 @@ describe('sanma seats and rounds', () => {
   it('stops at West, where four players would go on to North', () => {
     expect(lastWind(3)).toBe('oeste');
     expect(lastWind(4)).toBe('norte');
+  });
+
+  it('counts the dice round three seats, skipping the empty chair', () => {
+    expect(diceTotalsFor('este', 3)).toEqual([1, 4, 7, 10]);
+    expect(diceTotalsFor('sur', 3)).toEqual([2, 5, 8, 11]);
+    expect(diceTotalsFor('oeste', 3)).toEqual([3, 6, 9, 12]);
   });
 
   it('measures turn order around three seats', () => {

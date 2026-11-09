@@ -11,7 +11,7 @@ import {
   manualReachable,
   MP_BONUS, matchResults, mpOf, paymentFor, placeLabel, placements, placesOf, resultLabel,
 } from './scoring';
-import { dealerOf, seatWindOf } from './seats';
+import { dealerOf, diceTotalsFor, seatWindOf } from './seats';
 import type { Seat } from './seats';
 
 const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
@@ -90,6 +90,13 @@ describe('seats and winds', () => {
     expect(seatWindOf(1, round, 4)).toBe('este');
     expect(seatWindOf(2, round, 4)).toBe('sur');
     expect(seatWindOf(0, round, 4)).toBe('norte');
+  });
+
+  it('counts the dice from the dealer round in turn order', () => {
+    expect(diceTotalsFor('este', 4)).toEqual([1, 5, 9]);
+    expect(diceTotalsFor('sur', 4)).toEqual([2, 6, 10]);
+    expect(diceTotalsFor('oeste', 4)).toEqual([3, 7, 11]);
+    expect(diceTotalsFor('norte', 4)).toEqual([4, 8, 12]);
   });
 });
 

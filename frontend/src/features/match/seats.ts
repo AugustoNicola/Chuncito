@@ -102,6 +102,21 @@ export function isSuddenDeath(round: Round, length: MatchLength): boolean {
 export const turnDistance = (from: Seat, to: Seat, players: PlayerCount): number =>
   (to - from + players) % players;
 
+/**
+ * The dice totals that point at the player sitting in `wind`: the count starts
+ * at 1 on the dealer and goes round in turn order, so East has 1, 5, 9 and
+ * South 2, 6, 10. Three players count round three seats -- the empty chair is
+ * skipped, not counted -- so sanma's East has 1, 4, 7, 10.
+ *
+ * Two dice never make 1, but it is where the count starts, and the table
+ * reminder reads better with the whole pattern than with a gap.
+ */
+export function diceTotalsFor(wind: SituationWind, players: PlayerCount): number[] {
+  const out: number[] = [];
+  for (let n = windIndex(wind) + 1; n <= 12; n += players) out.push(n);
+  return out;
+}
+
 const ROUND_KANJI: Record<SituationWind, string> = {
   este: '東', sur: '南', oeste: '西', norte: '北',
 };

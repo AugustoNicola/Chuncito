@@ -502,6 +502,9 @@ try {
     windName: el.querySelector('.playerbox__windname').textContent,
     kanji: el.querySelector('.playerbox__wind').textContent,
   }));
+  const dice = await page.$$eval('.seat', (els) => els.map((e) => e.querySelector('.playerbox__dice').textContent.replace(/\s/g, '')));
+  check(JSON.stringify(dice) === JSON.stringify(['1·5·9', '2·6·10', '3·7·11', '4·8·12']),
+        `each box shows the dice totals that land on it, from the dealer (got ${JSON.stringify(dice)})`);
   check(dealerBox.name === 'Ana', `seat 1 deals East 1 (got ${dealerBox.name})`);
   check(dealerBox.windName === 'East' && dealerBox.kanji === '東',
         `each box names its wind as well as showing the kanji (got ${JSON.stringify(dealerBox)})`);
