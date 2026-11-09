@@ -75,11 +75,11 @@ export function averagePlacement(counts: readonly number[]): number | null {
 
 export interface Slice { key: string; label: string; value: number }
 
-/** Riichi, dama, open -- and "not recorded" only if some typed-in win left it unknown. */
+/** Riichi, dama (closed, no riichi), open -- and "not recorded" only if some typed-in win left it unknown. */
 export function winMethodSlices(m: PlayerStats['winMethods']): Slice[] {
   const slices: Slice[] = [
     { key: 'riichi', label: 'Riichi', value: m.riichi },
-    { key: 'dama', label: 'Closed, no riichi', value: m.dama },
+    { key: 'dama', label: 'Dama', value: m.dama },
     { key: 'open', label: 'Open', value: m.open },
   ];
   if (m.unknown > 0) slices.push({ key: 'unknown', label: 'Not recorded', value: m.unknown });
