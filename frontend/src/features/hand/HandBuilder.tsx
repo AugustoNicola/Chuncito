@@ -167,7 +167,11 @@ export function HandBuilder({
   const warning = message !== null || (complete && issues.length > 0);
 
   return (
-    <div className="app">
+    <div className="app app--hand">
+      {/* Two halves that are one column in portrait (`display: contents`) and
+          side by side on a phone in landscape: the hand and its score button on
+          the left, the keys that build it on the right. */}
+      <div className="hand__summary">
       <header className="app__bar">
         {onCancel && (
           <button type="button" className="btn btn--quiet" onClick={() => onCancel(state)}>Back</button>
@@ -197,7 +201,9 @@ export function HandBuilder({
               disabled={!canScore} onClick={score}>
         Score hand
       </button>
+      </div>
 
+      <div className="hand__input">
       <div className="flaps" role="tablist">
         {(['tiles', 'details'] as Flap[]).map((f) => (
           <button key={f} type="button" role="tab" aria-selected={flap === f}
@@ -224,6 +230,7 @@ export function HandBuilder({
                           showRules={rules === undefined}
                           riichiDeclared={riichiDeclared} />
       )}
+      </div>
     </div>
   );
 }

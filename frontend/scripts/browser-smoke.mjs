@@ -668,7 +668,9 @@ try {
       }
       const rects = els.map((el) => [el.className, el.getBoundingClientRect()]);
       for (const [name, r] of rects) {
-        if (r.left < 0 || r.right > window.innerWidth) out.push(`${name} leaves the screen`);
+        if (r.left < 0 || r.right > window.innerWidth || r.top < 0 || r.bottom > window.innerHeight) {
+          out.push(`${name} leaves the screen`);
+        }
       }
       for (let i = 0; i < rects.length; i++) {
         for (let j = i + 1; j < rects.length; j++) {
@@ -684,6 +686,16 @@ try {
       problems.length ? problems.join('; ') : 'clean'})`);
   };
   await tableFits('four players');
+  // A phone on its side: the table used to run off the top and bottom.
+  await page.setViewport({ width: 844, height: 390 });
+  await tableFits('four players in landscape');
+  check(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight
+                                  && document.documentElement.scrollWidth <= innerWidth),
+        'the landscape table needs no scrolling');
+  await shot('11b-table-landscape.png');
+  await page.setViewport({ width: 640, height: 300 });
+  await tableFits('four players on a short landscape phone');
+  await page.setViewport({ width: 390, height: 844 });
   check(afterWin[2] === '21,100', `the discarder pays 3900 (got ${afterWin[2]})`);
   check(await centreText() === 'East 2', `the deal passes on (got ${await centreText()})`);
 
@@ -1229,6 +1241,16 @@ try {
   // The narrowest common phone leaves the centre least room.
   await page.setViewport({ width: 360, height: 740 });
   await tableFits('sanma at 360px');
+  // Keyed by wind: the deal has moved on by now, and the count starts at East.
+  const sanmaDice = await page.$$eval('.seat', (els) => Object.fromEntries(els.map((e) => [
+    e.querySelector('.playerbox__windname').textContent,
+    e.querySelector('.playerbox__dice').textContent.replace(/\s/g, '')])));
+  check(JSON.stringify(sanmaDice, Object.keys(sanmaDice).sort())
+        === JSON.stringify({ East: '1·4·7·10', South: '2·5·8·11', West: '3·6·9·12' }),
+        `sanma counts the dice round three seats (got ${JSON.stringify(sanmaDice)})`);
+  await page.setViewport({ width: 844, height: 390 });
+  await tableFits('sanma in landscape');
+  await page.setViewport({ width: 360, height: 740 });
   await shot('35-sanma-narrow.png');
   await page.setViewport({ width: 390, height: 844 });
 

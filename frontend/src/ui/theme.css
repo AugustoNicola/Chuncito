@@ -1342,9 +1342,116 @@ button {
   border-top: 1px solid var(--border);
 }
 
-/* A phone in landscape, or a tablet: the table has room to breathe. */
+/* A tablet, or a tall window: the table has room to breathe. */
 @media (min-height: 700px) {
   .table { min-height: 520px; }
+}
+
+/*
+ * A phone on its side. The portrait table stacks three boxes' worth of height
+ * -- top box, a side box's long edge, bottom box -- which is more than a
+ * landscape phone has, so it ran off the screen. Here the side boxes stand the
+ * full height of the table instead, beside the top box, the centre and the
+ * bottom box, and the bar's buttons move out to the corners, where the width
+ * left over is. The boxes themselves are unchanged, only shorter when the
+ * screen is very short, so a player reads the same box either way up.
+ */
+@media (orientation: landscape) and (max-height: 540px) {
+  .app--table {
+    position: relative;
+    max-width: none;
+    height: 100dvh;
+    min-height: 0;
+    padding: 6px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 6px 10px;
+  }
+  /* The bar's three parts go to the corners on either side of the table. */
+  .app--table > .app__bar { display: contents; }
+  .app--table > .app__bar > .btn:first-child { grid-area: 1 / 1; justify-self: start; }
+  .app--table > .app__bar > .btn:last-child  { grid-area: 1 / 3; justify-self: end; }
+  .app--table > .app__bar .btn { padding: 7px 9px; white-space: nowrap; }
+  .app--table > .app__bar > .app__title--match { grid-area: 2 / 1; align-self: start; }
+  /* Over the table's right-hand corner, so the dot that opened it, on the
+     left, stays in sight to close it. */
+  .app--table > .app__syncpanel {
+    position: absolute; z-index: 10;
+    top: 6px; right: max(10px, env(safe-area-inset-right));
+    width: min(22rem, calc(100% - 20px));
+    max-height: calc(100% - 12px);
+    overflow-y: auto;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .app--table > .table {
+    grid-area: 1 / 2 / 3 / 3;
+    /* Two boxes and the centre's smallest height share the screen's height. */
+    --seat-h: clamp(5.75rem, (100dvh - 12px - 12px - 3.5rem) / 2, 7.5rem);
+    min-height: calc(2 * var(--seat-h) + 12px + 3.5rem);
+    max-height: none;
+    margin: 0;
+    grid-template-columns: var(--seat-h) var(--seat-w) var(--seat-h);
+    grid-template-rows: auto minmax(3.5rem, 1fr) auto;
+  }
+  .table .seat--left  { grid-area: 1 / 1 / 4 / 2; }
+  .table .seat--right { grid-area: 1 / 3 / 4 / 4; }
+  .table .centre { height: 100%; min-height: 0; gap: 4px; }
+}
+
+/* The calculator's halves stack in portrait, as if they were not there. */
+.hand__summary, .hand__input { display: contents; }
+
+/* The rest of the app on a phone on its side: the screens stay one scrolling
+   column, except where landscape has something better to do with the width. */
+@media (orientation: landscape) and (max-height: 540px) {
+  /* Home's four cards in one row, so all four are in sight without scrolling. */
+  .app:has(> .home) { max-width: 760px; }
+  .app__bar--home { padding: 6px 0 0; }
+  .home__grid { grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(160px, 1fr); }
+
+  /* The calculator side by side: the hand and Score on the left, the tile keys
+     (or the details) on the right, each scrolling on its own if it must. */
+  .app--hand {
+    max-width: 980px;
+    height: 100dvh; min-height: 0;
+    flex-direction: row;
+    gap: 14px;
+  }
+  .hand__summary, .hand__input {
+    display: flex; flex-direction: column; gap: 10px;
+    flex: 1 1 0; min-width: 0;
+    overflow-y: auto;
+  }
+  .hand__summary .handdisplay { flex: 1 1 auto; min-height: 120px; }
+  /* Narrow enough that four rows of tiles fit under the tabs and the mode bar
+     (about 195px with the gaps): a 3:4 tile in a nine-column row is 4/27 of the
+     width tall. Never so small the tiles are hard to hit. */
+  .hand__input .keyboard {
+    width: clamp(260px, (100dvh - 195px) * 27 / 16, 100%);
+    align-self: center;
+  }
+
+  /* A footer with a line of status beside its button(s), instead of over
+     them: it is pinned to a short screen, so its height is precious. */
+  .app__footer:has(> .status) { flex-direction: row; align-items: center; padding-top: 8px; padding-bottom: 8px; }
+  .app__footer > .status { flex: 1 1 auto; text-align: left; }
+  .app__footer:has(> .status) > .btn--wide { width: auto; flex: 0 0 auto; min-width: 11rem; }
+}
+
+/* The centre squeezed short -- a landscape phone -- keeps the round and the
+   counts, side by side, and lets the wordmark go. */
+.centre { container-type: size; }
+@container (height < 120px) {
+  .centre__brand { display: none; }
+  .centre__round { line-height: 1.1; }
+  .centre__counters { flex-direction: row; gap: 14px; }
+  .centre__counter { grid-template-columns: auto auto; }
 }
 
 /* ---------- uma fields ---------- */
