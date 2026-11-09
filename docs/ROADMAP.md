@@ -44,7 +44,7 @@ Styling, after a round of on-device feedback:
 Deferred out of Phase 1 (not blocking the tracker):
 - [ ] Widen the test corpus from `puntuacion_matriz_tests.pl` (fu 20–110)
 - [ ] Differential harness: WASM vs `swipl` CLI over a generated hand corpus
-- [ ] Landscape / tablet layout (currently tuned for phone portrait)
+- [x] Landscape phone layout (2026-11-09; see Backlog). Tablet still untuned
 - [ ] A called run whose red five sits mid-run is reachable via the Red Five
       modifier; no known gaps left in tile entry
 
@@ -178,7 +178,7 @@ Verified before Phase 3:
 
 Deferred out of Phase 2:
 - [ ] Agari-yame (the leading dealer choosing to end it) — not wanted for now
-- [ ] Landscape / tablet layout for the table
+- [x] Landscape layout for the table on a phone (2026-11-09)
 - [ ] A "who am I" seat, to put the phone's owner at the bottom of the table
 
 ## Sanma (three-player) — DONE (2026-09-21)
@@ -952,10 +952,49 @@ Asked in chat (2026-10-20), one commit each:
       screen starts from `MatchState.ranked`, which is false until saved.
       The history URL keeps `mp=1|0`, so old links still work.
 
+Asked in chat (2026-11-09), one commit each, in this order:
+- [x] **Dice reminder** on each player box's wind line, right-aligned:
+      the two-dice totals that point at that seat, counted from the dealer
+      in turn order (`diceTotalsFor`, tested): 1·5·9 / 2·6·10 / 3·7·11 /
+      4·8·12. Sanma counts round three seats, skipping the empty chair:
+      1·4·7·10 / 2·5·8·11 / 3·6·9·12. (1 is unreachable with two dice; the
+      user wanted the whole pattern shown.)
+- [x] **Landscape on a phone** (`orientation: landscape` and
+      `max-height: 540px`). The portrait table needs ~480px of height and
+      ran off the screen. The side boxes now stand the table's full height,
+      beside the top box, centre and bottom box; the bar's buttons go to
+      the corners; the sync panel floats over the right corner. Box height
+      shrinks with the screen (`--seat-h` clamp, 5.75–7.5rem); the centre is
+      a size container and drops its wordmark under 120px tall. Home shows
+      four cards in a row, the calculator puts the hand beside the keys
+      (`.hand__summary` / `.hand__input`, `display: contents` in portrait),
+      and a pinned footer with a status line puts it beside the button.
+      The smoke test checks the table at 844×390 and 640×300, and in sanma.
+- [x] **Profile yaku over both kinds.** `PlayerStats.yakus` is now counted
+      over every finished match, four-player and sanma (like the
+      MAKApoints), so "Yaku won with" and "Not won with yet" do not change
+      with the toggle. Sanshoku doujun stays on "not yet" on the sanma tab.
+      No migration.
+- [x] **Placement line: latest 15 matches** (`latestMatches`), with a note
+      once there are more; the ring still counts all.
+- [x] **"across N games"** under Average place.
+- [x] **"Dama"** for the closed, no-riichi slice of How they win.
+- [x] **NEW on a yaku** the winner has never won with, in gold
+      (`--limit-yakuman`), on the score screen and the confirmation inside a
+      match (`yakuHistory.ts`). History = the server's stats (both kinds,
+      fetched once per player per match, by slug from the cached name) ∪
+      the yaku of hands already won in this match, which the server does
+      not count until it finishes. Unknown history (guest, offline, locked)
+      shows no badge. Not in the plain calculator.
+
 ## Picking this up cold
 
-**State as of 2026-10-20** (the Backlog section above has the detail):
+**State as of 2026-11-09** (the Backlog section above has the detail):
 
+- 2026-11-09: dice reminder, landscape layout, profile tweaks (yaku over
+  both kinds, latest 15 placements, "across N games", Dama) and the NEW
+  yaku badge. Committed, **not pushed**. No migration, but the yaku change
+  is in the backend, so the push redeploys the API with it.
 - 2026-10-20: red fives per hand in the tracker, and Ranked / Casual (Casual
   by default). No migration; pushed.
 
