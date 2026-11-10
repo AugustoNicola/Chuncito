@@ -7,8 +7,8 @@
  */
 import {
   type HandInput, type MatchConfig, type MatchState,
-  adjustScores, createMatch, endMatchManually, enteredMatch, recordHand, setMatchName, setRanked,
-  toggleRiichi,
+  adjustScores, createMatch, endMatchManually, enteredMatch, recordHand, revealYaku, setMatchName,
+  setRanked, toggleRiichi,
 } from './matchState';
 import { DEFAULTS } from './matchState';
 import { basePoints, levelFor, paymentFor } from './scoring';
@@ -30,6 +30,7 @@ export const fourPlayerConfig: MatchConfig = {
     { playerId: null, name: 'Cami' }, { playerId: null, name: 'Dani' },
   ],
   emptySide: null,
+  tiktok: false,
 };
 
 /** Display names for the registered seats above, as `fromRows` wants them. */
@@ -119,6 +120,7 @@ export function playSanmaInProgress(): MatchState {
     ],
     // Not the default, so the wire and the database carry a real choice.
     emptySide: 'top',
+    tiktok: false,
   }, new Date('2026-09-22T20:15:30.250Z'));
   let hands = 0;
   const play = (input: HandInput) => {
@@ -157,4 +159,58 @@ export function enterPlayedMatch(): MatchState {
   return enteredMatch(fourPlayerConfig, [33000, 33000, 26000, 8000], {
     name: 'at the club', ranked: true, playedAt: new Date('2026-10-10T21:00:00.000Z'),
   });
+}
+
+/** A seeded generator (mulberry32), so a drawn yaku wall is the same every run. */
+export function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * A finished Tiktok match: a riichi win after a kan, with one yaku from the
+ * face-up wall and one from the ura under it, then a draw. The first wall is
+ * set by hand so the hand's yaku can be chosen to match it.
+ */
+export function playTiktok(): MatchState {
+  const start = new Date('2026-11-10T21:00:00.000Z');
+  const rng = seeded(9);
+  let state = createMatch({ ...fourPlayerConfig, rules: [], tiktok: true }, start, undefined, rng);
+  state = {
+    ...state,
+    yakuWall: {
+      dora: ['chun', 'toitoi', 'ittsuu', 'honitsu', 'kokushiMusou'],
+      ura: ['riichi', 'tanyao', 'chiitoitsu', 'haku', 'sanAnkou'],
+      revealed: 1,
+    },
+  };
+  state = revealYaku(state);
+  state = toggleRiichi(state, 2);
+  let hands = 0;
+  const play = (input: HandInput) => {
+    hands += 1;
+    state = recordHand(state, input, new Date(start.getTime() + hands * 11 * 60_000), rng).state;
+  };
+  // Riichi (1 + 2 as an ura yaku) and chun (1 + 2 as a dora yaku): 6 han, haneman.
+  play({
+    kind: 'win', mode: 'ron', dealIn: 3, wins: [{
+      winner: 2,
+      value: {
+        source: 'scored', payment: paymentFor(3000, false, 'ron'),
+        han: 6, fu: 40, level: 'haneman',
+        yakus: [{ yaku: 'riichi', han: 3 }, { yaku: 'chun', han: 3 }],
+        handTiles: 'm1m2m3p4p5p6s7s8s9rrrm5|dora:s1|ura:p9',
+        flags: ['riichi'], open: false,
+      },
+    }],
+  });
+  play({ kind: 'exhaustiveDraw', tenpai: [1] });
+  state = endMatchManually(state, new Date(start.getTime() + 30 * 60_000));
+  return setMatchName(state, 'the first Tiktok night');
 }

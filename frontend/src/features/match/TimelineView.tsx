@@ -13,6 +13,8 @@ import { StandingsChart } from './StandingsChart';
 import { durationLabel, handDurations } from './duration';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
+import { YakuDoraMark } from '../hand/ScoreResultView';
+import { type YakuDora, wallOfRow, wonAfterRiichi, yakuDoraKind } from './yakuWall';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
 import type { Seat } from './seats';
@@ -41,8 +43,10 @@ function headline(row: HandRow, names: readonly string[]): string {
 }
 
 /** One winner's value line. A double ron shows one of these per winner. */
-function WinLine({ win, names, showName, sanma }: {
+function WinLine({ win, names, showName, sanma, wall }: {
   win: WinRow; names: readonly string[]; showName: boolean; sanma: boolean;
+  /** A Tiktok hand's wall; null otherwise. */
+  wall: YakuDora | null;
 }) {
   const real = win.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const level = win.level && win.level !== 'sinNombre' ? levelName(win.level) : null;
@@ -62,9 +66,15 @@ function WinLine({ win, names, showName, sanma }: {
       </div>
       {real.length > 0 && (
         <div className="timeline__yakus">
-          {real.map((y) => (
-            <span key={y.yaku} className="timeline__yaku">{yakuName(y.yaku)}</span>
-          ))}
+          {real.map((y) => {
+            const kind = yakuDoraKind(y.yaku, wall, wonAfterRiichi(win));
+            return (
+              <span key={y.yaku} className="timeline__yaku">
+                {yakuName(y.yaku)}
+                {kind && <YakuDoraMark kind={kind} />}
+              </span>
+            );
+          })}
         </div>
       )}
       {/* This is what `hand_tiles` is stored for -- reviewing the hand, and one
@@ -111,8 +121,23 @@ function HandEntry({ row, after, duration, names, seats, link, sanma }: {
 
       {row.wins.map((win) => (
         <WinLine key={win.winnerSeat} win={win} names={names}
-                 showName={row.wins.length > 1} sanma={sanma} />
+                 showName={row.wins.length > 1} sanma={sanma} wall={wallOfRow(row)} />
       ))}
+
+      {/* The wall as it stood when the hand ended. The ura only once a
+          riichi winner has turned them over, as at the table. */}
+      {row.yakuDora.length > 0 && (
+        <div className="timeline__wall">
+          <span className="timeline__walllabel">Yaku dora</span>
+          <span>{row.yakuDora.map(yakuName).join(' · ')}</span>
+          {row.wins.some(wonAfterRiichi) && (
+            <>
+              <span className="timeline__walllabel">Ura</span>
+              <span>{row.yakuUra.map(yakuName).join(' · ')}</span>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="timeline__deltas">
         {seatsOf(sanma ? 3 : 4).map((seat) => (

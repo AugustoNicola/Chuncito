@@ -93,22 +93,34 @@ export function upgrade(state: MatchState): { state: MatchState; changed: boolea
   const ranked = (state as Partial<MatchState>).ranked ?? false;
   // Before matches could be entered, every one was played here.
   const imported = (state as Partial<MatchState>).imported ?? false;
-  // Hands recorded before their time was kept have none.
-  const untimed = state.hands.some((h) => (h as Partial<HandRow>).recordedAt === undefined);
-  const hands = untimed ? state.hands.map((h) => ({ ...h, recordedAt: h.recordedAt ?? null })) : state.hands;
+  // Hands recorded before their time was kept have none, and hands from
+  // before Tiktok no yaku wall.
+  const untimed = state.hands.some((h) => (h as Partial<HandRow>).recordedAt === undefined
+    || (h as Partial<HandRow>).yakuDora === undefined);
+  const hands = untimed
+    ? state.hands.map((h) => ({
+        ...h, recordedAt: h.recordedAt ?? null, yakuDora: h.yakuDora ?? [], yakuUra: h.yakuUra ?? [],
+      }))
+    : state.hands;
+  // Every match begun before Tiktok existed was plain riichi.
+  const tiktok = (state.config as Partial<MatchState['config']>).tiktok ?? false;
+  const yakuWall = (state as Partial<MatchState>).yakuWall ?? null;
   // Sanma begun before the empty side was a choice had the left one empty.
   const emptySide = state.config.emptySide !== undefined
     ? state.config.emptySide : (players === 3 ? 'left' : null);
   if (state.config.emptySide === emptySide && state.config.players === players && state.config.redFives === redFives
       && state.config.rules === rules && state.config.goalScore === goalScore
       && state.config.targetScore === targetScore && state.id === id && state.ranked === ranked
-      && state.imported === imported
+      && state.imported === imported && state.config.tiktok === tiktok && state.yakuWall === yakuWall
       && !untimed) {
     return { state, changed: false };
   }
   const { returnScore: _dropped, ...config } = legacy as MatchState['config'] & { returnScore?: number };
   return {
-    state: { ...state, id, ranked, imported, hands, config: { ...config, players, redFives, rules, goalScore, targetScore, emptySide } },
+    state: {
+      ...state, id, ranked, imported, hands, yakuWall,
+      config: { ...config, players, redFives, rules, goalScore, targetScore, emptySide, tiktok },
+    },
     changed: true,
   };
 }

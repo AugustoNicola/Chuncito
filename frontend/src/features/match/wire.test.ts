@@ -21,7 +21,7 @@ import { type MatchRows, fromRows, toRows } from './rows';
 import { type MatchState } from './matchState';
 import { payloadOf } from './sync';
 import {
-  enterPlayedMatch, fourPlayerConfig, nameOfTest, playEverything, playSanmaInProgress,
+  enterPlayedMatch, fourPlayerConfig, nameOfTest, playEverything, playSanmaInProgress, playTiktok,
 } from './testMatches';
 
 interface Fixture {
@@ -52,6 +52,7 @@ const cases: Record<string, Fixture> = {
   'four-player-finished': stable(playEverything(), 'fixture-4p'),
   'sanma-in-progress': stable(playSanmaInProgress(), 'fixture-3p'),
   'entered': stable(enterPlayedMatch(), 'fixture-entered'),
+  'tiktok': stable(playTiktok(), 'fixture-tiktok'),
   'empty': stable(createMatch(fourPlayerConfig, new Date('2026-09-23T00:00:00.000Z')),
     'fixture-empty'),
 };

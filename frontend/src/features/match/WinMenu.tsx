@@ -31,9 +31,10 @@ import { levelName, levelTier } from '../hand/yakuNames';
 import type { HandValue, MatchState, WinEntry } from './matchState';
 import { dealerSeat, seatsIn } from './matchState';
 import {
-  LIMIT_BASE, MANUAL_FU, MANUAL_HAN, basePoints, levelFor, manualReachable, paymentFor,
+  LIMIT_BASE, MANUAL_FU, MANUAL_HAN, basePoints, honbaRatesOf, levelFor, manualReachable, paymentFor,
   paymentTotal, type ManualShape,
 } from './scoring';
+import { revealedOf } from './yakuWall';
 import type { Seat } from './seats';
 import { seatWindOf, turnDistance } from './seats';
 
@@ -199,6 +200,8 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
           ...(mode === 'ron' && dealIn !== null ? { dealIn: nameOf(dealIn) } : {}),
         }}
         honba={honbaFor(current)}
+        honbaRates={honbaRatesOf(state.config)}
+        yakuDora={state.yakuWall ? revealedOf(state.yakuWall) : undefined}
         winds={{
           roundWind: state.round.wind,
           seatWind: seatWindOf(current, state.round, players),

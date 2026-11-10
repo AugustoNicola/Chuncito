@@ -10,7 +10,7 @@
  * names are short; the API's are spelled out (`min_level`), and `apiPath` is
  * the only place that knows both.
  */
-import { YAKU_NAMES, isDora } from '../hand/yakuNames';
+import { YAKU_ATOMS, YAKU_NAMES } from '../hand/yakuNames';
 import { type MatchRows, fromRows } from '../match/rows';
 import type { MatchState } from '../match/matchState';
 import { type ServerMatch, fetchTransport } from '../match/syncClient';
@@ -27,12 +27,24 @@ export interface HistoryFilters {
   yaku: string | null;
   /** 4, or 3 for sanma. */
   players: 3 | 4 | null;
-  /** Ranked, for MAKApoints (true), or casual (false). */
-  ranked: boolean | null;
+  /** Which of the three kinds of match. */
+  kind: MatchKind | null;
 }
 
+/**
+ * Ranked for MAKApoints, casual, or Tiktok -- which is never ranked, so the
+ * three do not overlap.
+ */
+export type MatchKind = 'ranked' | 'casual' | 'tiktok';
+
+export const kindOf = (m: { ranked: boolean; tiktok: boolean }): MatchKind =>
+  (m.tiktok ? 'tiktok' : m.ranked ? 'ranked' : 'casual');
+
+/** In the URL: `mp=1` and `mp=0` from before Tiktok, which links still carry. */
+const KIND_PARAM: Record<MatchKind, string> = { ranked: '1', casual: '0', tiktok: 't' };
+
 export const NO_FILTERS: HistoryFilters = {
-  text: '', playerIds: [], minLevel: null, yaku: null, players: null, ranked: null,
+  text: '', playerIds: [], minLevel: null, yaku: null, players: null, kind: null,
 };
 
 /**
@@ -50,9 +62,8 @@ export const LEVELS: readonly { rank: number; label: string }[] = [
 
 /** Every yaku worth filtering by, alphabetically by display name. */
 export const YAKU_CHOICES: readonly { atom: string; name: string }[] =
-  Object.entries(YAKU_NAMES)
-    .filter(([atom]) => !isDora(atom))
-    .map(([atom, name]) => ({ atom, name }))
+  YAKU_ATOMS
+    .map((atom) => ({ atom, name: YAKU_NAMES[atom]! }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
 const rankOf = (raw: string | null): number | null => {
@@ -70,7 +81,7 @@ export function filtersFrom(params: URLSearchParams): HistoryFilters {
     minLevel: rankOf(params.get('level')),
     yaku: yaku && YAKU_CHOICES.some((y) => y.atom === yaku) ? yaku : null,
     players: players === '3' ? 3 : players === '4' ? 4 : null,
-    ranked: params.get('mp') === '1' ? true : params.get('mp') === '0' ? false : null,
+    kind: (Object.keys(KIND_PARAM) as MatchKind[]).find((k) => KIND_PARAM[k] === params.get('mp')) ?? null,
   };
 }
 
@@ -82,7 +93,7 @@ export function paramsOf(f: HistoryFilters): URLSearchParams {
   if (f.minLevel !== null) p.set('level', String(f.minLevel));
   if (f.yaku) p.set('yaku', f.yaku);
   if (f.players) p.set('players', String(f.players));
-  if (f.ranked !== null) p.set('mp', f.ranked ? '1' : '0');
+  if (f.kind !== null) p.set('mp', KIND_PARAM[f.kind]);
   return p;
 }
 
@@ -96,7 +107,9 @@ export function apiPath(f: HistoryFilters): string {
   if (f.minLevel !== null) p.set('min_level', String(f.minLevel));
   if (f.yaku) p.set('yaku', f.yaku);
   if (f.players) p.set('players', String(f.players));
-  if (f.ranked !== null) p.set('ranked', String(f.ranked));
+  if (f.kind === 'ranked') p.set('ranked', 'true');
+  if (f.kind === 'casual') { p.set('ranked', 'false'); p.set('tiktok', 'false'); }
+  if (f.kind === 'tiktok') p.set('tiktok', 'true');
   return `/matches?${p}`;
 }
 

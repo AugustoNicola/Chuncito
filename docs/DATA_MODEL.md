@@ -31,8 +31,10 @@ matches(id, name, players ENUM(3,4), red_fives BOOL,
         ranked,           -- played for MAKApoints, chosen when saved (0005)
         empty_side NULL,  -- sanma: the side of the table nobody sits at, as the
                           -- screen draws it (0007); null = left, as before
-        imported)         -- played without the tracker, entered afterwards (0008):
+        imported,         -- played without the tracker, entered afterwards (0008):
                           -- no hands, ended_at NULL, final scores as adjustments
+        tiktok)           -- Tiktok Mahjong, the group's yaku-wall variant (0009);
+                          -- CHECK NOT (tiktok AND ranked); out of all stats
 
 match_players(match_id, seat 0..players-1, player_id NULL, guest_name NULL,
               final_score, placement, uma_points)
@@ -44,7 +46,10 @@ hands(id, match_id, seq, round_wind, round_number, honba, riichi_pot_before,
       deal_in_seat NULL,
       score_delta,                      -- "+8000,-8000,0,0" across seats (3 in sanma)
       client_uuid UNIQUE,               -- sync idempotency key
-      recorded_at)                      -- when it was recorded; null before 0006
+      recorded_at,                      -- when it was recorded; null before 0006
+      yaku_dora NULL, yaku_ura NULL)    -- Tiktok only (0009): the face-up yaku and
+                                        -- the ura under them, "chun,toitoi"; the
+                                        -- face-down rest is never stored
       UNIQUE(match_id, seq)
 
 hand_wins(hand_id, winner_seat,         -- one row per winner; see below

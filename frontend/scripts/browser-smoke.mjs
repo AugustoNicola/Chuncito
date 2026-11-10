@@ -132,6 +132,7 @@ try {
         .filter(([, { rows: r }]) => !q.get('status') || r.match.status === q.get('status'))
         .filter(([, { rows: r }]) => !q.get('players') || String(r.match.players) === q.get('players'))
         .filter(([, { rows: r }]) => !q.get('ranked') || String(r.match.ranked) === q.get('ranked'))
+        .filter(([, { rows: r }]) => !q.get('tiktok') || String(r.match.tiktok ?? false) === q.get('tiktok'))
         .filter(([, { rows: r }]) => !q.get('min_level')
           || (rank(r.match.maxLevel) ?? -1) >= Number(q.get('min_level')))
         .filter(([, { rows: r }]) => q.getAll('player')
@@ -149,7 +150,8 @@ try {
           scores: m.rows.matchPlayers.map((p) => p.finalScore),
           placements: m.rows.matchPlayers.map((p) => p.placement),
           maxLevel: m.rows.match.maxLevel, ranked: m.rows.match.ranked,
-          imported: m.rows.match.imported ?? false, revision: m.revision,
+          imported: m.rows.match.imported ?? false, tiktok: m.rows.match.tiktok ?? false,
+          revision: m.revision,
         })));
     }
     const id = decodeURIComponent(path.replace('/matches/', ''));
@@ -1521,6 +1523,110 @@ try {
   await page.waitForSelector('.manual');
   await byText('Discard this match');
   await byText('Yes, throw it away');
+  await page.waitForSelector('.home');
+
+  // ==================== Tiktok Mahjong ====================
+
+  // A wall of yaku beside the dora. The app draws it at random, so the draw
+  // is pinned for the moment the match starts only: with Math.random at 0,
+  // Riichi is the first yaku on the wall (and none of the ura is in HAND).
+  await byText('New match');
+  await page.waitForSelector('.setup');
+  // Guests by names no player has: a player's name offers no guest seat.
+  await seatGuests(['Kai', 'Lia', 'Mo', 'Noa']);
+  await byText('Tiktok');
+  check((await page.$eval('[aria-label="Game"] button[aria-pressed="true"]', (el) => el.textContent)) === 'Tiktok',
+        'Tiktok is chosen at setup');
+  await page.evaluate(() => { window.__random = Math.random; Math.random = () => 0; });
+  await byText('Start match');
+  await page.waitForSelector('.yakuwall');
+  await page.evaluate(() => { Math.random = window.__random; });
+  check((await page.$eval('.app__title--match', (el) => el.textContent)).startsWith('Tiktok · '),
+        'the table says it is a Tiktok match');
+  const wallCards = () => page.$$eval('.yakuwall__card', (els) => els.map((e) =>
+    (e.classList.contains('yakuwall__card--up') ? e.textContent : '?')));
+  check(JSON.stringify(await wallCards()) === JSON.stringify(['Riichi', '?', '?', '?', '?']),
+        `the wall shows its first yaku, the rest face down (got ${JSON.stringify(await wallCards())})`);
+  const wallBottom = await page.$eval('.yakuwall', (el) => el.getBoundingClientRect().bottom);
+  check(wallBottom <= 844, `the wall fits under the table on a phone (bottom at ${wallBottom})`);
+  await shot('90-tiktok-table.png');
+
+  // A kan reveals the next yaku, from the wall's own screen; a mistake goes back.
+  await page.click('.yakuwall');
+  await page.waitForSelector('.wallscreen');
+  await byText('A kan: reveal the next yaku');
+  check((await page.$$('.wallscreen__slot--up')).length === 2, 'a kan turns the next yaku over');
+  await shot('91-tiktok-wall.png');
+  await byText('Turn the last one back over');
+  check((await page.$$('.wallscreen__slot--up')).length === 1, 'and one turned by mistake goes back');
+  await byText('Back');
+  await page.waitForSelector('.yakuwall');
+
+  // East declares riichi and wins with HAND: Riichi is on the wall, so its
+  // line is worth 3 -- riichi 3, menzen tsumo, pinfu, tanyao, sanshoku 2.
+  await page.click('.seat--bottom .playerbox__riichi');
+  await page.click('.seat--bottom .playerbox__main');
+  await page.waitForSelector('.winmenu');
+  await byText('Tsumo');
+  await byText('Enter the hand and score it');
+  await page.waitForSelector('.keyboard');
+  for (const t of HAND) await page.click(`.keyboard [data-key="${t}"]`);
+  await page.waitForFunction(() => !document.querySelector('.btn--primary')?.disabled, { timeout: 30_000 });
+  await byText('Score hand');
+  await page.waitForSelector('.score');
+  const doraLine = await page.$eval('.score__yaku[data-dora]', (el) => ({
+    text: el.textContent, kind: el.dataset.dora,
+    color: getComputedStyle(el.querySelector('.score__han')).color,
+  }));
+  check(doraLine.kind === 'dora' && doraLine.text === 'RiichiDora3 han',
+        `the revealed yaku is marked on its line, 2 han up (got ${JSON.stringify(doraLine)})`);
+  check(doraLine.color === 'rgb(78, 205, 138)', `its han are in the dora green (got ${doraLine.color})`);
+  const tiktokHan = await page.$eval('.score__hanfu', (el) => el.textContent);
+  check(tiktokHan.startsWith('8 han'), `the total counts the 2 han (got ${tiktokHan})`);
+  check((await page.$eval('.score__wall', (el) => el.textContent)).includes('Ura'),
+        'after a riichi the score shows the ura yaku too');
+  check(await page.$('.yaku__new') === null, 'a Tiktok win marks nothing NEW: it is never counted');
+  await shot('92-tiktok-score.png');
+  await byText('Record this hand');
+  await page.waitForSelector('.confirm');
+  check(await page.$('.confirm__yaku .yaku__dora') !== null, 'the confirmation marks it too');
+  await byText('Record this hand');
+  await page.waitForSelector('.table');
+  check((await page.$$('.yakuwall__card--up')).length === 1, 'the next hand starts a wall of its own');
+
+  await byText('Timeline');
+  await page.waitForSelector('.timeline');
+  const tlWall = await page.$eval('.timeline__wall', (el) => el.textContent);
+  check(tlWall.includes('Riichi') && tlWall.includes('Ura'), `the timeline keeps the hand's wall (got ${tlWall})`);
+  await shot('93-tiktok-timeline.png');
+  await byText('Back');
+  await page.waitForSelector('.table');
+
+  // Never ranked: the end screen offers no MAKApoints, and history says Tiktok.
+  await byText('Manual');
+  await page.waitForSelector('.manual');
+  await byText('End early');
+  await page.waitForSelector('.confirm');
+  await byText('End it now');
+  await page.waitForSelector('.standings');
+  check(await page.$('[aria-label="MAKApoints"]') === null, 'a Tiktok match cannot be made ranked');
+  await shot('94-tiktok-end.png');
+  await byText('Save and finish');
+  await page.waitForSelector('.home');
+  const tiktokRows = [...api.matches.values()].map((m) => m.rows).find((r) => r.match.tiktok);
+  check(tiktokRows?.match.ranked === false && tiktokRows.hands[0]?.yakuDora === 'riichi',
+        `the server gets the kind and the hand's wall (got ${JSON.stringify(tiktokRows?.hands[0])})`);
+  await page.goto('http://localhost:5199/matches', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.history__item', { timeout: 10_000 });
+  await byText('Tiktok');
+  await page.waitForFunction(() => location.search === '?mp=t');
+  const tiktokMetas = await page.$$eval('.history__meta', (els) => els.map((e) => e.textContent));
+  check(tiktokMetas.length === 1 && tiktokMetas[0].includes('Tiktok'),
+        `the Tiktok filter lists that match alone, labelled (got ${JSON.stringify(tiktokMetas)})`);
+  // Out of the fake's store again, so the history checks further on see the
+  // same matches they always have.
+  api.matches.delete(tiktokRows.match.id);
+  await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.home');
 
   // A new name can be added as a player from setup -- on the tap that says so.

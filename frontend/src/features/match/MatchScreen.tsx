@@ -21,9 +21,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import type { HandInput, HandRow, MatchState, WinEntry } from './matchState';
 import {
-  adjustScores, advanceRoundManually, continueAsSouth, endMatchManually, recordHand, saveAsEast,
-  setHonba, setMatchName, setRanked, toggleRiichi, undoLastHand, winnersOf,
+  adjustScores, advanceRoundManually, continueAsSouth, endMatchManually, hideYaku, recordHand,
+  revealYaku, saveAsEast, setHonba, setMatchName, setRanked, toggleRiichi, undoLastHand, winnersOf,
 } from './matchState';
+import { YakuWallScreen, YakuWallStrip } from './YakuWallView';
 import type { Seat } from './seats';
 import { roundLabel } from './seats';
 import { TableView } from './TableView';
@@ -45,7 +46,9 @@ type Menu =
   | { at: 'win'; seat: Seat; draft?: WinDraft }
   | { at: 'draw' }
   | { at: 'timeline' }
-  | { at: 'manual' };
+  | { at: 'manual' }
+  /** A Tiktok match's yaku wall, where the next one is revealed. */
+  | { at: 'wall' };
 
 /** A change that has been computed but not applied. */
 interface Pending {
@@ -86,7 +89,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     if (pending) {
       setMenu(pending.back);
       setPending(null);
-    } else if (menu.at === 'timeline' || menu.at === 'manual') {
+    } else if (menu.at === 'timeline' || menu.at === 'manual' || menu.at === 'wall') {
       setMenu({ at: 'table' });
     }
   }, [blocker, pending, menu]);
@@ -191,6 +194,15 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
       );
     case 'timeline':
       return <TimelineView state={match} onClose={() => setMenu({ at: 'table' })} />;
+    case 'wall':
+      if (!match.yakuWall) return null;
+      // Live, like a riichi stick: the yaku is face up at the table already.
+      return (
+        <YakuWallScreen wall={match.yakuWall}
+                        onReveal={() => onChange(revealYaku(match))}
+                        onHide={() => onChange(hideYaku(match))}
+                        onClose={() => setMenu({ at: 'table' })} />
+      );
     case 'manual': {
       const manual = (after: MatchState, title: string, what: string, confirmLabel: string) =>
         stage({ after, row: null, title, what, confirmLabel, back: { at: 'manual' } });
@@ -245,6 +257,7 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
               Manual
             </button>
             <h1 className="app__title app__title--match">
+              {match.config.tiktok && 'Tiktok · '}
               {match.config.players === 3 && 'Sanma · '}
               {match.config.length === 'east' ? 'East match' : 'South match'}
               <SyncDot onClick={() => setShowSync((v) => !v)} />
@@ -267,6 +280,10 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
             onRiichi={(seat) => onChange(toggleRiichi(match, seat))}
             onOpenCentre={() => setMenu({ at: 'draw' })}
           />
+
+          {match.yakuWall && (
+            <YakuWallStrip wall={match.yakuWall} onOpen={() => setMenu({ at: 'wall' })} />
+          )}
         </div>
       );
   }

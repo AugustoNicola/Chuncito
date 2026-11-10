@@ -10,7 +10,7 @@
  * The badge is a nicety, so it never holds the table up: the history arrives
  * when it arrives. And it only ever claims "new" when the history is known --
  * a guest, an offline phone or a locked server shows no badge at all rather
- * than a wrong one.
+ * than a wrong one. Nor does a Tiktok match, whose wins are never counted.
  */
 import { useEffect, useState } from 'react';
 import { PSEUDO_YAKU } from '../../scorer/types';
@@ -70,7 +70,9 @@ function serverYakus(matchId: string, playerId: string, name: string): Promise<R
 export function useYakusWonBefore(state: MatchState): (seat: Seat) => ReadonlySet<string> | null {
   const [server, setServer] = useState<Partial<Record<Seat, ReadonlySet<string>>>>({});
 
+  const tiktok = state.config.tiktok;
   useEffect(() => {
+    if (tiktok) return;
     let cancelled = false;
     state.config.seats.forEach((p, i) => {
       if (p.playerId === null) return;
@@ -79,9 +81,11 @@ export function useYakusWonBefore(state: MatchState): (seat: Seat) => ReadonlySe
       });
     });
     return () => { cancelled = true; };
-  }, [state.id, state.config.seats]);
+  }, [state.id, state.config.seats, tiktok]);
 
   return (seat) => {
+    // A Tiktok win never reaches the stats a first is measured against.
+    if (tiktok) return null;
     const known = server[seat];
     if (!known) return null;
     return new Set([...known, ...yakusWonInMatch(state, seat)]);

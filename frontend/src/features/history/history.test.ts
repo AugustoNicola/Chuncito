@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { NO_FILTERS, YAKU_CHOICES, apiPath, filtersFrom, isFiltered, paramsOf } from './history';
+import { NO_FILTERS, YAKU_CHOICES, apiPath, filtersFrom, isFiltered, kindOf, paramsOf } from './history';
 
 describe('history filters', () => {
   const full = {
     text: 'double ron', playerIds: ['p-1', 'p-2'], minLevel: 3, yaku: 'pinfu', players: 3 as const,
-    ranked: false,
+    kind: 'casual' as const,
   };
 
   it('survive the URL', () => {
@@ -33,6 +33,21 @@ describe('history filters', () => {
     expect(path.searchParams.get('q')).toBe('double ron');
     expect(path.searchParams.get('players')).toBe('3');
     expect(path.searchParams.get('ranked')).toBe('false');
+    expect(path.searchParams.get('tiktok')).toBe('false');
+  });
+
+  it('tell the three kinds of match apart', () => {
+    const api = (kind: 'ranked' | 'casual' | 'tiktok') =>
+      new URL(apiPath({ ...NO_FILTERS, kind }), 'http://x').searchParams;
+    expect(api('ranked').get('ranked')).toBe('true');
+    expect(api('ranked').get('tiktok')).toBeNull();
+    expect(api('tiktok').get('tiktok')).toBe('true');
+    expect(api('tiktok').get('ranked')).toBeNull();
+    // Old links still mean what they meant.
+    expect(filtersFrom(new URLSearchParams('mp=1')).kind).toBe('ranked');
+    expect(filtersFrom(new URLSearchParams('mp=0')).kind).toBe('casual');
+    expect(filtersFrom(paramsOf({ ...NO_FILTERS, kind: 'tiktok' })).kind).toBe('tiktok');
+    expect(kindOf({ ranked: false, tiktok: true })).toBe('tiktok');
   });
 
   it('offer yaku, not dora', () => {

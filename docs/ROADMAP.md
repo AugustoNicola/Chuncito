@@ -988,6 +988,25 @@ Asked in chat (2026-11-09), one commit each, in this order:
       shows no badge. Not in the plain calculator.
 - [x] **No "latest 15 of N" note** under the placement line (2026-11-10,
       at the user's request); the line still shows the latest 15.
+- [x] **Tiktok Mahjong** (2026-11-10), the group's own variant. Chosen at
+      setup ("Game": Riichi / Tiktok, no explainer, on request). Beside the
+      dora a wall of 5 yaku with 5 ura yaku under them, drawn by the app
+      each hand (`yakuWall.ts`): no yakuman, common yaku likelier
+      (`WALL_WEIGHTS`, 3/2/1 -- the user found the uniform list with
+      yakuman no fun), ten different ones. First one up at the start, one
+      more per kan from the wall screen (the strip under the table only
+      opens it; a mistaken reveal can be turned back). A revealed yaku in
+      the hand is +2 han on its own line (green, DORA badge); an ura yaku
+      only after riichi (purple, URA); void on a yakuman. Added after the
+      engine like nukidora (`withYakuDora`); manual entry gets nothing,
+      not even a reminder (asked). Honba at sanma's rates at any table
+      (`honbaRatesOf`: 1000 ron, 500 each on tsumo -- 1500 at four).
+      A third kind beside Casual / Ranked: never ranked (`setRanked`,
+      schema check, DB check), out of profile stats and MAKApoints, no NEW
+      badge. History filter All / Ranked / Casual / Tiktok (`mp=t`; `mp=1/0`
+      still work). The current hand's wall stays on the phone like
+      `pendingRiichi`; rows keep only what was revealed. **Migration
+      0009** (additive). Landscape placement of the strip is unchecked.
 - [x] **Tenpai on the table.** The draw menu marks who was tenpai on the
       miniature table setup uses for sanma's empty side, now `MiniTable`
       (classes `minitable__*`, was `setup__layout`/`setup__side`). Sides
@@ -1000,7 +1019,9 @@ Asked in chat (2026-11-09), one commit each, in this order:
 **State as of 2026-11-10** (the Backlog section above has the detail):
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
-  miniature table. Not pushed.
+  miniature table; Tiktok Mahjong. **Not pushed, and needs migration
+  0009**: neither dev nor `main` has it yet. Before pushing, rehearse it on
+  a copy of `main`'s backup, then `make db-migrate TARGET=main`.
 
 - 2026-11-09: dice reminder, landscape layout, profile tweaks (yaku over
   both kinds, latest 15 placements, "across N games", Dama) and the NEW

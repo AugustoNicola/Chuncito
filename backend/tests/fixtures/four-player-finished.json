@@ -21,7 +21,8 @@
       "isTest": false,
       "ranked": true,
       "emptySide": null,
-      "imported": false
+      "imported": false,
+      "tiktok": false
     },
     "matchPlayers": [
       {
@@ -69,7 +70,9 @@
         "abortiveReason": null,
         "dealInSeat": 2,
         "scoreDelta": "0,8000,-8000,0",
-        "recordedAt": "2026-09-21T10:09:00.000Z"
+        "recordedAt": "2026-09-21T10:09:00.000Z",
+        "yakuDora": null,
+        "yakuUra": null
       },
       {
         "clientUuid": "fixture-4p-hand-2",
@@ -82,7 +85,9 @@
         "abortiveReason": null,
         "dealInSeat": null,
         "scoreDelta": "-1000,-2000,4000,-1000",
-        "recordedAt": "2026-09-21T10:18:00.000Z"
+        "recordedAt": "2026-09-21T10:18:00.000Z",
+        "yakuDora": null,
+        "yakuUra": null
       },
       {
         "clientUuid": "fixture-4p-hand-3",
@@ -95,7 +100,9 @@
         "abortiveReason": null,
         "dealInSeat": null,
         "scoreDelta": "1500,-1500,-1500,500",
-        "recordedAt": "2026-09-21T10:27:00.000Z"
+        "recordedAt": "2026-09-21T10:27:00.000Z",
+        "yakuDora": null,
+        "yakuUra": null
       },
       {
         "clientUuid": "fixture-4p-hand-4",
@@ -108,7 +115,9 @@
         "abortiveReason": "four_kans",
         "dealInSeat": null,
         "scoreDelta": "0,0,0,0",
-        "recordedAt": "2026-09-21T10:36:00.000Z"
+        "recordedAt": "2026-09-21T10:36:00.000Z",
+        "yakuDora": null,
+        "yakuUra": null
       },
       {
         "clientUuid": "fixture-4p-hand-5",
@@ -121,7 +130,9 @@
         "abortiveReason": null,
         "dealInSeat": 0,
         "scoreDelta": "-11200,9600,0,2600",
-        "recordedAt": "2026-09-21T10:45:00.000Z"
+        "recordedAt": "2026-09-21T10:45:00.000Z",
+        "yakuDora": null,
+        "yakuUra": null
       },
       {
         "clientUuid": "fixture-4p-hand-6",
@@ -134,7 +145,9 @@
         "abortiveReason": null,
         "dealInSeat": null,
         "scoreDelta": "-2300,-2300,8900,-4300",
-        "recordedAt": "2026-09-21T10:54:00.000Z"
+        "recordedAt": "2026-09-21T10:54:00.000Z",
+        "yakuDora": null,
+        "yakuUra": null
       }
     ],
     "handWins": [

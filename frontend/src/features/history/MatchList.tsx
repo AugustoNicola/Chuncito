@@ -101,11 +101,12 @@ export function MatchList({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        <div className="segmented" role="group" aria-label="MAKApoints">
-          {([[null, 'All'], [true, 'Ranked'], [false, 'Casual']] as const).map(([r, label]) => (
+        <div className="segmented" role="group" aria-label="Kind of match">
+          {([[null, 'All'], ['ranked', 'Ranked'], ['casual', 'Casual'], ['tiktok', 'Tiktok']] as const)
+            .map(([kind, label]) => (
             <button key={label} type="button"
-                    className={`segmented__btn${filters.ranked === r ? ' segmented__btn--on' : ''}`}
-                    onClick={() => change({ ranked: r })}>
+                    className={`segmented__btn${filters.kind === kind ? ' segmented__btn--on' : ''}`}
+                    onClick={() => change({ kind })}>
               {label}
             </button>
           ))}
@@ -194,6 +195,7 @@ function MatchItem({ match }: { match: ServerMatch }) {
         {matchDate(match.startedAt)}
         {match.players === 3 && ' · Sanma'}
         {match.ranked && ' · Ranked'}
+        {match.tiktok && ' · Tiktok'}
         {match.imported ? ' · Entered afterwards'
           : ` · ${match.hands} hand${match.hands === 1 ? '' : 's'}`}
         {took !== null && ` · ${durationLabel(took)}`}

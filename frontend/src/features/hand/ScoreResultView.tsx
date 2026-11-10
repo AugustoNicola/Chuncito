@@ -6,7 +6,8 @@
  */
 import type { Payment, ScoreResult } from '../../scorer/types';
 import { PSEUDO_YAKU } from '../../scorer/types';
-import { honbaExtra, paymentTotal } from '../match/scoring';
+import { HONBA, type HonbaRates, honbaExtra, paymentTotal } from '../match/scoring';
+import { type YakuDora, type YakuDoraKind, yakuDoraKind } from '../match/yakuWall';
 import { fuPartName, isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
 import { HandSummary } from './HandDisplay';
 import type { HandState } from './handState';
@@ -53,8 +54,42 @@ export function NewMark() {
   return <span className="yaku__new" title="The first time this player wins with it">New</span>;
 }
 
+/**
+ * "DORA" or "URA" beside a yaku a Tiktok match's wall made worth 2 han more,
+ * in the colour of the dora line of the same kind.
+ */
+export function YakuDoraMark({ kind }: { kind: YakuDoraKind }) {
+  return (
+    <span className="yaku__dora" data-kind={kind}
+          title={kind === 'dora' ? 'A revealed yaku dora: +2 han' : 'An ura yaku, after riichi: +2 han'}>
+      {kind === 'dora' ? 'Dora' : 'Ura'}
+    </span>
+  );
+}
+
+/**
+ * The wall as it stood for this hand, under the yaku: what was face up, and
+ * after a riichi what lay beneath. Said even when the hand has none of them,
+ * so a win that missed one does not leave anybody wondering.
+ */
+export function YakuWallLine({ wall }: { wall: YakuDora & { riichi: boolean } }) {
+  return (
+    <div className="score__wall">
+      <span className="score__walllabel">Yaku dora</span>
+      <span>{wall.dora.map(yakuName).join(' · ')}</span>
+      {wall.riichi && (
+        <>
+          <span className="score__walllabel">Ura</span>
+          <span>{wall.ura.map(yakuName).join(' · ')}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function ScoreResultView({
-  result, hand, attribution, honba = 0, onBack, onConfirm, confirmLabel, onAddAnother, isNewYaku,
+  result, hand, attribution, honba = 0, honbaRates, onBack, onConfirm, confirmLabel, onAddAnother, isNewYaku,
+  yakuDora,
 }: {
   result: ScoreResult;
   /**
@@ -77,6 +112,10 @@ export function ScoreResultView({
   onAddAnother?: () => void;
   /** Marks a yaku the winner has never won with before. The tracker's only. */
   isNewYaku?: (yaku: string) => boolean;
+  /** Defaults to the table's own. */
+  honbaRates?: HonbaRates;
+  /** A Tiktok match's wall for this hand, and whether the winner declared riichi. */
+  yakuDora?: YakuDora & { riichi: boolean };
 }) {
   const real = result.yakus.filter((y) => !PSEUDO_YAKU.has(y.yaku));
   const extras = result.yakus.filter((y) => PSEUDO_YAKU.has(y.yaku));
@@ -87,22 +126,29 @@ export function ScoreResultView({
   const winType = hand?.winMode === 'tsumo' ? 'tsumo' : 'ron';
   const players = hand?.sanma ? 3 : 4;
   const loss = hand?.sanma ? tsumoLoss(result.payment) : null;
-  const extra = honba > 0 ? honbaExtra(players, winType, honba).toLocaleString() : null;
+  const extra = honba > 0
+    ? honbaExtra(honbaRates ?? HONBA[players], winType, honba).toLocaleString() : null;
+  const doraKind = (yaku: string) =>
+    (yakuDora ? yakuDoraKind(yaku, yakuDora, yakuDora.riichi) : null);
 
   return (
     <div className="score" data-tier={levelTier(result.level)}>
       {hand && <HandSummary state={hand} />}
 
       <div className="score__yakus">
-        {real.map((y) => (
-          <div className="score__yaku" key={y.yaku}>
-            <span>
-              {yakuName(y.yaku)}
-              {isNewYaku?.(y.yaku) && <NewMark />}
-            </span>
-            <span className="score__han">{y.han} han</span>
-          </div>
-        ))}
+        {real.map((y) => {
+          const kind = doraKind(y.yaku);
+          return (
+            <div className="score__yaku" key={y.yaku} data-dora={kind ?? undefined}>
+              <span>
+                {yakuName(y.yaku)}
+                {kind && <YakuDoraMark kind={kind} />}
+                {isNewYaku?.(y.yaku) && <NewMark />}
+              </span>
+              <span className="score__han">{y.han} han</span>
+            </div>
+          );
+        })}
         {extras.length > 0 && <div className="score__divider" />}
         {extras.map((y) => (
           <div className="score__yaku score__yaku--extra" data-yaku={y.yaku} key={y.yaku}>
@@ -119,6 +165,12 @@ export function ScoreResultView({
             <span className="score__fu">{part.fu} fu</span>
           </div>
         ))}
+        {yakuDora && (
+          <>
+            <div className="score__divider" />
+            <YakuWallLine wall={yakuDora} />
+          </>
+        )}
       </div>
 
       {title && (

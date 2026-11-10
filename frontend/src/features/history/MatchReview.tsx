@@ -51,7 +51,7 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
         <>
           <p className="review__when">
             {matchDate(state.startedAt)}
-            {' · '}{state.config.players === 3 ? 'Sanma · ' : ''}
+            {' · '}{state.config.tiktok ? 'Tiktok · ' : ''}{state.config.players === 3 ? 'Sanma · ' : ''}
             {state.config.length === 'east' ? 'East match' : 'South match'}
           </p>
           <div className="review">

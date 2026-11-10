@@ -11,6 +11,8 @@
  * - **`pendingRiichi`** — sticks declared for a hand that has not resolved. The
  *   server holds the match up to the last *completed* hand by design, so a
  *   resume picks up with the current hand replayed. See `ARCHITECTURE.md`.
+ *   The same goes for a Tiktok match's **`yakuWall`**: a resume draws the
+ *   current hand's afresh.
  * - **The live round, honba, pot and scores** — all derivable. Scores are a
  *   prefix sum of `score_delta` plus adjustments; the round marker follows from
  *   the last hand's own row and outcome. Storing them would be a second source
@@ -26,6 +28,7 @@ import {
   type MatchLength, type PlayerCount, type Round, type Seat, type TableSide, dealerOf, nextRound,
   seatsOf,
 } from './seats';
+import { type Rng, drawWall } from './yakuWall';
 
 export interface MatchTableRow {
   id: string;
@@ -53,6 +56,8 @@ export interface MatchTableRow {
   emptySide: TableSide | null;
   /** Played without the tracker and entered afterwards: no hands (`enteredMatch`). */
   imported: boolean;
+  /** Tiktok Mahjong (`MatchConfig.tiktok`); never ranked. */
+  tiktok: boolean;
 }
 
 export interface MatchPlayerRow {
@@ -78,6 +83,12 @@ export interface HandTableRow {
   scoreDelta: string;
   /** When the hand was recorded; null on hands from before it was kept (0006). */
   recordedAt: string | null;
+  /**
+   * A Tiktok hand's face-up yaku and the ura under them, comma-separated in
+   * reveal order, as `situationFlags` are. Null outside Tiktok (0009).
+   */
+  yakuDora: string | null;
+  yakuUra: string | null;
 }
 
 export interface HandWinRow {
@@ -142,6 +153,7 @@ export function toRows(state: MatchState): MatchRows {
       ranked: state.ranked,
       emptySide: state.config.emptySide,
       imported: state.imported,
+      tiktok: state.config.tiktok,
     },
     matchPlayers: seatsOf(state.config.players).map((seat) => {
       const player = state.config.seats[seat]!;
@@ -182,6 +194,8 @@ export function toRows(state: MatchState): MatchRows {
       dealInSeat: hand.dealInSeat,
       scoreDelta: hand.scoreDelta.join(','),
       recordedAt: hand.recordedAt,
+      yakuDora: hand.yakuDora.length > 0 ? hand.yakuDora.join(',') : null,
+      yakuUra: hand.yakuUra.length > 0 ? hand.yakuUra.join(',') : null,
     });
     for (const win of hand.wins) {
       rows.handWins.push({
@@ -247,7 +261,8 @@ function advance(players: PlayerCount, row: HandTableRow, wins: HandWinRow[], te
  * Rebuilds the match. `nameOf` resolves a registered player's display name,
  * which lives in `players` rather than on the seat; guests carry their own.
  */
-export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string): MatchState {
+export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string,
+                         rng: Rng = Math.random): MatchState {
   const seats = [...rows.matchPlayers]
     .sort((a, b) => a.seat - b.seat)
     .map<SeatPlayer>((p) => ({
@@ -267,6 +282,7 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     seats,
     // Sanma saved before the side was chosen had the left one empty.
     emptySide: rows.match.emptySide ?? (rows.match.players === 3 ? 'left' : null),
+    tiktok: rows.match.tiktok ?? false,
   };
 
   const bySeq = <T extends { handSeq: number }>(list: T[], seq: number): T[] =>
@@ -287,6 +303,8 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
       abortiveReason: row.abortiveReason,
       scoreDelta: parseDelta(row.scoreDelta),
       recordedAt: row.recordedAt ?? null,
+      yakuDora: row.yakuDora ? row.yakuDora.split(',') : [],
+      yakuUra: row.yakuUra ? row.yakuUra.split(',') : [],
       riichiSeats: bySeq(rows.handRiichi, row.seq).map((r) => r.seat),
       tenpaiSeats: bySeq(rows.handTenpai, row.seq).map((r) => r.seat),
       wins: wins.map<WinRow>((w) => ({
@@ -335,6 +353,8 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string)
     potCarried: rows.match.status === 'finished' ? 0 : after.pot,
     // Not persisted: a declaration belongs to a hand that has not resolved.
     pendingRiichi: [],
+    // Not persisted either: the hand in progress gets a wall of its own.
+    yakuWall: config.tiktok && rows.match.status === 'in_progress' ? drawWall(rng) : null,
     scores,
     hands,
     adjustments: rows.adjustments.map<Adjustment>((a) => ({ ...a })),

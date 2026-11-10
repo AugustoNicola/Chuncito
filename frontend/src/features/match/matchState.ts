@@ -26,9 +26,10 @@ import {
 } from './seats';
 import {
   LIMIT_BASE, RIICHI_STICK, type Delta, type WinPayment, baseFromResult, deltaOf, drawDelta,
-  placements,
+  honbaRatesOf, placements,
   nagashiDelta, paymentFor, paymentTotal, ronDelta, tsumoDelta, zeroDelta,
 } from './scoring';
+import { type Rng, type YakuWall, drawWall, hideLast, revealNext, revealedOf } from './yakuWall';
 
 export type Outcome =
   | 'tsumo' | 'ron' | 'exhaustive_draw' | 'abortive_draw' | 'nagashi_mangan';
@@ -86,6 +87,14 @@ export interface MatchConfig {
    * screen matches the real table (`sidesOf`). Null with four players.
    */
   emptySide: TableSide | null;
+  /**
+   * Tiktok Mahjong, the group's own variant: a wall of yaku beside the dora
+   * indicators, each revealed one worth 2 han to a hand that has it
+   * (`yakuWall.ts`), and sanma's honba at either table (`honbaRatesOf`).
+   * Chosen at setup. A third kind of match beside casual and ranked: never
+   * played for MAKApoints, and left out of every player's stats.
+   */
+  tiktok: boolean;
 }
 
 /**
@@ -144,6 +153,13 @@ export interface HandRow {
    * hands recorded before this was kept.
    */
   recordedAt: string | null;
+  /**
+   * In a Tiktok match, the yaku that were face up when the hand ended, and
+   * the ura yaku under them (always as many). Empty in any other match. The
+   * face-down rest of the wall is never recorded.
+   */
+  yakuDora: string[];
+  yakuUra: string[];
 }
 
 export interface Adjustment {
@@ -169,6 +185,13 @@ export interface MatchState {
   potCarried: number;
   /** Riichi declared during the hand in progress, not yet part of any row. */
   pendingRiichi: Seat[];
+  /**
+   * The yaku wall of the hand in progress, in a Tiktok match that is still
+   * being played; null otherwise. Like `pendingRiichi` it belongs to no row
+   * yet, so the server never holds it: a match carried on from the server
+   * draws a fresh one.
+   */
+  yakuWall: YakuWall | null;
   scores: Delta;
   hands: HandRow[];
   adjustments: Adjustment[];
@@ -273,7 +296,12 @@ export const DEFAULT_UMA: readonly number[] = DEFAULTS[4].uma;
 export const seatsIn = (state: { config: MatchConfig }): readonly Seat[] =>
   seatsOf(state.config.players);
 
-export function createMatch(config: MatchConfig, now = new Date(), id = uuid()): MatchState {
+/** A fresh wall for the next hand, if the match plays with one. */
+const wallFor = (config: MatchConfig, rng: Rng): YakuWall | null =>
+  (config.tiktok ? drawWall(rng) : null);
+
+export function createMatch(config: MatchConfig, now = new Date(), id = uuid(),
+                            rng: Rng = Math.random): MatchState {
   if (config.seats.length !== config.players || config.uma.length !== config.players) {
     throw new Error(`a ${config.players}-player match needs ${config.players} seats and uma`);
   }
@@ -284,6 +312,7 @@ export function createMatch(config: MatchConfig, now = new Date(), id = uuid()):
     honba: 0,
     potCarried: 0,
     pendingRiichi: [],
+    yakuWall: wallFor(config, rng),
     scores: deltaOf(config.players, () => config.startingPoints),
     hands: [],
     adjustments: [],
@@ -316,6 +345,23 @@ export function toggleRiichi(state: MatchState, seat: Seat): MatchState {
       : [...state.pendingRiichi, seat].sort(),
     scores,
   };
+}
+
+// --- the yaku wall, live during a hand ---
+
+/**
+ * A kan flips the next yaku, as it flips the next dora indicator. Live, like
+ * a riichi: it has happened at the table before anyone knows how the hand ends.
+ */
+export function revealYaku(state: MatchState): MatchState {
+  if (state.status !== 'in_progress' || !state.yakuWall) return state;
+  return { ...state, yakuWall: revealNext(state.yakuWall) };
+}
+
+/** Puts back a yaku revealed by mistake. */
+export function hideYaku(state: MatchState): MatchState {
+  if (state.status !== 'in_progress' || !state.yakuWall) return state;
+  return { ...state, yakuWall: hideLast(state.yakuWall) };
 }
 
 // --- recording a hand ---
@@ -376,6 +422,7 @@ const nagashiPayment = (winner: Seat, dealer: Seat): Payment =>
 function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: number): Delta {
   const riichiSeats = state.pendingRiichi;
   const players = state.config.players;
+  const rates = honbaRatesOf(state.config);
   switch (input.kind) {
     case 'win': {
       const first = input.wins[0];
@@ -389,6 +436,7 @@ function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: 
           honba: state.honba,
           potBefore,
           riichiSeats,
+          rates,
         });
       }
       if (input.dealIn === null) throw new Error('a ron needs a deal-in seat');
@@ -396,7 +444,7 @@ function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: 
         winner: w.winner, payment: w.value.payment,
       }));
       return ronDelta({
-        players, dealIn: input.dealIn, wins, honba: state.honba, potBefore, riichiSeats,
+        players, dealIn: input.dealIn, wins, honba: state.honba, potBefore, riichiSeats, rates,
       });
     }
     case 'exhaustiveDraw':
@@ -405,7 +453,7 @@ function deltaFor(input: HandInput, state: MatchState, dealer: Seat, potBefore: 
       return drawDelta(players, [], riichiSeats);
     case 'nagashiMangan':
       return nagashiDelta({
-        players, winner: input.winner, dealer, honba: state.honba, riichiSeats,
+        players, winner: input.winner, dealer, honba: state.honba, riichiSeats, rates,
       });
   }
 }
@@ -500,7 +548,8 @@ export interface RecordResult {
   row: HandRow;
 }
 
-export function recordHand(state: MatchState, input: HandInput, now = new Date()): RecordResult {
+export function recordHand(state: MatchState, input: HandInput, now = new Date(),
+                           rng: Rng = Math.random): RecordResult {
   const players = state.config.players;
   const dealer = dealerOf(state.round, players);
   const riichiSeats = [...state.pendingRiichi];
@@ -563,6 +612,9 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
         ? [...input.tenpai].sort((a, b) => a - b) : [],
     abortiveReason: input.kind === 'abortiveDraw' ? input.reason : null,
     recordedAt: now.toISOString(),
+    ...(state.yakuWall
+      ? (({ dora, ura }) => ({ yakuDora: dora, yakuUra: ura }))(revealedOf(state.yakuWall))
+      : { yakuDora: [], yakuUra: [] }),
   };
 
   // The sticks were deducted at declaration time; only the rest of the delta is new.
@@ -583,6 +635,8 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
     // A win clears the table; every kind of draw leaves the sticks on it.
     potCarried: collectsPot ? 0 : potBefore,
     pendingRiichi: [],
+    // The next hand's wall; none once the match is over.
+    yakuWall: endReason ? null : wallFor(state.config, rng),
     scores,
     hands: [...state.hands, row],
     status: endReason ? 'finished' : 'in_progress',
@@ -599,7 +653,7 @@ export function recordHand(state: MatchState, input: HandInput, now = new Date()
  * has to be replayed -- and the riichi declarations it recorded go back to
  * pending, since at the table those sticks would still be out.
  */
-export function undoLastHand(state: MatchState): MatchState {
+export function undoLastHand(state: MatchState, rng: Rng = Math.random): MatchState {
   const row = state.hands.at(-1);
   if (!row) return state;
   // A hand that ended the match also settled the table; that goes first.
@@ -610,6 +664,9 @@ export function undoLastHand(state: MatchState): MatchState {
     honba: row.honba,
     potCarried: row.riichiPotBefore - row.riichiSeats.length,
     pendingRiichi: [...row.riichiSeats],
+    // The yaku that were up go back up, the ura under them; the face-down
+    // rest was never recorded and is drawn again.
+    yakuWall: state.config.tiktok ? drawWall(rng, { dora: row.yakuDora, ura: row.yakuUra }) : null,
     scores: deltaOf(state.config.players, (s) =>
       state.scores[s] - row.scoreDelta[s] + alreadyPaid(state.config.players, row.riichiSeats)[s]),
     hands: state.hands.slice(0, -1),
@@ -657,9 +714,12 @@ export function adjustScores(
 }
 
 /** Passes the dealership without recording a hand, for fixing a mis-entry. */
-export function advanceRoundManually(state: MatchState): MatchState {
+export function advanceRoundManually(state: MatchState, rng: Rng = Math.random): MatchState {
   if (state.status !== 'in_progress') return state;
-  return { ...state, round: nextRound(state.round, state.config.players), honba: 0 };
+  return {
+    ...state, round: nextRound(state.round, state.config.players), honba: 0,
+    yakuWall: wallFor(state.config, rng),
+  };
 }
 
 /** Steps the honba counter directly, for the same reason. */
@@ -671,6 +731,7 @@ export function endMatchManually(state: MatchState, now = new Date()): MatchStat
   // Sticks still on the table go to 1st, as at any other end.
   return settleTable({
     ...state,
+    yakuWall: null,
     status: 'finished',
     endReason: 'manual',
     endedAt: now.toISOString(),
@@ -718,8 +779,9 @@ export function enteredMatch(
   return {
     ...adjustScores(started, finals, IMPORTED_NOTE),
     status: 'finished',
+    yakuWall: null,
     name: meta.name,
-    ranked: meta.ranked,
+    ranked: meta.ranked && !config.tiktok,
     imported: true,
   };
 }
@@ -765,12 +827,13 @@ function rowRepeats(row: HandRow, players: PlayerCount): boolean {
  * South match would have ended there (a bust, or somebody at the goal after
  * South 4), so there is nothing to carry on.
  */
-export function continueAsSouth(state: MatchState): MatchState | null {
+export function continueAsSouth(state: MatchState, rng: Rng = Math.random): MatchState | null {
   if (state.status !== 'finished' || state.config.length !== 'east' || state.endReason === 'bust') return null;
   const players = state.config.players;
   const config: MatchConfig = { ...state.config, length: 'south' };
   const next: MatchState = {
     ...unsettleTable(state), config, status: 'in_progress', endReason: null, endedAt: null,
+    yakuWall: wallFor(config, rng),
   };
   if (state.endReason !== 'final_round') return next;
   const row = state.hands.at(-1);
@@ -784,8 +847,9 @@ export function continueAsSouth(state: MatchState): MatchState | null {
 export const setMatchName = (state: MatchState, name: string): MatchState =>
   ({ ...state, name });
 
+/** A Tiktok match is never ranked, whatever it is asked. */
 export const setRanked = (state: MatchState, ranked: boolean): MatchState =>
-  ({ ...state, ranked });
+  ({ ...state, ranked: ranked && !state.config.tiktok });
 
 // --- derived ---
 

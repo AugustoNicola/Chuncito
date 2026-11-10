@@ -50,7 +50,15 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
       <div className="endscreen">
         <MatchOutcome state={state} ranked={ranked} />
 
-        <div className="field">
+        {state.config.tiktok ? (
+          <div className="field">
+            <span className="field__label">MAKApoints</span>
+            <span className="field__hint">
+              A Tiktok match: saved to the history, but never ranked, and not
+              counted in anyone's stats.
+            </span>
+          </div>
+        ) : <div className="field">
           <span className="field__label">MAKApoints</span>
           <div className="segmented" role="group" aria-label="MAKApoints">
             {[true, false].map((opt) => (
@@ -87,7 +95,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
           ) : (
             <span className="field__hint">Saved to the history, but no MAKApoints change hands.</span>
           )}
-        </div>
+        </div>}
 
         <label className="field">
           <span className="field__label">Name this match</span>

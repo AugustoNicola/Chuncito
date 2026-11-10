@@ -20,12 +20,16 @@ import {
   toggleMode, toggleRed, winningTile, type CallMode, type HandState,
 } from './handState';
 import { withNukidora } from './nukidora';
+import { withYakuDora } from './yakuDora';
 import type { PlayerCount } from '../match/seats';
+import type { HonbaRates } from '../match/scoring';
+import type { YakuDora } from '../match/yakuWall';
 import { useScorer } from '../../scorer/useScorer';
 import { validateQuery } from '../../scorer/validate';
 import type {
   Rule, ScoreQuery, ScoreResult, SituationWind, Tile as TileAtom, WinMode,
 } from '../../scorer/types';
+import { RIICHI_FLAGS } from '../../scorer/types';
 
 type Flap = 'tiles' | 'details';
 
@@ -87,6 +91,13 @@ export interface HandBuilderProps {
   attribution?: ScoreAttribution;
   /** Honba this win collects, shown under the score. The tracker's only. */
   honba?: number;
+  /** What each of them is worth, when it is not the table's own (Tiktok). */
+  honbaRates?: HonbaRates;
+  /**
+   * A Tiktok match's revealed yaku and the ura under them: 2 han more for
+   * each the hand has, the ura only after a riichi (`withYakuDora`).
+   */
+  yakuDora?: YakuDora;
   /**
    * House rules for this hand, from the match. Undefined in the plain
    * calculator, which offers them as toggles instead.
@@ -98,6 +109,10 @@ export interface HandBuilderProps {
    */
   isNewYaku?: (yaku: string) => boolean;
 }
+
+/** Any of the three riichi: what lets ura dora, and ura yaku, count. */
+const riichiOf = (state: HandState): boolean =>
+  toSituation(state).flags.some((f) => RIICHI_FLAGS.includes(f));
 
 function buildQuery(state: HandState): ScoreQuery | null {
   const tile = winningTile(state);
@@ -113,7 +128,7 @@ function buildQuery(state: HandState): ScoreQuery | null {
 
 export function HandBuilder({
   winds, winMode, players, redFives, riichiDeclared, onConfirm, onAddAnother, onCancel, title,
-  attribution, honba, rules, draft, isNewYaku,
+  attribution, honba, honbaRates, rules, draft, isNewYaku, yakuDora,
 }: HandBuilderProps = {}) {
   const [start] = useState(() => startingHand({
     sanma: players === 3, redFives: redFives ?? true, rules: rules ?? [],
@@ -141,8 +156,10 @@ export function HandBuilder({
     setMessage(null);
     const outcome = scorer.scorer.score(query);
     if (outcome.ok) {
-      // Pulled Norths are invisible to the engine; their han go on afterwards.
-      setResult(withNukidora(outcome.result, state));
+      // Pulled Norths are invisible to the engine, and so is the yaku wall;
+      // the han of both go on afterwards.
+      setResult(withYakuDora(withNukidora(outcome.result, state), yakuDora ?? null,
+                             riichiOf(state), state.seatWind === 'este'));
     } else {
       // The engine cannot tell "no yaku" from "not a winning shape", so neither can we.
       setMessage('No score: those tiles are not a winning hand, or the win has no yaku.');
@@ -153,7 +170,9 @@ export function HandBuilder({
     return (
       <div className="app">
         <ScoreResultView result={result} hand={state} attribution={attribution} honba={honba}
+                         honbaRates={honbaRates}
                          isNewYaku={isNewYaku}
+                         yakuDora={yakuDora ? { ...yakuDora, riichi: riichiOf(state) } : undefined}
                          onBack={() => setResult(null)}
                          onConfirm={onConfirm ? () => onConfirm(result, state) : undefined}
                          onAddAnother={onAddAnother ? () => onAddAnother(result, state) : undefined} />

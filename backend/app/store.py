@@ -131,12 +131,16 @@ def _mp_result():
 
 
 def _mp_totals(conn: Connection, player_id: str | None = None) -> dict[str, tuple[int, int]]:
-    """(points, matches) per registered player, over ranked, finished, non-test matches."""
+    """
+    (points, matches) per registered player, over ranked, finished, non-test
+    matches. A Tiktok match is never ranked; it is left out here as well, so
+    that stays true even of a row that somehow said otherwise.
+    """
     c, mp = m.matches.c, m.match_players.c
     query = (select(mp.player_id, func.sum(_mp_result()), func.count())
              .select_from(m.match_players.join(m.matches, c.id == mp.match_id))
              .where(mp.player_id.is_not(None), c.ranked, c.status == 'finished',
-                    c.is_test.is_(False), mp.placement.is_not(None))
+                    c.is_test.is_(False), c.tiktok.is_(False), mp.placement.is_not(None))
              .group_by(mp.player_id))
     if player_id is not None:
         query = query.where(mp.player_id == player_id)
@@ -219,7 +223,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
         'uma': json.loads(t.uma_json), 'status': t.status, 'end_reason': t.end_reason,
         'started_at': _parse_time(t.started_at), 'ended_at': _parse_time(t.ended_at),
         'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
-        'empty_side': t.empty_side, 'imported': t.imported,
+        'empty_side': t.empty_side, 'imported': t.imported, 'tiktok': t.tiktok,
         'revision': revision, 'content_hash': digest, 'updated_at': func.now(),
     }
     if current is None:
@@ -245,6 +249,7 @@ def save_match(conn: Connection, rows: MatchRows, base_revision: int) -> int:
             'abortive_reason': h.abortive_reason, 'deal_in_seat': h.deal_in_seat,
             'score_delta': [int(x) for x in h.score_delta.split(',')],
             'client_uuid': h.client_uuid, 'recorded_at': _parse_time(h.recorded_at),
+            'yaku_dora': h.yaku_dora, 'yaku_ura': h.yaku_ura,
         } for h in rows.hands]).returning(m.hands.c.id, m.hands.c.seq))
         hand_id = {row.seq: row.id for row in inserted}
 
@@ -321,7 +326,7 @@ def load_match(conn: Connection, match_id: str
             'status': t.status, 'end_reason': t.end_reason,
             'started_at': _format_time(t.started_at), 'ended_at': _format_time(t.ended_at),
             'max_level': t.max_level, 'is_test': t.is_test, 'ranked': t.ranked,
-            'empty_side': t.empty_side, 'imported': t.imported,
+            'empty_side': t.empty_side, 'imported': t.imported, 'tiktok': t.tiktok,
         },
         match_players=[{
             'seat': p.seat, 'player_id': p.player_id, 'guest_name': p.guest_name,
@@ -335,6 +340,7 @@ def load_match(conn: Connection, match_id: str
             'abortive_reason': h.abortive_reason, 'deal_in_seat': h.deal_in_seat,
             'score_delta': ','.join(str(x) for x in h.score_delta),
             'recorded_at': _format_time(h.recorded_at),
+            'yaku_dora': h.yaku_dora, 'yaku_ura': h.yaku_ura,
         } for h in hand_rows],
         hand_wins=[{
             'hand_seq': seq_of[w.hand_id], 'winner_seat': w.winner_seat, 'han': w.han,
@@ -372,7 +378,8 @@ def _like(text: str) -> str:
 def list_matches(conn: Connection, include_test: bool = False, status: str | None = None, *,
                  text: str | None = None, player_ids: Sequence[str] = (),
                  min_level_rank: int | None = None, yaku: str | None = None,
-                 players: int | None = None, ranked: bool | None = None) -> list[MatchSummary]:
+                 players: int | None = None, ranked: bool | None = None,
+                 tiktok: bool | None = None) -> list[MatchSummary]:
     """
     Newest first. Scores are the stored `final_score`, current as of the last save.
 
@@ -387,6 +394,8 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
       why the filters are here and not on the phone.
     - `players`: 4, or 3 for sanma.
     - `ranked`: played for MAKApoints (true) or just for fun (false).
+    - `tiktok`: Tiktok Mahjong (true) or plain riichi (false). Casual is
+      `ranked=false&tiktok=false`.
     """
     c = m.matches.c
     mp = m.match_players.c
@@ -401,6 +410,8 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
         query = query.where(c.players == players)
     if ranked is not None:
         query = query.where(c.ranked.is_(ranked))
+    if tiktok is not None:
+        query = query.where(c.tiktok.is_(tiktok))
     if min_level_rank is not None:
         query = query.where(c.max_level_rank >= min_level_rank)
     for player_id in dict.fromkeys(player_ids):
@@ -441,6 +452,7 @@ def list_matches(conn: Connection, include_test: bool = False, status: str | Non
         max_level=t.max_level,
         ranked=t.ranked,
         imported=t.imported,
+        tiktok=t.tiktok,
         revision=t.revision,
     ) for t in matches]
 
@@ -455,7 +467,9 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
     if who is None:
         return None
     c, mp, h, w = m.matches.c, m.match_players.c, m.hands.c, m.hand_wins.c
-    counted = (c.status == 'finished') & c.is_test.is_(False)
+    # A Tiktok match is played for fun, a variant with its own odds: none of
+    # it counts towards anyone's figures.
+    counted = (c.status == 'finished') & c.is_test.is_(False) & c.tiktok.is_(False)
 
     kinds = dict(conn.execute(
         select(c.players, func.count())

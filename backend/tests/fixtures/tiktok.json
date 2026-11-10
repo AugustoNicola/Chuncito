@@ -1,0 +1,144 @@
+{
+  "rows": {
+    "match": {
+      "id": "fixture-tiktok",
+      "name": "the first Tiktok night",
+      "players": 4,
+      "redFives": true,
+      "rules": [],
+      "length": "south",
+      "startingPoints": 25000,
+      "targetScore": 30000,
+      "goalScore": 30000,
+      "umaJson": "[20,10,-10,-20]",
+      "status": "finished",
+      "endReason": "manual",
+      "startedAt": "2026-11-10T21:00:00.000Z",
+      "endedAt": "2026-11-10T21:30:00.000Z",
+      "maxLevel": "haneman",
+      "isTest": false,
+      "ranked": false,
+      "emptySide": null,
+      "imported": false,
+      "tiktok": true
+    },
+    "matchPlayers": [
+      {
+        "seat": 0,
+        "playerId": "player-ana",
+        "guestName": null,
+        "finalScore": 24000,
+        "placement": 3,
+        "umaPoints": -10
+      },
+      {
+        "seat": 1,
+        "playerId": "player-beto",
+        "guestName": null,
+        "finalScore": 28000,
+        "placement": 2,
+        "umaPoints": 10
+      },
+      {
+        "seat": 2,
+        "playerId": null,
+        "guestName": "Cami",
+        "finalScore": 36000,
+        "placement": 1,
+        "umaPoints": 20
+      },
+      {
+        "seat": 3,
+        "playerId": null,
+        "guestName": "Dani",
+        "finalScore": 12000,
+        "placement": 4,
+        "umaPoints": -20
+      }
+    ],
+    "hands": [
+      {
+        "clientUuid": "fixture-tiktok-hand-1",
+        "seq": 1,
+        "roundWind": "este",
+        "roundNumber": 1,
+        "honba": 0,
+        "riichiPotBefore": 1,
+        "outcome": "ron",
+        "abortiveReason": null,
+        "dealInSeat": 3,
+        "scoreDelta": "0,0,12000,-12000",
+        "recordedAt": "2026-11-10T21:11:00.000Z",
+        "yakuDora": "chun,toitoi",
+        "yakuUra": "riichi,tanyao"
+      },
+      {
+        "clientUuid": "fixture-tiktok-hand-2",
+        "seq": 2,
+        "roundWind": "este",
+        "roundNumber": 2,
+        "honba": 0,
+        "riichiPotBefore": 0,
+        "outcome": "exhaustive_draw",
+        "abortiveReason": null,
+        "dealInSeat": null,
+        "scoreDelta": "-1000,3000,-1000,-1000",
+        "recordedAt": "2026-11-10T21:22:00.000Z",
+        "yakuDora": "sanshokuDoujun",
+        "yakuUra": "dobleRiichi"
+      }
+    ],
+    "handWins": [
+      {
+        "handSeq": 1,
+        "winnerSeat": 2,
+        "han": 6,
+        "fu": 40,
+        "level": "haneman",
+        "basePoints": 3000,
+        "pointsWon": 12000,
+        "isManual": false,
+        "winnerOpen": false,
+        "handTiles": "m1m2m3p4p5p6s7s8s9rrrm5|dora:s1|ura:p9",
+        "situationFlags": "riichi"
+      }
+    ],
+    "handRiichi": [
+      {
+        "handSeq": 1,
+        "seat": 2
+      }
+    ],
+    "handTenpai": [
+      {
+        "handSeq": 2,
+        "seat": 1
+      }
+    ],
+    "handYakus": [
+      {
+        "handSeq": 1,
+        "winnerSeat": 2,
+        "yaku": "riichi",
+        "han": 3
+      },
+      {
+        "handSeq": 1,
+        "winnerSeat": 2,
+        "yaku": "chun",
+        "han": 3
+      }
+    ],
+    "adjustments": []
+  },
+  "players": [
+    {
+      "id": "player-ana",
+      "displayName": "Ana"
+    },
+    {
+      "id": "player-beto",
+      "displayName": "Beto"
+    }
+  ]
+}

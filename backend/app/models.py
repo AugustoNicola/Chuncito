@@ -105,6 +105,9 @@ matches = Table(
     Column('empty_side', Text),
     # Played without the tracker and entered afterwards: final scores only (0008).
     Column('imported', Boolean, nullable=False, server_default='false'),
+    # Tiktok Mahjong, the group's variant with a wall of yaku (0009). Never
+    # ranked, and left out of every player's stats.
+    Column('tiktok', Boolean, nullable=False, server_default='false'),
     # When the server last took a write, for the sync status and for spotting
     # a phone that has been offline a long time.
     Column('updated_at', DateTime(timezone=True), nullable=False, server_default=func.now()),
@@ -118,6 +121,7 @@ matches = Table(
     CheckConstraint(f"end_reason IS NULL OR {_in('end_reason', END_REASONS)}", name='end_reason'),
     CheckConstraint(f"empty_side IS NULL OR (players = 3 AND {_in('empty_side', TABLE_SIDES)})",
                     name='empty_side'),
+    CheckConstraint('NOT (tiktok AND ranked)', name='tiktok_unranked'),
     Index(None, 'started_at'),
     Index(None, 'max_level_rank'),
 )
@@ -154,6 +158,10 @@ hands = Table(
     # When the hand was recorded, so how long it took (0006). Null on hands
     # recorded before it was kept.
     Column('recorded_at', DateTime(timezone=True)),
+    # A Tiktok hand's face-up yaku and the ura under them, comma-separated in
+    # reveal order (0009). Null outside Tiktok.
+    Column('yaku_dora', Text),
+    Column('yaku_ura', Text),
     UniqueConstraint('match_id', 'seq'),
     CheckConstraint(_in('round_wind', WINDS), name='round_wind'),
     CheckConstraint(_in('outcome', OUTCOMES), name='outcome'),

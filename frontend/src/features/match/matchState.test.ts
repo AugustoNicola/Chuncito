@@ -28,6 +28,7 @@ const config = (over: Partial<MatchConfig> = {}): MatchConfig => ({
     { playerId: null, name: 'C' }, { playerId: null, name: 'D' },
   ],
   emptySide: null,
+  tiktok: false,
   ...over,
 });
 

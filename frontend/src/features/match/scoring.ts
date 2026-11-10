@@ -33,17 +33,27 @@ export const ceil100 = (points: number): number => Math.ceil(points / 100) * 100
  * sanma honba at 1000 -- 1000 on a ron, 500 from each of the two payers on a
  * tsumo -- so the counter is worth chasing with one player fewer to pay it.
  */
-export const HONBA: Readonly<Record<PlayerCount, { ron: number; tsumoEach: number }>> = {
+export interface HonbaRates { ron: number; tsumoEach: number }
+
+export const HONBA: Readonly<Record<PlayerCount, HonbaRates>> = {
   4: { ron: 300, tsumoEach: 100 },
   3: { ron: 1000, tsumoEach: 500 },
 };
 
 /**
+ * The rates a match pays honba at. Tiktok Mahjong plays sanma's at either
+ * table: 1000 on a ron, 500 from each payer on a tsumo -- so a four-player
+ * tsumo collects 1500 a counter.
+ */
+export const honbaRatesOf = (config: { players: PlayerCount; tiktok?: boolean }): HonbaRates =>
+  (config.tiktok ? HONBA[3] : HONBA[config.players]);
+
+/**
  * What the honba on the table add to one win, for the score screen: on a ron
  * the discarder's whole extra, on a tsumo what each payer adds.
  */
-export function honbaExtra(players: PlayerCount, mode: 'ron' | 'tsumo', honba: number): number {
-  return mode === 'ron' ? HONBA[players].ron * honba : HONBA[players].tsumoEach * honba;
+export function honbaExtra(rates: HonbaRates, mode: 'ron' | 'tsumo', honba: number): number {
+  return mode === 'ron' ? rates.ron * honba : rates.tsumoEach * honba;
 }
 
 /** A riichi declaration costs 1000, which becomes a stick on the table. */
@@ -252,11 +262,13 @@ export function tsumoDelta(args: {
   honba: number;
   potBefore: number;
   riichiSeats: readonly Seat[];
+  /** Defaults to the player count's own (`honbaRatesOf`). */
+  rates?: HonbaRates;
 }): Delta {
   const { players, winner, dealer, payment, honba, potBefore, riichiSeats } = args;
   if (payment.kind === 'ron') throw new Error('a tsumo cannot carry a ron payment');
   const delta = zeroDelta(players);
-  const honbaEach = HONBA[players].tsumoEach * honba;
+  const honbaEach = (args.rates ?? HONBA[players]).tsumoEach * honba;
 
   for (const seat of seatsOf(players)) {
     if (seat === winner) continue;
@@ -290,6 +302,7 @@ export function ronDelta(args: {
   honba: number;
   potBefore: number;
   riichiSeats: readonly Seat[];
+  rates?: HonbaRates;
 }): Delta {
   const { players, dealIn, wins, honba, potBefore, riichiSeats } = args;
   if (wins.length === 0) throw new Error('a ron needs at least one winner');
@@ -304,7 +317,7 @@ export function ronDelta(args: {
   const [nearest] = [...wins].sort(
     (a, b) => turnDistance(dealIn, a.winner, players) - turnDistance(dealIn, b.winner, players),
   );
-  const honbaPaid = HONBA[players].ron * honba;
+  const honbaPaid = (args.rates ?? HONBA[players]).ron * honba;
   delta[nearest!.winner] += honbaPaid;
   delta[dealIn] -= honbaPaid;
 
@@ -356,9 +369,11 @@ export function nagashiDelta(args: {
   dealer: Seat;
   honba: number;
   riichiSeats: readonly Seat[];
+  rates?: HonbaRates;
 }): Delta {
   const { players, winner, dealer, honba, riichiSeats } = args;
   return tsumoDelta({
+    rates: args.rates,
     players,
     winner,
     dealer,

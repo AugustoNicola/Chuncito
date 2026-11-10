@@ -55,7 +55,7 @@ backend/app/                 FastAPI: settings (dev/main target), db, models (th
                              tables), schemas (the wire format = MatchRows), store
                              (save/load a whole match), auth (the PIN), main (routes)
 backend/migrations/          Alembic; 0001 is the schema, then one per change (0002 rules, 0003 goal_score, 0004 target_score, 0005 ranked, 0006 hand recorded_at,
-                             0007 sanma empty_side, 0008 imported)
+                             0007 sanma empty_side, 0008 imported, 0009 tiktok)
 backend/tests/               pytest on real Postgres; fixtures/ written by wire.test.ts
 backend/scripts/             db_backup, check_migrations (the release phase)
 docs/                        contract, gaps, architecture, data model, deploy, roadmap

@@ -50,7 +50,7 @@ def put(client, rows: dict, base: int = 0):
 
 
 def test_the_fixtures_are_there():
-    assert set(FIXTURES) == {'four-player-finished', 'sanma-in-progress', 'empty', 'entered'}
+    assert set(FIXTURES) == {'four-player-finished', 'sanma-in-progress', 'empty', 'entered', 'tiktok'}
 
 
 # --- the PIN ---
@@ -88,7 +88,7 @@ def test_a_forged_cookie_does_not_unlock(client):
 
 # --- saving and loading ---
 
-@pytest.mark.parametrize('name', ['four-player-finished', 'sanma-in-progress', 'empty', 'entered'])
+@pytest.mark.parametrize('name', ['four-player-finished', 'sanma-in-progress', 'empty', 'entered', 'tiktok'])
 def test_a_match_comes_back_exactly_as_it_was_sent(unlocked, name):
     rows = fixture(name, f'rt-{name}')
     saved = put(unlocked, rows)
@@ -124,6 +124,31 @@ def test_only_sanma_has_an_empty_side(unlocked):
     response = put(unlocked, rows)
     assert response.status_code == 422
     assert 'only a sanma table' in response.text
+
+
+def test_a_tiktok_match_is_never_ranked(unlocked):
+    rows = fixture('tiktok', 'tiktok-ranked')
+    rows['match']['ranked'] = True
+    response = put(unlocked, rows)
+    assert response.status_code == 422
+    assert 'never ranked' in response.text
+
+
+def test_only_a_tiktok_hand_has_a_yaku_wall(unlocked):
+    rows = fixture('four-player-finished', 'plain-with-wall')
+    rows['hands'][0]['yakuDora'] = 'chun'
+    rows['hands'][0]['yakuUra'] = 'pinfu'
+    response = put(unlocked, rows)
+    assert response.status_code == 422
+    assert 'only a Tiktok hand' in response.text
+
+
+def test_a_tiktok_hand_has_an_ura_under_every_yaku(unlocked):
+    rows = fixture('tiktok', 'tiktok-short')
+    rows['hands'][0]['yakuUra'] = 'riichi'
+    response = put(unlocked, rows)
+    assert response.status_code == 422
+    assert 'as many ura yaku' in response.text
 
 
 def test_an_entered_match_has_no_hands(unlocked):
@@ -301,6 +326,9 @@ def test_the_list_filters_for_history(unlocked):
     # The four-player fixture was played for MAKApoints; the sanma one was not.
     assert ids(ranked=True) == {'filter-4p'}
     assert ids(ranked=False) == {'filter-3p'}
+    # Neither is Tiktok, so casual is ranked=false&tiktok=false.
+    assert ids(tiktok=True) == set()
+    assert ids(ranked=False, tiktok=False) == {'filter-3p'}
 
     # By name, and by who sat: a registered player or a guest.
     assert ids(q='DOUBLE ron') == {'filter-4p'}
@@ -409,6 +437,24 @@ def test_an_entered_match_counts_for_places_and_makapoints(unlocked):
     listed = {m['id']: m for m in unlocked.get('/api/matches').json()}
     assert listed['stats-entered']['imported'] is True
     assert listed['stats-entered']['hands'] == 0
+
+
+def test_a_tiktok_match_counts_for_nothing(unlocked):
+    tom = unlocked.post('/api/players', json={'displayName': 'Tiktok Tom'}).json()
+    rows = fixture('tiktok', 'stats-tiktok')
+    rows['matchPlayers'][2]['playerId'] = tom['id']
+    rows['matchPlayers'][2]['guestName'] = None
+    assert put(unlocked, rows).status_code == 200
+
+    t = unlocked.get(f"/api/players/{tom['slug']}/stats").json()
+    # He won a haneman there, and none of it shows.
+    assert (t['matchesFour'], t['matches'], t['hands'], t['wins']) == (0, [], 0, 0)
+    assert t['yakus'] == [] and t['bestHand'] is None
+    assert (t['mpPoints'], t['mpMatches']) == (0, 0)
+
+    listed = {m['id']: m for m in unlocked.get('/api/matches', params={'tiktok': True}).json()}
+    assert listed['stats-tiktok']['tiktok'] is True
+    assert listed['stats-tiktok']['ranked'] is False
 
 
 def test_a_profile_needs_a_real_player(unlocked, client):

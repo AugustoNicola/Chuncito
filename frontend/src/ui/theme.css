@@ -1462,6 +1462,97 @@ button {
   vertical-align: 0.1em;
 }
 
+/* ---------- Tiktok Mahjong's yaku wall ---------- */
+
+/* The colours of the dora lines of the same kind on the score screen. */
+:root {
+  --yaku-dora: var(--limit-mangan);
+  --yaku-ura: var(--limit-haneman);
+}
+
+/* "DORA" / "URA" beside a yaku the wall made worth 2 han more, as NEW is. */
+.yaku__dora {
+  margin-left: 0.5em;
+  color: var(--yaku-dora);
+  font-size: 0.72em; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  vertical-align: 0.1em;
+}
+.yaku__dora[data-kind="ura"] { color: var(--yaku-ura); }
+.score__yaku[data-dora] .score__han { color: var(--yaku-dora); font-weight: 700; }
+.score__yaku[data-dora="ura"] .score__han { color: var(--yaku-ura); }
+
+/* The wall as it stood for a hand: the score screen's and the timeline's. */
+.score__wall, .timeline__wall {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 10px;
+  font-size: 0.8rem; color: var(--text-dim);
+}
+.timeline__wall { font-size: 0.72rem; }
+.score__walllabel, .timeline__walllabel {
+  color: var(--text-faint);
+  font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.06em;
+  align-self: baseline;
+}
+
+/* Under the table, as the dead wall sits beside it: five cards, face down
+   until revealed. The whole strip opens the wall; it reveals nothing itself. */
+.yakuwall {
+  display: flex; flex-direction: column; gap: 4px;
+  width: 100%;
+  padding: 6px 8px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.yakuwall__label {
+  font-size: 0.66rem; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.yakuwall__cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.yakuwall__card {
+  min-width: 0; min-height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 3px;
+  border-radius: 6px;
+  font-size: 0.7rem; line-height: 1.15; text-align: center;
+  overflow-wrap: anywhere;
+}
+.yakuwall__card--up {
+  background: var(--bg-raised);
+  border: 1px solid var(--yaku-dora);
+  color: var(--text);
+}
+/* A tile back, in the app's blue. */
+.yakuwall__card--down {
+  border: 1px solid var(--border);
+  background: repeating-linear-gradient(135deg,
+    var(--accent-dim) 0 3px, color-mix(in srgb, var(--accent-dim) 55%, var(--bg-sunken)) 3px 6px);
+  opacity: 0.55;
+}
+
+.wallscreen { display: flex; flex-direction: column; gap: 12px; padding: 8px 0; }
+.wallscreen__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.wallscreen__slot {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--border-strong);
+}
+.wallscreen__slot--up { background: var(--bg-raised); border: 1px solid var(--yaku-dora); }
+.wallscreen__n { width: 1.2em; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.wallscreen__name { font-size: 1rem; }
+.wallscreen__hidden { color: var(--text-faint); font-style: italic; font-size: 0.9rem; }
+
+/* On its side, the strip takes the corner under Timeline and stacks. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .app--table > .yakuwall { grid-area: 2 / 3; align-self: center; }
+  .app--table > .yakuwall .yakuwall__cards { grid-template-columns: minmax(0, 1fr); }
+  .app--table > .yakuwall .yakuwall__card { min-height: 26px; }
+}
+
 /* ---------- uma fields ---------- */
 
 .setup__uma { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }

@@ -182,7 +182,7 @@ export function App() {
                 <span>{m.seats.join(', ')}</span>
                 <span className="home__resumemeta">
                   {fetching === m.id ? 'Fetching…' : (
-                    `${m.players === 3 ? 'Sanma · ' : ''}${m.hands} hand${m.hands === 1 ? '' : 's'}`
+                    `${m.tiktok ? 'Tiktok · ' : ''}${m.players === 3 ? 'Sanma · ' : ''}${m.hands} hand${m.hands === 1 ? '' : 's'}`
                     + ` · started ${new Date(m.startedAt).toLocaleString(undefined, {
                       weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
                   )}

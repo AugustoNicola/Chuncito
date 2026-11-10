@@ -118,6 +118,8 @@ export interface ServerMatch {
   ranked: boolean;
   /** Played without the tracker and entered afterwards: no hands to count. */
   imported: boolean;
+  /** Tiktok Mahjong; never ranked. */
+  tiktok: boolean;
   /** The best limit reached, as the engine's atom; null if nobody has won. */
   maxLevel: string | null;
   revision: number;

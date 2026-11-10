@@ -14,7 +14,8 @@ import type { HandRow, MatchState } from './matchState';
 import { LEFTOVER_NOTE, potOnTable, seatsIn } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
-import { NewMark } from '../hand/ScoreResultView';
+import { NewMark, YakuDoraMark } from '../hand/ScoreResultView';
+import { type YakuDora, wonAfterRiichi, wallOfRow, yakuDoraKind } from './yakuWall';
 import { isNewYaku, useYakusWonBefore } from './yakuHistory';
 import { decodeHandTiles } from '../hand/handTiles';
 import { PSEUDO_YAKU } from '../../scorer/types';
@@ -27,8 +28,10 @@ function roundPhrase(label: string, honba: number): string {
   return `${label} · ${honba} repeat${honba === 1 ? '' : 's'}`;
 }
 
-function ValueLine({ win, name, showName, sanma, wonBefore }: {
+function ValueLine({ win, name, showName, sanma, wonBefore, wall }: {
   win: HandRow['wins'][number]; name: string; showName: boolean; sanma: boolean;
+  /** A Tiktok hand's wall; null otherwise. */
+  wall: YakuDora | null;
   /** What the winner had won with before this hand; null when unknown. */
   wonBefore: ReadonlySet<string> | null;
 }) {
@@ -52,12 +55,16 @@ function ValueLine({ win, name, showName, sanma, wonBefore }: {
       </div>
       {real.length > 0 && (
         <div className="confirm__yakus">
-          {real.map((y) => (
-            <span key={y.yaku} className="confirm__yaku">
-              {yakuName(y.yaku)}
-              {isNewYaku(y.yaku, wonBefore) && <NewMark />}
-            </span>
-          ))}
+          {real.map((y) => {
+            const kind = yakuDoraKind(y.yaku, wall, wonAfterRiichi(win));
+            return (
+              <span key={y.yaku} className="confirm__yaku">
+                {yakuName(y.yaku)}
+                {kind && <YakuDoraMark kind={kind} />}
+                {isNewYaku(y.yaku, wonBefore) && <NewMark />}
+              </span>
+            );
+          })}
         </div>
       )}
       {/* Only a hand entered as tiles has any to show; a typed-in value has
@@ -151,7 +158,8 @@ export function ConfirmChange({
                          name={names[win.winnerSeat] ?? ''}
                          showName={row.wins.length > 1}
                          sanma={before.config.players === 3}
-                         wonBefore={wonBefore(win.winnerSeat)} />
+                         wonBefore={wonBefore(win.winnerSeat)}
+                         wall={wallOfRow(row)} />
             ))}
           </div>
         )}

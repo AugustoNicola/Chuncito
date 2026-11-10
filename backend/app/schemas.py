@@ -19,6 +19,8 @@ from pydantic.alias_generators import to_camel
 Seat = Literal[0, 1, 2, 3]
 Wind = Literal['este', 'sur', 'oeste', 'norte']
 Outcome = Literal['tsumo', 'ron', 'exhaustive_draw', 'abortive_draw', 'nagashi_mangan', 'chombo']
+# One to five yaku atoms, comma-separated: a Tiktok hand's wall.
+YAKU_LIST = r'^[A-Za-z]{1,40}(,[A-Za-z]{1,40}){0,4}$'
 
 
 class Wire(BaseModel):
@@ -48,6 +50,8 @@ class MatchTable(Wire):
     empty_side: Literal['bottom', 'right', 'top', 'left'] | None = None
     # Entered after it was played, with no hands. Defaulted, as above.
     imported: bool = False
+    # Tiktok Mahjong; never ranked. Defaulted, as above.
+    tiktok: bool = False
 
 
 class MatchPlayer(Wire):
@@ -73,6 +77,10 @@ class Hand(Wire):
     # Null on hands from before it was kept. Defaulted, unlike the rest, so a
     # phone still running the previous version can keep saving its match.
     recorded_at: str | None = None
+    # A Tiktok hand's face-up yaku and the ura under them, comma-separated
+    # atoms, as many of each. Defaulted, as above.
+    yaku_dora: str | None = Field(default=None, pattern=YAKU_LIST)
+    yaku_ura: str | None = Field(default=None, pattern=YAKU_LIST)
 
 
 class HandWin(Wire):
@@ -127,6 +135,8 @@ class MatchRows(Wire):
             raise ValueError('only a sanma table has an empty side')
         if self.match.imported and (self.hands or self.match.status != 'finished'):
             raise ValueError('an entered match is finished and has no hands')
+        if self.match.tiktok and self.match.ranked:
+            raise ValueError('a Tiktok match is never ranked')
         seats = sorted(p.seat for p in self.match_players)
         if seats != list(range(players)):
             raise ValueError(f'a {players}-player match needs seats 0..{players - 1}, got {seats}')
@@ -137,6 +147,11 @@ class MatchRows(Wire):
         for hand in self.hands:
             if len(hand.score_delta.split(',')) != players:
                 raise ValueError(f'hand {hand.seq}: score_delta needs {players} entries')
+            walls = (hand.yaku_dora, hand.yaku_ura)
+            if not self.match.tiktok and walls != (None, None):
+                raise ValueError(f'hand {hand.seq}: only a Tiktok hand has a yaku wall')
+            if self.match.tiktok and (None in walls or len(walls[0].split(',')) != len(walls[1].split(','))):
+                raise ValueError(f'hand {hand.seq}: a Tiktok hand needs as many ura yaku as yaku dora')
 
         known = set(seqs)
         in_play = set(range(players))
@@ -217,6 +232,7 @@ class MatchSummary(Wire):
     max_level: str | None
     ranked: bool
     imported: bool
+    tiktok: bool
     revision: int
 
 

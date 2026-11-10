@@ -21,7 +21,8 @@
       "isTest": false,
       "ranked": true,
       "emptySide": null,
-      "imported": true
+      "imported": true,
+      "tiktok": false
     },
     "matchPlayers": [
       {

@@ -128,6 +128,8 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
   const [name, setName] = useState('');
   /** Casual unless said otherwise, as on the end screen. */
   const [ranked, setRanked] = useState(false);
+  /** Tiktok Mahjong: the group's variant, decided now and never ranked. */
+  const [tiktok, setTiktok] = useState(false);
 
   // The cache is enough to start with; the server's list replaces it if it answers.
   useEffect(() => {
@@ -223,6 +225,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
     seats: seated as SeatPlayer[],
     // There is no table to draw for a match entered afterwards.
     emptySide: players === 3 && !entering ? emptySide : null,
+    tiktok,
   });
 
   // Entering a played match: the scores must be able to have come out of the
@@ -234,7 +237,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
   const whenProblem = Number.isNaN(playedDate.getTime()) ? 'Say when it was played.'
     : playedDate.getTime() > Date.now() ? 'That is still to come.' : null;
   const preview = entering && ready && !scoresProblem && !whenProblem
-    ? enteredMatch(config(), finalValues, { name: name.trim(), ranked, playedAt: playedDate })
+    ? enteredMatch(config(), finalValues, { name: name.trim(), ranked: ranked && !tiktok, playedAt: playedDate })
     : null;
 
   function start() {
@@ -277,6 +280,20 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
               paid by two players only, honba worth 1,000.
             </span>
           )}
+        </div>
+
+        <div className="field">
+          <span className="field__label">Game</span>
+          <div className="segmented" role="group" aria-label="Game">
+            {[false, true].map((opt) => (
+              <button key={String(opt)} type="button"
+                      className={`segmented__btn${tiktok === opt ? ' segmented__btn--on' : ''}`}
+                      aria-pressed={tiktok === opt}
+                      onClick={() => setTiktok(opt)}>
+                {opt ? 'Tiktok' : 'Riichi'}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="field">
@@ -529,7 +546,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
             {whenProblem && <span className="setup__warn">{whenProblem}</span>}
           </label>
 
-          <div className="field">
+          {!tiktok && <div className="field">
             <span className="field__label">MAKApoints</span>
             <div className="segmented" role="group" aria-label="MAKApoints">
               {[true, false].map((opt) => (
@@ -544,7 +561,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
             {!ranked && (
               <span className="field__hint">Saved to the history, but no MAKApoints change hands.</span>
             )}
-          </div>
+          </div>}
 
           <label className="field">
             <span className="field__label">Name this match</span>

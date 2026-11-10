@@ -26,7 +26,7 @@ import { toSituation, type HandState } from './handState';
 export const NUKIDORA = 'nukiDora';
 
 /** Anything scored as a yakuman proper. Kazoe is han-counted and keeps its dora. */
-const isYakuman = (level: string): boolean =>
+export const isYakuman = (level: string): boolean =>
   level !== 'kazoeYakuman' && /[yY]akuman$/.test(level);
 
 /** Display order for the trailing dora lines, matching the engine's. */

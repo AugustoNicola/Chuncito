@@ -44,6 +44,12 @@ export const yakuName = (atom: string): string => YAKU_NAMES[atom] ?? atom;
 const DORA_KINDS = new Set(['dora', 'akaDora', 'uraDora', 'nukiDora']);
 export const isDora = (atom: string): boolean => DORA_KINDS.has(atom);
 
+/**
+ * Every yaku there is, as atoms: what history filters by and what the profile
+ * lists. Each dragon is its own yaku here, as the engine counts them.
+ */
+export const YAKU_ATOMS: readonly string[] = Object.keys(YAKU_NAMES).filter((atom) => !isDora(atom));
+
 const LEVEL_NAMES: Readonly<Record<string, string>> = {
   sinNombre: '', mangan: 'Mangan', haneman: 'Haneman', baiman: 'Baiman',
   sanbaiman: 'Sanbaiman', kazoeYakuman: 'Kazoe Yakuman',
