@@ -986,6 +986,8 @@ Asked in chat (2026-11-09), one commit each, in this order:
       the yaku of hands already won in this match, which the server does
       not count until it finishes. Unknown history (guest, offline, locked)
       shows no badge. Not in the plain calculator.
+- [x] **No "latest 15 of N" note** under the placement line (2026-11-10,
+      at the user's request); the line still shows the latest 15.
 
 ## Picking this up cold
 
