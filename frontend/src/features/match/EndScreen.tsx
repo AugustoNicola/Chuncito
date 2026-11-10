@@ -25,8 +25,14 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
   onTimeline: () => void;
 }) {
   const [name, setName] = useState(state.name);
-  /** Casual unless said otherwise (or chosen before, for a match saved once already). */
-  const [ranked, setRanked] = useState(state.ranked);
+  /**
+   * No default: somebody has to say which, so a ranked night is never saved
+   * as casual (or the other way) by tapping straight past the question. A
+   * Tiktok match is never ranked, so it is not asked.
+   */
+  const [ranked, setRanked] = useState<boolean | null>(null);
+  const undecided = !state.config.tiktok && ranked === null;
+  const save = (asEast?: boolean) => onSave(name.trim(), ranked ?? false, asEast);
   /** Totals before this match, from the server if it answers, else the cache. */
   const [roster, setRoster] = useState<Player[]>(cachedPlayers);
   useEffect(() => { void refreshPlayers().then((list) => { if (list) setRoster(list); }); }, []);
@@ -48,7 +54,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
       </header>
 
       <div className="endscreen">
-        <MatchOutcome state={state} ranked={ranked} />
+        <MatchOutcome state={state} ranked={ranked ?? false} />
 
         {state.config.tiktok ? (
           <div className="field">
@@ -70,7 +76,9 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
               </button>
             ))}
           </div>
-          {ranked ? (
+          {ranked === null ? (
+            <span className="field__hint">Choose one to save the match.</span>
+          ) : ranked ? (
             <div className="mpgain">
               {mpRows.map(({ seat, gained, before }) => (
                 <div key={seat.name} className="mpgain__row">
@@ -127,7 +135,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
                 Discard
               </button>
               {canSaveAsEast(state) ? (
-                <button type="button" className="btn btn--wide" onClick={() => onSave(name.trim(), ranked, true)}>
+                <button type="button" className="btn btn--wide" disabled={undecided} onClick={() => save(true)}>
                   Save as East match
                 </button>
               ) : onContinueAsSouth ? (
@@ -135,11 +143,11 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
                   Continue as South match
                 </button>
               ) : (
-                <SaveButton onClick={() => onSave(name.trim(), ranked)} />
+                <SaveButton disabled={undecided} onClick={() => save()} />
               )}
             </div>
             {(canSaveAsEast(state) || onContinueAsSouth) && (
-              <SaveButton onClick={() => onSave(name.trim(), ranked)} />
+              <SaveButton disabled={undecided} onClick={() => save()} />
             )}
           </>
         )}
@@ -153,9 +161,9 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
   );
 }
 
-function SaveButton({ onClick }: { onClick: () => void }) {
+function SaveButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
   return (
-    <button type="button" className="btn btn--primary btn--wide" onClick={onClick}>
+    <button type="button" className="btn btn--primary btn--wide" disabled={disabled} onClick={onClick}>
       Save and finish
     </button>
   );

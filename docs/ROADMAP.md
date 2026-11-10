@@ -1007,6 +1007,10 @@ Asked in chat (2026-11-09), one commit each, in this order:
       still work). The current hand's wall stays on the phone like
       `pendingRiichi`; rows keep only what was revealed. **Migration
       0009** (additive). Landscape placement of the strip is unchecked.
+- [x] **No default for Ranked / Casual** (2026-11-10): on the end screen
+      and when entering a played match, neither is chosen and saving stays
+      disabled until one is ("Choose one to save the match."). Tiktok is
+      not asked. Was Casual by default.
 - [x] **Tenpai on the table.** The draw menu marks who was tenpai on the
       miniature table setup uses for sanma's empty side, now `MiniTable`
       (classes `minitable__*`, was `setup__layout`/`setup__side`). Sides

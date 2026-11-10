@@ -1092,10 +1092,18 @@ try {
   // The wind each started on, however far the deal went.
   check(JSON.stringify(standings.map((r) => r.wind)) === JSON.stringify(['東', '南', '西', '北']),
         `the standings show each player's starting wind (got ${JSON.stringify(standings.map((r) => r.wind))})`);
-  // Casual by default, so the results are plain; ranked, they are MAKApoints.
+  // No default: Ranked or Casual has to be chosen before the match can be
+  // saved. Casual, the results are plain; ranked, they are MAKApoints.
   const mpChoice = await groupState('MAKApoints');
-  check(mpChoice[0][0] === 'Ranked' && mpChoice[1][0] === 'Casual' && mpChoice[1][2] === 'true',
-        `a match is casual unless said otherwise (got ${JSON.stringify(mpChoice)})`);
+  check(mpChoice[0][0] === 'Ranked' && mpChoice[1][0] === 'Casual'
+        && mpChoice.every(([, , pressed]) => pressed === 'false'),
+        `neither Ranked nor Casual is chosen to begin with (got ${JSON.stringify(mpChoice)})`);
+  const saveDisabled = () => page.$$eval('.app__footer .btn', (els) =>
+    els.filter((e) => e.textContent.startsWith('Save')).map((e) => e.disabled));
+  check(JSON.stringify(await saveDisabled()) === '[true,true]',
+        `saving waits for the choice (got ${JSON.stringify(await saveDisabled())})`);
+  await byText('Casual');
+  check(JSON.stringify(await saveDisabled()) === '[false,false]', 'and is open once it is made');
   check(!(await page.$('.mpgain')), 'a casual match lists no MAKApoints changing hands');
   check((await page.$eval('.standings__uma', (e) => e.textContent)) === '+35.0',
         `a casual match's results are plain (got ${await page.$eval('.standings__uma', (e) => e.textContent)})`);
@@ -1887,8 +1895,11 @@ try {
   check(await page.$eval('.endscreen__meta', (e) => e.textContent) === 'Entered after it was played',
         'with no hands, rounds or duration to show');
   await page.type('input[placeholder="e.g. the one at the club"]', 'at the club');
-  // Entered matches are mostly for the ranking, but still casual unless said so.
-  check((await groupState('MAKApoints'))[1][2] === 'true', 'an entered match starts casual too');
+  // No default here either: an entered match is saved only once it is said
+  // whether it was ranked.
+  check((await groupState('MAKApoints')).every(([, , pressed]) => pressed === 'false')
+        && (await saveEntered()).disabled === true,
+        'an entered match has no Ranked/Casual chosen, and cannot be saved until it has');
   await byText('Ranked');
   await shot('55-entered-form.png', { fullPage: true });
   check(JSON.stringify(await saveEntered()) === JSON.stringify({ text: 'Save match', disabled: false }),

@@ -126,8 +126,8 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
   const [finals, setFinals] = useState<string[]>(['', '', '', '']);
   const [playedAt, setPlayedAt] = useState(localNow);
   const [name, setName] = useState('');
-  /** Casual unless said otherwise, as on the end screen. */
-  const [ranked, setRanked] = useState(false);
+  /** No default, as on the end screen: somebody has to say which. */
+  const [ranked, setRanked] = useState<boolean | null>(null);
   /** Tiktok Mahjong: the group's variant, decided now and never ranked. */
   const [tiktok, setTiktok] = useState(false);
 
@@ -237,7 +237,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
   const whenProblem = Number.isNaN(playedDate.getTime()) ? 'Say when it was played.'
     : playedDate.getTime() > Date.now() ? 'That is still to come.' : null;
   const preview = entering && ready && !scoresProblem && !whenProblem
-    ? enteredMatch(config(), finalValues, { name: name.trim(), ranked: ranked && !tiktok, playedAt: playedDate })
+    ? enteredMatch(config(), finalValues, { name: name.trim(), ranked: ranked === true && !tiktok, playedAt: playedDate })
     : null;
 
   function start() {
@@ -558,7 +558,8 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
                 </button>
               ))}
             </div>
-            {!ranked && (
+            {ranked === null && <span className="field__hint">Choose one to save the match.</span>}
+            {ranked === false && (
               <span className="field__hint">Saved to the history, but no MAKApoints change hands.</span>
             )}
           </div>}
@@ -587,7 +588,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
       {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
       <div className="app__footer">
         <button type="button" className="btn btn--primary btn--wide"
-                disabled={entering ? preview === null : !ready} onClick={start}>
+                disabled={entering ? preview === null || (!tiktok && ranked === null) : !ready} onClick={start}>
           {entering ? 'Save match' : 'Start match'}
         </button>
       </div>
