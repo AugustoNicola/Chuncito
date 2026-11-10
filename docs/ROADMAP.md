@@ -1028,7 +1028,7 @@ Asked in chat (2026-11-09), one commit each, in this order:
   dev schema: 31 matches, 205 hands, counts, final scores, placements and
   MP totals unchanged, all loaded. Backed up just before as
   `backups/chuncito-main-20261110T214245Z.dump` (and `…T213839Z`). The dev
-  branch itself is still at `0008`. New `rows.ts` fields, so every phone
+  branch is at `0009` too. New `rows.ts` fields, so every phone
   re-sends every match it keeps, once.
 
 - 2026-11-09: dice reminder, landscape layout, profile tweaks (yaku over
