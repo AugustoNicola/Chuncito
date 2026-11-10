@@ -764,8 +764,9 @@ button {
 .setup__shuffles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .setup__dealer { color: var(--text-dim); }
 
-/* Sanma's table in miniature, laid out as the match screen draws it. */
-.setup__layout {
+/* The table in miniature, laid out as the match screen draws it (`MiniTable`):
+   sanma's empty side at setup, who was tenpai at a draw. */
+.minitable {
   display: grid;
   grid-template-columns: 1fr 1.3fr 1fr;
   grid-template-rows: auto auto auto;
@@ -774,7 +775,7 @@ button {
   margin: 4px auto 0;
   align-items: center;
 }
-.setup__side {
+.minitable__side {
   min-width: 0; min-height: 44px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   padding: 5px 6px;
@@ -785,19 +786,21 @@ button {
   font: inherit; font-size: 0.8rem;
   cursor: pointer;
 }
-.setup__side[data-side="top"] { grid-area: 1 / 2; }
-.setup__side[data-side="left"] { grid-area: 2 / 1; }
-.setup__side[data-side="right"] { grid-area: 2 / 3; }
-.setup__side[data-side="bottom"] { grid-area: 3 / 2; }
-.setup__side--empty {
+.minitable__side:disabled { cursor: default; }
+.minitable__side[data-side="top"] { grid-area: 1 / 2; }
+.minitable__side[data-side="left"] { grid-area: 2 / 1; }
+.minitable__side[data-side="right"] { grid-area: 2 / 3; }
+.minitable__side[data-side="bottom"] { grid-area: 3 / 2; }
+.minitable__side--empty {
   background: transparent;
   border-style: dashed; border-color: var(--border-strong);
   color: var(--text-faint); font-style: italic;
 }
-.setup__sidewind { font-size: 0.95rem; color: var(--text); line-height: 1.1; }
-.setup__side[data-seat="0"] .setup__sidewind { color: var(--seat-dealer); }
-.setup__sidename { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.setup__layoutnote {
+.minitable__side--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+.minitable__wind { font-size: 0.95rem; color: var(--text); line-height: 1.1; }
+.minitable__side[data-dealer] .minitable__wind { color: var(--seat-dealer); }
+.minitable__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.minitable__note {
   grid-area: 2 / 2;
   text-align: center; font-size: 0.72rem; line-height: 1.3; color: var(--text-faint);
 }
@@ -1130,12 +1133,6 @@ button {
 }
 .pill--on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
 .pill--limit { text-align: center; min-width: 0; }
-
-.check__tag {
-  display: block;
-  font-size: 0.66rem; color: var(--seat-dealer);
-  text-transform: uppercase; letter-spacing: 0.06em;
-}
 
 .drawmenu__preview {
   display: flex; flex-direction: column; gap: 4px;

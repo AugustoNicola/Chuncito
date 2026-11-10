@@ -20,6 +20,7 @@ import type { MatchLength, PlayerCount, Seat, TableSide } from './seats';
 import {
   TABLE_SIDES, emptySideAfterRotation, roundKanji, roundName, seatsOf, sidesOf,
 } from './seats';
+import { MiniSide, MiniTable } from './MiniTable';
 import { SITUATION_WINDS, type Rule } from '../../scorer/types';
 import {
   type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
@@ -64,28 +65,21 @@ function TableLayout({ empty, seated, onPick }: {
 }) {
   const sides = sidesOf(3, empty);
   return (
-    <div className="setup__layout" role="group" aria-label="Empty side of the table">
+    <MiniTable label="Empty side of the table" note="Tap the side nobody sits at">
       {TABLE_SIDES.map((side) => {
         const seat = seatsOf(3).find((s) => sides[s] === side);
-        const isEmpty = seat === undefined;
+        const wind = seat === undefined ? undefined : SITUATION_WINDS[seat]!;
         return (
-          <button key={side} type="button" data-side={side} data-seat={seat}
-                  className={`setup__side${isEmpty ? ' setup__side--empty' : ''}`}
-                  aria-pressed={isEmpty}
-                  aria-label={isEmpty ? `The ${side} side is empty`
-                    : `Leave the ${side} side empty`}
-                  onClick={() => onPick(side)}>
-            {isEmpty ? <span className="setup__sidename">Empty</span> : (
-              <>
-                <span className="setup__sidewind">{roundKanji(SITUATION_WINDS[seat]!)}</span>
-                <span className="setup__sidename">{seated[seat]?.name ?? roundName(SITUATION_WINDS[seat]!)}</span>
-              </>
-            )}
-          </button>
+          <MiniSide key={side} side={side} seat={seat} wind={wind}
+                    name={seat === undefined ? undefined : seated[seat]?.name ?? roundName(wind!)}
+                    dealer={seat === 0}
+                    pressed={seat === undefined}
+                    ariaLabel={seat === undefined ? `The ${side} side is empty`
+                      : `Leave the ${side} side empty`}
+                    onClick={() => onPick(side)} />
         );
       })}
-      <span className="setup__layoutnote">Tap the side nobody sits at</span>
-    </div>
+    </MiniTable>
   );
 }
 

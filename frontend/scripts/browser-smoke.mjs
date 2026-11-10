@@ -706,8 +706,14 @@ try {
   await page.evaluate(() => {
     const field = [...document.querySelectorAll('.field')].find(
       (f) => f.querySelector('.field__label')?.textContent === 'Tenpai');
-    [...field.querySelectorAll('.check')].find((b) => b.textContent.includes('Beto')).click();
+    [...field.querySelectorAll('.minitable__side')].find((b) => b.textContent.includes('Beto')).click();
   });
+  // Tenpai is marked on the table as the match screen draws it, with the
+  // winds of this round: Beto deals East 2, from the right.
+  const tenpaiTable = await page.$$eval('.drawmenu .minitable__side',
+    (els) => els.map((e) => `${e.dataset.side}:${e.textContent}${e.classList.contains('minitable__side--on') ? '*' : ''}`).join(' | '));
+  check(tenpaiTable === 'bottom:北Ana | right:東Beto* | top:南Cami | left:西Dani',
+        `the tenpai picker is the table, in this round's winds (got ${tenpaiTable})`);
   const drawHasPreview = await page.$$eval('.drawmenu__preview', (els) => els.length);
   check(drawHasPreview === 0, 'the draw menu leaves the points to the review screen');
   await shot('13-drawmenu.png');
@@ -1165,10 +1171,10 @@ try {
         `sanma uma is three fields (got ${JSON.stringify(sanmaUma)})`);
   // The empty side: left by default, then the right one, as at a table where
   // nobody sits between East and South.
-  const layout = () => page.$$eval('.setup__side', (els) => els.map((e) => e.textContent).join(' | '));
+  const layout = () => page.$$eval('.minitable__side', (els) => els.map((e) => e.textContent).join(' | '));
   check((await layout()) === '東Ana | 南Beto | 西Cami | Empty',
         `sanma leaves the left side empty by default (got ${await layout()})`);
-  await page.click('.setup__side[data-side="right"]');
+  await page.click('.minitable__side[data-side="right"]');
   check((await layout()) === '東Ana | Empty | 南Beto | 西Cami',
         `tapping a side empties it; the three keep turn order (got ${await layout()})`);
   await shot('30-sanma-setup.png');

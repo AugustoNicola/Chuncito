@@ -988,10 +988,19 @@ Asked in chat (2026-11-09), one commit each, in this order:
       shows no badge. Not in the plain calculator.
 - [x] **No "latest 15 of N" note** under the placement line (2026-11-10,
       at the user's request); the line still shows the latest 15.
+- [x] **Tenpai on the table.** The draw menu marks who was tenpai on the
+      miniature table setup uses for sanma's empty side, now `MiniTable`
+      (classes `minitable__*`, was `setup__layout`/`setup__side`). Sides
+      follow `sidesOf` with this round's seat winds; the dealer's wind is
+      in the dealer colour (replacing the "dealer" tag); sanma's empty side
+      shows, dashed and inert. Covers nagashi's tenpai too.
 
 ## Picking this up cold
 
-**State as of 2026-11-09** (the Backlog section above has the detail):
+**State as of 2026-11-10** (the Backlog section above has the detail):
+
+- 2026-11-10: no latest-15 note on the profile; tenpai picked on the
+  miniature table. Not pushed.
 
 - 2026-11-09: dice reminder, landscape layout, profile tweaks (yaku over
   both kinds, latest 15 placements, "across N games", Dama) and the NEW

@@ -9,7 +9,8 @@
 import { useState } from 'react';
 import type { AbortiveReason, HandInput, MatchState } from './matchState';
 import { dealerSeat, seatsIn } from './matchState';
-import type { Seat } from './seats';
+import { MiniSide, MiniTable } from './MiniTable';
+import { TABLE_SIDES, seatWindOf, sidesOf, type Seat } from './seats';
 
 type Kind = 'exhaustive' | 'abortive' | 'nagashi';
 
@@ -36,6 +37,7 @@ export function DrawMenu({ state, onRecord, onCancel }: {
   const [nagashiSeat, setNagashiSeat] = useState<Seat | null>(null);
 
   const dealer = dealerSeat(state);
+  const sides = sidesOf(state.config.players, state.config.emptySide);
   const toggleTenpai = (seat: Seat) =>
     setTenpai((t) => (t.includes(seat) ? t.filter((s) => s !== seat) : [...t, seat].sort()));
 
@@ -124,17 +126,24 @@ export function DrawMenu({ state, onRecord, onCancel }: {
         ) : (
           <div className="field">
             <span className="field__label">Tenpai</span>
-            <div className="checks">
-              {seatsIn(state).map((seat) => (
-                <button key={seat} type="button"
-                        className={`check${tenpai.includes(seat) ? ' check--on' : ''}`}
-                        aria-pressed={tenpai.includes(seat)}
-                        onClick={() => toggleTenpai(seat)}>
-                  {state.config.seats[seat]!.name}
-                  {seat === dealer && <span className="check__tag">dealer</span>}
-                </button>
-              ))}
-            </div>
+            <MiniTable label="Tenpai" note="Tap who was tenpai">
+              {TABLE_SIDES.map((side) => {
+                const seat = seatsIn(state).find((s) => sides[s] === side);
+                if (seat === undefined) {
+                  return <MiniSide key={side} side={side} pressed={false} disabled
+                                   ariaLabel={`Nobody sits on the ${side} side`} />;
+                }
+                const name = state.config.seats[seat]!.name;
+                const on = tenpai.includes(seat);
+                return (
+                  <MiniSide key={side} side={side} seat={seat} name={name}
+                            wind={seatWindOf(seat, state.round, state.config.players)}
+                            dealer={seat === dealer} on={on} pressed={on}
+                            ariaLabel={`${name}${seat === dealer ? ', dealer,' : ''} was tenpai`}
+                            onClick={() => toggleTenpai(seat)} />
+                );
+              })}
+            </MiniTable>
           </div>
         )}
 
