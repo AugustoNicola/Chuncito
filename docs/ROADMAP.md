@@ -1019,9 +1019,13 @@ Asked in chat (2026-11-09), one commit each, in this order:
 **State as of 2026-11-10** (the Backlog section above has the detail):
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
-  miniature table; Tiktok Mahjong. **Not pushed, and needs migration
-  0009**: neither dev nor `main` has it yet. Before pushing, rehearse it on
-  a copy of `main`'s backup, then `make db-migrate TARGET=main`.
+  miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
+  pushed.** Rehearsed first on a copy of that day's backup in a throwaway
+  dev schema: 31 matches, 205 hands, counts, final scores, placements and
+  MP totals unchanged, all loaded. Backed up just before as
+  `backups/chuncito-main-20261110T214245Z.dump` (and `…T213839Z`). The dev
+  branch itself is still at `0008`. New `rows.ts` fields, so every phone
+  re-sends every match it keeps, once.
 
 - 2026-11-09: dice reminder, landscape layout, profile tweaks (yaku over
   both kinds, latest 15 placements, "across N games", Dama) and the NEW
