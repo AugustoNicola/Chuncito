@@ -349,6 +349,21 @@ button {
   border-color: var(--seg);
   color: var(--text);
 }
+/* A kind of match is its own colour where it is chosen, the hue its table
+   is tinted in: Tiktok pink, sanma green. */
+.segmented__btn--tiktok { --seg: #f27ab8; }
+.segmented__btn--sanma  { --seg: var(--limit-mangan); }
+.segmented__btn--tiktok,
+.segmented__btn--sanma {
+  border-color: color-mix(in srgb, var(--seg) 28%, var(--border));
+  color: color-mix(in srgb, var(--seg) 55%, var(--text-dim));
+}
+.segmented__btn--tiktok.segmented__btn--on,
+.segmented__btn--sanma.segmented__btn--on {
+  background: color-mix(in srgb, var(--seg) 24%, var(--bg-raised));
+  border-color: var(--seg);
+  color: var(--text);
+}
 /* Without this a blocked option -- riichi on an open hand, say -- refused the
    tap while still looking available. */
 .segmented__btn:disabled { opacity: 0.4; cursor: not-allowed; }

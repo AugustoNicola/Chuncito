@@ -270,7 +270,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
           <div className="segmented" role="group" aria-label="Table">
             {([4, 3] as PlayerCount[]).map((opt) => (
               <button key={opt} type="button"
-                      className={`segmented__btn${players === opt ? ' segmented__btn--on' : ''}`}
+                      className={`segmented__btn${opt === 3 ? ' segmented__btn--sanma' : ''}${players === opt ? ' segmented__btn--on' : ''}`}
                       aria-pressed={players === opt}
                       onClick={() => pickPlayers(opt)}>
                 {opt === 4 ? 'Four players' : 'Three (sanma)'}
@@ -284,7 +284,7 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
           <div className="segmented" role="group" aria-label="Game">
             {[false, true].map((opt) => (
               <button key={String(opt)} type="button"
-                      className={`segmented__btn${tiktok === opt ? ' segmented__btn--on' : ''}`}
+                      className={`segmented__btn${opt ? ' segmented__btn--tiktok' : ''}${tiktok === opt ? ' segmented__btn--on' : ''}`}
                       aria-pressed={tiktok === opt}
                       onClick={() => setTiktok(opt)}>
                 {opt ? 'Tiktok' : 'Riichi'}
