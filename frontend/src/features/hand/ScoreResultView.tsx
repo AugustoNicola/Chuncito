@@ -28,20 +28,6 @@ function paymentSplit(payment: Payment): string | null {
 }
 
 /**
- * Said out loud on a sanma tsumo, since it is the one place the total differs
- * from the table everybody knows: the same hand, one payer fewer.
- */
-function tsumoLoss(payment: Payment): string | null {
-  switch (payment.kind) {
-    case 'ron': return null;
-    case 'tsumoDealer':
-      return `Sanma: 2 payers, not 3 (${paymentTotal(payment, 4).toLocaleString()} at four)`;
-    case 'tsumo':
-      return `Sanma: dealer + 1 non-dealer (${paymentTotal(payment, 4).toLocaleString()} at four)`;
-  }
-}
-
-/**
  * Who won, and on a ron who paid. The tracker knows both, so the score names
  * them; the plain calculator has nobody to name.
  */
@@ -127,7 +113,6 @@ export function ScoreResultView({
   const seat = hand ? (hand.seatWind === 'este' ? 'Dealer' : 'Non-dealer') : null;
   const winType = hand?.winMode === 'tsumo' ? 'tsumo' : 'ron';
   const players = hand?.sanma ? 3 : 4;
-  const loss = hand?.sanma ? tsumoLoss(result.payment) : null;
   const extra = honba > 0
     ? honbaExtra(honbaRates ?? HONBA[players], winType, honba).toLocaleString() : null;
   const doraKind = (yaku: string) =>
@@ -168,7 +153,6 @@ export function ScoreResultView({
         <span className="score__points">{paymentTotal(result.payment, players).toLocaleString()}</span>
         {seat && <span className="score__seat">{seat} {winType}</span>}
         {split && <span className="score__breakdown">{split}</span>}
-        {loss && <span className="score__breakdown score__breakdown--note">{loss}</span>}
         {/* Paid on top of the hand's value, not part of it: the total above
             stays the hand's, as the engine priced it. */}
         {extra && (

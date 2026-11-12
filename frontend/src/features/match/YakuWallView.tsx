@@ -50,11 +50,6 @@ export function YakuWallScreen({ wall, onReveal, onHide, onClose }: {
             </li>
           ))}
         </ol>
-        <p className="field__hint">
-          A winning hand gets 2 han more for each revealed yaku it has. Under
-          each one lies an ura yaku, which counts the same way for a winner
-          who declared riichi; they are turned over when the hand is scored.
-        </p>
       </div>
 
       <div className="app__spacer" />

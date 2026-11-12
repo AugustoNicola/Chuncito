@@ -197,9 +197,6 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
         <section className="profile__section">
           <h2 className="home__heading">Hand values</h2>
           <Histogram bins={valueBins(stats.winValues)} />
-          <p className="field__hint">
-            Each win priced as a non-dealer ron, so a dealer's hand or honba does not move it.
-          </p>
         </section>
       )}
 

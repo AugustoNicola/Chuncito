@@ -8,7 +8,7 @@ import { bestHand } from './matchState';
 import { HandSummary } from '../hand/HandDisplay';
 import { BurningWord } from '../hand/Flames';
 import { decodeHandTiles } from '../hand/handTiles';
-import { MP_BONUS, matchResults, mpLabel, mpOf, okaOf, placeLabel, resultLabel } from './scoring';
+import { MP_BONUS, matchResults, mpLabel, mpOf, placeLabel, resultLabel } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
 import { roundLabel, seatWindOf } from './seats';
 import { WindMark } from './WindMark';
@@ -25,33 +25,10 @@ const START = { wind: 'este', number: 1 } as const;
 
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
 
-/** How a result is worked out, with this match's numbers, and that they sum to zero. */
-export function ResultRules({ state, ranked = state.ranked }: { state: MatchState; ranked?: boolean }) {
-  const oka = okaOf(state.config);
-  const sum = matchResults(state.scores, state.config).reduce((a, p) => a + p.total, 0);
-  return (
-    <p className="standings__rules">
-      Result = final score − target ({state.config.targetScore.toLocaleString()}) + uma
-      ({state.config.uma.map(signed).join(' / ')}), in thousands.
-      {oka !== 0
-        ? ` 1st also takes the oka: (${state.config.targetScore.toLocaleString()} − ${
-          state.config.startingPoints.toLocaleString()}) × ${state.config.players} = ${resultLabel(oka)}.`
-        : ' No oka: the target is the starting score.'}
-      {' '}The results sum to {resultLabel(sum)}.
-      {ranked && ` Ranked, so everyone also gets ${mpLabel(MP_BONUS)} for playing.`}
-    </p>
-  );
-}
-
 /** `linkPlayers` in a match review; never on the night, inside the match. */
-export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked, explain = true }: {
+export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked }: {
   state: MatchState;
   linkPlayers?: boolean;
-  /**
-   * The line explaining how a result is worked out, under the standings. The
-   * review leaves it out and puts `ResultRules` at the foot of the page.
-   */
-  explain?: boolean;
   /** Whether the results are MAKApoints: the end screen's choice before it is saved. */
   ranked?: boolean;
 }) {
@@ -104,7 +81,6 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
           </li>
         ))}
       </ol>
-      {explain && <ResultRules state={state} ranked={ranked} />}
 
       {best && (
         <div className="endscreen__best" data-tier={levelTier(best.win.level!)}>

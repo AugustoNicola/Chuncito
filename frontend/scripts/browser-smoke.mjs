@@ -647,8 +647,8 @@ try {
         `the points change is shown before committing (got ${JSON.stringify(confirmTable)})`);
   const confirmHints = await page.$$eval('.confirm .field__hint',
                                          (els) => els.map((e) => e.textContent).join(' '));
-  check(confirmHints.includes('riichi stick'),
-        'the confirmation explains why the change exceeds the hand value');
+  check(confirmHints.includes('already paid 1,000'),
+        `the confirmation says the riichi stick was paid already (got "${confirmHints}")`);
   // Listed as the standings will be after the hand, each with the wind it held.
   const confirmOrder = confirmTable.map((r) => `${r.wind}${r.name} ${r.place}`);
   check(JSON.stringify(confirmOrder) === JSON.stringify(
@@ -1124,9 +1124,7 @@ try {
   const results = await page.$$eval('.standings__uma', (els) => els.map((e) => e.textContent));
   check(results[0] === '+40.0 MP', `1st: -5 + 20 uma + 20 oka + 5 bonus (got ${results[0]})`);
   check(results[3] === '−20.0 MP', `4th: -5 - 20 uma + 5 bonus (got ${results[3]})`);
-  const rulesLine = await page.$eval('.standings__rules', (el) => el.textContent);
-  check(rulesLine.includes('oka') && rulesLine.includes('sum to 0.0'),
-        `the end screen explains the results and that they sum to zero (got "${rulesLine}")`);
+  check(await page.$('.standings__rules') === null, 'the end screen does not spell out how results are worked out');
   await shot('16-endscreen.png');
   const guestRows = await page.$$eval('.mpgain__guest', (els) => els.length);
   check(guestRows === 4, `guests are listed as not counted (got ${guestRows})`);
@@ -1283,9 +1281,6 @@ try {
   const kitaLine = await page.$eval('.score__yaku[data-yaku="nukiDora"]', (el) => el.textContent);
   check(kitaLine.includes('Kita') && kitaLine.includes('2 han'),
         `the kita are listed with the dora (got "${kitaLine}")`);
-  const note = await page.$eval('.score__breakdown--note', (el) => el.textContent);
-  check(note.includes('Sanma') && note.includes('7,900'),
-        `the score notes the tsumo loss (got "${note}")`);
   const tsumoWho = await page.$eval('.score__who', (el) => el.textContent);
   check(tsumoWho === 'Cami, self-drawn', `a tsumo names only the winner (got "${tsumoWho}")`);
   await shot('33-sanma-score.png');
@@ -1847,9 +1842,6 @@ try {
         `a registered player's name links to their page, a guest's does not (got ${JSON.stringify(nameLinks)})`);
   check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
         `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
-  check(await page.$('.review__outcome .standings__rules') === null
-        && await page.$('.review + .standings__rules') !== null,
-        'the review keeps the explanation of results for the foot of the page');
   check((await page.$$('.review__hands .standchart__series')).length === 3,
         'the review shows the standings chart above the hands');
   const reviewTimes = await page.$$eval('.review__hands .timeline__duration', (els) => els.map((e) => e.textContent));

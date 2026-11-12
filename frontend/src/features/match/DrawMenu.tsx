@@ -57,8 +57,6 @@ export function DrawMenu({ state, onRecord, onCancel }: {
       : kind === 'abortive' ? (reasonBlocked(reason) ? null : { kind: 'abortiveDraw', reason })
         : (nagashiSeat !== null ? { kind: 'nagashiMangan', winner: nagashiSeat, tenpai } : null);
 
-  const dealerKeeps = kind === 'abortive' || tenpai.includes(dealer);
-
   return (
     <div className="app">
       <header className="app__bar">
@@ -153,12 +151,6 @@ export function DrawMenu({ state, onRecord, onCancel }: {
 
       {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
       <div className="app__footer">
-        <div className="status">
-          {dealerKeeps ? 'The dealer keeps the deal.' : 'The deal passes on.'}
-          {' Honba goes to '}{state.honba + 1}
-          {state.potCarried + state.pendingRiichi.length > 0 && '; the sticks stay on the table'}.
-        </div>
-
         <button type="button" className="btn btn--primary btn--wide"
                 disabled={input === null}
                 onClick={() => input && onRecord(input)}>

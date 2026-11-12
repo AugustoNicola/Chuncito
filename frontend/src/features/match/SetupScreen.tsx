@@ -274,12 +274,6 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
               </button>
             ))}
           </div>
-          {players === 3 && (
-            <span className="field__hint">
-              Sanma: no chii, manzu 2–8 removed, North pulled as nukidora, tsumo
-              paid by two players only, honba worth 1,000.
-            </span>
-          )}
         </div>
 
         <div className="field">
@@ -298,11 +292,6 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
 
         <div className="field">
           <span className="field__label">Players</span>
-          {entering && (
-            <span className="field__hint">
-              Each by the wind they started on, and their score at the end.
-            </span>
-          )}
           {/* Choose dealer is for a table already sat down: the seats stay as
               they are and only East moves round. Shuffle all re-seats everyone.
               Neither means anything once the match has been played. */}
@@ -392,13 +381,6 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
                               onClick={() => choose(seat, { playerId: null, name: options.guest! })}>
                         Seat “{options.guest}” as a guest
                       </button>
-                    )}
-                    {options.players.length === 0 && !options.guest && (
-                      <span className="setup__hint">
-                        {roster.length === 0
-                          ? 'No players yet. Type a name to add one, or to seat a guest.'
-                          : 'Everyone is seated. Type a name to add a player or seat a guest.'}
-                      </span>
                     )}
                   </div>
                 )}
@@ -559,9 +541,6 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
               ))}
             </div>
             {ranked === null && <span className="field__hint">Choose one to save the match.</span>}
-            {ranked === false && (
-              <span className="field__hint">Saved to the history, but no MAKApoints change hands.</span>
-            )}
           </div>}
 
           <label className="field">

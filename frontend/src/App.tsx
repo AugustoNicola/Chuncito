@@ -189,10 +189,6 @@ export function App() {
                 </span>
               </button>
             ))}
-            <p className="home__hint">
-              Carrying one on here moves it to this phone. If the other phone records
-              a hand too, whichever saves second is asked which copy to keep.
-            </p>
           </section>
         )}
 

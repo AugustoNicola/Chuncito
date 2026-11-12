@@ -129,10 +129,6 @@ export function ManualControls({
               Honba +
             </button>
           </div>
-          <span className="field__hint">
-            Passing the deal on here records no hand — it is for fixing a mis-entry,
-            not for playing one.
-          </span>
         </div>
 
         <div className="field">
@@ -142,9 +138,6 @@ export function ManualControls({
               ? `Undo hand ${last.seq} — ${roundLabel({ wind: last.roundWind, number: last.roundNumber })}`
               : 'Nothing to undo'}
           </button>
-          <span className="field__hint">
-            Puts the table back exactly, riichi sticks included.
-          </span>
         </div>
 
         <div className="field">
@@ -152,10 +145,6 @@ export function ManualControls({
           <button type="button" className="btn btn--wide" onClick={onEnd}>
             End early
           </button>
-          <span className="field__hint">
-            Placements are worked out from the scores as they stand, and the match
-            is saved to the history.
-          </span>
         </div>
 
         <div className="field">
@@ -163,9 +152,6 @@ export function ManualControls({
           <button type="button" className="btn btn--wide" onClick={onLeave}>
             Back to the home screen
           </button>
-          <span className="field__hint">
-            The match is kept and waiting; reopening the app returns to it.
-          </span>
 
           {/*
             The only way to get rid of a half-played match. Without it a match

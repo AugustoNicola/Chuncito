@@ -11,7 +11,7 @@
  * differ.
  */
 import type { HandRow, MatchState } from './matchState';
-import { LEFTOVER_NOTE, potOnTable, seatsIn } from './matchState';
+import { potOnTable, seatsIn } from './matchState';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
 import { HandSummary } from '../hand/HandDisplay';
 import { NewMark, YakuDoraMark } from '../hand/ScoreResultView';
@@ -94,7 +94,6 @@ export function ConfirmChange({
   // a riichi declared this hand already came off the score before this screen.
   const seats = seatsIn(before);
   const delta = seats.map((s) => after.scores[s] - before.scores[s]);
-  const moved = delta.some((d) => d !== 0);
 
   /**
    * Places after the change, and which way each moved. There is no "before"
@@ -122,20 +121,6 @@ export function ConfirmChange({
   const ends = before.status === 'in_progress' && after.status === 'finished';
   const roundChanged = ends || roundLabel(before.round) !== roundLabel(after.round)
     || before.honba !== after.honba;
-
-  /**
-   * Sticks lifted off the table by this hand.
-   *
-   * Worth calling out, because it is why these numbers can disagree with the
-   * hand's own value: a 3,900 hand moves a player 4,900 if they also pick up a
-   * stick. The columns here have to be self-consistent -- before, change, after
-   * -- so the change includes the sticks, and this line says so rather than
-   * leaving the arithmetic looking wrong.
-   */
-  const collected = potOnTable(before) - potOnTable(after);
-  /** Sticks the end of the match hands to 1st (`settleTable`), if it ends here. */
-  const leftover = after.adjustments.slice(before.adjustments.length)
-    .find((a) => a.note === LEFTOVER_NOTE);
 
   return (
     <div className="app">
@@ -198,25 +183,6 @@ export function ConfirmChange({
               </div>
             ))}
           </div>
-          {!moved && <span className="field__hint">No points change hands.</span>}
-          {leftover && (
-            <span className="field__hint">
-              The match ends with {leftover.delta / 1000} riichi
-              stick{leftover.delta === 1000 ? '' : 's'} left on the table: they go
-              to {names[leftover.seat]}, in 1st ({leftover.delta.toLocaleString()}).
-            </span>
-          )}
-          {collected > 0 && !leftover && (
-            <span className="field__hint">
-              Includes {collected} riichi stick{collected === 1 ? '' : 's'} collected
-              from the table ({(collected * 1000).toLocaleString()}).
-            </span>
-          )}
-          {before.status === 'finished' && potOnTable(after) > 0 && (
-            <span className="field__hint">
-              The riichi sticks the end gave to 1st go back on the table.
-            </span>
-          )}
           {before.pendingRiichi.length > 0 && (
             <span className="field__hint">
               {before.pendingRiichi.map((s) => names[s]).join(' and ')} already paid

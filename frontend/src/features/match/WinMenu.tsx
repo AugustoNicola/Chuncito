@@ -357,11 +357,6 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
               </button>
             ))}
           </div>
-          {staged.length > 0 && (
-            <span className="field__hint">
-              One discard, one discarder — {nameOf(dealIn!)} pays every winner.
-            </span>
-          )}
         </div>
 
         <button type="button" className="btn btn--primary btn--wide winmenu__tiles"
@@ -447,11 +442,6 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
               </button>
             ))}
           </div>
-          {riichi && (
-            <span className="field__hint">
-              {nameOf(current!)} declared riichi, so the hand was closed.
-            </span>
-          )}
         </div>
       </div>
 
@@ -459,15 +449,12 @@ export function WinMenu({ state, winner, draft, onRecord, onCancel }: {
 
       {/* Pinned to the bottom, so the way on is always in sight -- even disabled. */}
       <div className="app__footer">
-        <div className="status">
-          {current === null
-            ? (staged.length > 0
-                ? `${staged.length} hand${staged.length === 1 ? '' : 's'} entered — add another winner, or review.`
-                : 'Pick the winner.')
-            : preview !== null
-              ? `${preview.toLocaleString()} points${state.honba > 0 ? ` + ${state.honba} honba` : ''}`
-              : 'Pick han and fu, or a limit — or enter the tiles above.'}
-        </div>
+        {/* The value as entered; nothing until there is one. */}
+        {current !== null && preview !== null && (
+          <div className="status">
+            {`${preview.toLocaleString()} points${state.honba > 0 ? ` + ${state.honba} honba` : ''}`}
+          </div>
+        )}
 
         {canAddWinner && (
           <button type="button" className="btn btn--wide"
