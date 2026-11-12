@@ -542,7 +542,7 @@ button {
   place-items: center;
   /* Room above the word for the flames to rise into: --blaze-room is sized
      for the word it carries, a title's or a smaller value's. */
-  padding-top: calc(var(--blaze-room, 3rem) * var(--heat, 1));
+  padding-top: calc(var(--blaze-room, 2.2rem) * var(--heat, 1));
   isolation: isolate;
 }
 .blaze > [data-burns] {
@@ -621,9 +621,12 @@ button {
    the word, and tall enough for the flames rising off it. */
 .flames {
   position: absolute;
-  inset: 0;
+  /* Up into the gap above the blaze as well: the flames keep most of their
+     height without the blaze holding all of it as empty space. */
+  top: calc(-0.6 * var(--blaze-room, 2.2rem));
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% + 0.6 * var(--blaze-room, 2.2rem));
   z-index: 0;
   pointer-events: none;
 }
@@ -1574,7 +1577,7 @@ button {
 }
 .endscreen__bestvalue { font-size: 1.3rem; font-weight: 600; }
 /* A limit best hand burns, its fire scaled to the smaller word. */
-.endscreen__best .blaze { --blaze-room: 1.7rem; }
+.endscreen__best .blaze { --blaze-room: 1.25rem; }
 .endscreen__bestwho { font-size: 0.85rem; color: var(--text-dim); }
 /* The stored hand, wherever one is shown back: review, timeline, best hand. */
 .endscreen__best .handsummary,
