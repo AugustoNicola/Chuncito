@@ -1063,8 +1063,8 @@ Asked in chat (2026-11-09), one commit each, in this order:
 
 - 2026-11-12: visual revamp -- limit-hand fire, the match's look by kind
   and All Last, the taller centre box. Frontend only, no migration.
-  Pushed; the feedback round after it (score order, All Last label, Best
-  hand fire) is **committed, not pushed**.
+  Pushed, and so is the feedback round after it (score order, All Last
+  label, Best hand fire).
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
