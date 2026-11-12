@@ -1097,7 +1097,7 @@ Asked in chat (2026-11-09), one commit each, in this order:
   label, Best hand fire). The second round (fire by hand value, explainer
   texts removed, timeline totals, total flare, seat picker by activity,
   hand review; the last two touch the backend's player list and stats, no
-  migration) is **committed, not pushed**.
+  migration) is pushed too.
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
