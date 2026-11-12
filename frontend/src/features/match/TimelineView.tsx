@@ -153,13 +153,13 @@ function HandEntry({ row, after, duration, names, seats, link, sanma }: {
             <span key={seat} className="timeline__delta">
               <span className="timeline__seatname"
                     data-place={after && !level(after) ? after.places[seat] : undefined}>
+                <PlayerName seat={seats[seat]!} link={link} />
                 {delta !== 0 && (
                   <span className={delta > 0 ? 'timeline__move timeline__move--up' : 'timeline__move timeline__move--down'}
                         aria-label={`${delta > 0 ? 'won' : 'lost'} ${Math.abs(delta).toLocaleString()}`}>
                     {delta > 0 ? '▲' : '▼'}
                   </span>
                 )}
-                <PlayerName seat={seats[seat]!} link={link} />
               </span>
               {total !== undefined && (
                 <span className={`timeline__total${total < 0 ? ' timeline__total--negative' : ''}`}>

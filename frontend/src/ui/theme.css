@@ -1411,15 +1411,22 @@ button {
 .timeline__deltas { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
 .timeline__delta { display: flex; flex-direction: column; gap: 1px; font-size: 0.8rem; }
 .timeline__seatname {
-  font-size: 0.68rem; color: var(--text-faint);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: baseline; gap: 3px;
+  font-size: 0.78rem; font-weight: 700; color: var(--text-dim);
+  min-width: 0;
 }
-/* The place is the name's colour: the medal metals, last place left plain. */
-.timeline__seatname[data-place="1"] { color: var(--place-1); }
-.timeline__seatname[data-place="2"] { color: var(--place-2); }
-.timeline__seatname[data-place="3"] { color: var(--place-3); }
-/* Won or lost points this hand, whatever it did to the places. */
-.timeline__move { margin-right: 2px; font-size: 0.6rem; }
+.timeline__seatname > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The place is the name's colour: the medal metals, lightened so they stand
+   apart at a glance (silver from plain text above all); last place stays
+   grey. */
+.timeline__seatname[data-place="1"] { color: color-mix(in srgb, var(--place-1) 75%, #fff); }
+.timeline__seatname[data-place="2"] { color: #f4f8ff; text-shadow: 0 0 6px rgba(211, 218, 229, 0.45); }
+.timeline__seatname[data-place="3"] { color: color-mix(in srgb, var(--place-3) 70%, #fff); }
+.timeline__seatname:not([data-place]),
+.timeline__seatname[data-place="4"] { color: var(--text-faint); }
+/* Won or lost points this hand, whatever it did to the places: after the
+   name, so the names line up. */
+.timeline__move { flex: none; font-size: 0.6rem; }
 .timeline__move--up { color: var(--gain); }
 .timeline__move--down { color: var(--loss); }
 .timeline__total { font-variant-numeric: tabular-nums; }
