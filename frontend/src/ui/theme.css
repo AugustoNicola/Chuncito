@@ -1232,25 +1232,46 @@ button {
 
 .centre {
   grid-area: 2 / 2;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px;
+  display: flex; flex-direction: column; align-items: center;
+  /* Spread over the box rather than bunched in its middle: the wordmark at
+     the top, the round in the middle, the counts at the bottom. */
+  justify-content: space-evenly;
+  gap: 4px;
   width: 100%;
   min-height: 120px;
-  /* Tall enough to be an easy target with the phone flat on the table, short
-     enough not to read as an empty hole in the middle of it. */
-  height: min(100%, 10.5rem);
+  /* As tall as the side boxes either side of it, which stand --seat-w tall:
+     the middle of the table reads as one row. */
+  height: min(100%, var(--seat-w));
+  padding: 4px;
   border-radius: var(--radius);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45);
 }
 .centre:disabled { opacity: 0.6; }
-.centre__round { font-size: 1.4rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+/* The wind over its number, each as big as the box allows: the width caps
+   the word ("South" is about three and a quarter ems in this weight), the
+   height is what the number gets. 100cqi is the centre's width inside its
+   padding. */
+.centre__round {
+  display: flex; flex-direction: column; align-items: center;
+  font-weight: 700; line-height: 1; white-space: nowrap;
+}
+.centre__wind {
+  font-size: clamp(1.2rem, 100cqi / 3.4, 2rem);
+  letter-spacing: 0.02em;
+}
+.centre__number {
+  font-size: 3rem;
+  font-variant-numeric: tabular-nums;
+}
 /* Sized for the narrow centre the full-size side boxes leave. */
 .centre__brand {
-  display: flex; align-items: center; gap: 5px;
+  display: flex; align-items: center; gap: 0.3em;
   color: var(--accent);
-  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em;
+  /* The logo and "Chuncito" are about six and a half ems together. */
+  font-size: min(0.95rem, 100cqi / 6.6);
+  font-weight: 600; letter-spacing: 0.04em;
 }
 /* The chun glyph as a mask rather than an image, so it takes the app's colour
    instead of its own red. Stands in until the real logo exists. The home
@@ -1263,7 +1284,7 @@ button {
   mask: url('/tiles/r.svg') center / contain no-repeat;
 }
 .centre__logo {
-  width: 14px; height: 19px;
+  width: 1.05em; height: 1.4em;
   flex: none;
   background-color: currentColor;
   -webkit-mask: url('/tiles/r.svg') center / contain no-repeat;
@@ -1271,16 +1292,21 @@ button {
 }
 .centre__counters { display: flex; flex-direction: column; gap: 2px; align-items: center; }
 .centre__counter {
-  display: grid; grid-template-columns: 3.4rem auto;
-  align-items: baseline; gap: 6px;
+  /* A fixed name column, so the two counts line up under each other. In
+     ems of a size the narrowest centre (sanma on a small phone) still holds:
+     the whole line is about five and a half of them. */
+  font-size: min(1rem, 100cqi / 5.6);
+  display: grid; grid-template-columns: 3.9em auto;
+  align-items: baseline; gap: 0.45em;
 }
 .centre__counter .centre__countername { text-align: right; }
 .centre__countername {
-  color: var(--text-dim); font-size: 0.8rem;
+  color: var(--text-dim); font-size: 0.9em;
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 .centre__countervalue {
-  font-size: 1.15rem; font-weight: 600;
+  min-width: 1ch;
+  font-size: 1.75em; font-weight: 700; line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1631,14 +1657,24 @@ button {
   .app__footer:has(> .status) > .btn--wide { width: auto; flex: 0 0 auto; min-width: 11rem; }
 }
 
-/* The centre squeezed short -- a landscape phone -- keeps the round and the
-   counts, side by side, and lets the wordmark go. */
+/* The centre squeezed short -- a landscape phone -- puts the round and the
+   counts on a line each, and when it is shorter still lets the wordmark go.
+   Heights are of the content box: the centre's own padding is already out. */
 .centre { container-type: size; }
-@container (height < 120px) {
-  .centre__brand { display: none; }
-  .centre__round { line-height: 1.1; }
+@container (height < 180px) {
+  .centre__round { flex-direction: row; gap: 0.3em; }
+  .centre__wind, .centre__number { font-size: 1.9rem; }
   .centre__counters { flex-direction: row; gap: 14px; }
-  .centre__counter { grid-template-columns: auto auto; }
+  .centre__counter { grid-template-columns: auto auto; font-size: 1rem; }
+  .centre__countervalue { font-size: 1.3rem; }
+}
+@container (height < 104px) {
+  .centre__brand { display: none; }
+  .centre__wind, .centre__number { font-size: 1.6rem; }
+}
+@container (height < 56px) {
+  .centre__wind, .centre__number { font-size: 1.35rem; }
+  .centre__countervalue { font-size: 1.1rem; }
 }
 
 /* A yaku the winner has never won with before: the profile's "not won with

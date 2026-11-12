@@ -100,7 +100,14 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
           <span className="centre__logo" aria-hidden="true" />
           Chuncito
         </span>
-        <span className="centre__round">{roundLabel(state.round)}</span>
+        {/* The wind over a big number: the box is narrow but tall, so the
+            round reads larger stacked than on one line. Still "East 1" as
+            text, for the space between. */}
+        <span className="centre__round" aria-label={roundLabel(state.round)}>
+          <span className="centre__wind">{roundName(state.round.wind)}</span>
+          {' '}
+          <span className="centre__number">{state.round.number}</span>
+        </span>
         <div className="centre__counters">
           <span className="centre__counter">
             <span className="centre__countername">Riichi</span>
