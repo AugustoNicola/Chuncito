@@ -42,6 +42,7 @@ uniform vec2 uRes;      // canvas, device pixels
 uniform float uDpr;
 uniform float uTime;
 uniform float uScale;   // the word's size against the score title's: 1 there
+uniform float uFire;    // how fierce: 1 for a yakuman, less for smaller hands
 uniform vec3 uDeep;
 uniform vec3 uMid;
 uniform vec3 uHot;
@@ -92,7 +93,9 @@ void main() {
 
   // Licks: fast, fine noise, also scrolling up, breaks the heat apart.
   float n = fbm(q * 2.3 + warp * 2.0 + vec2(0.0, -uTime * 2.8));
-  float t = heat * (0.12 + 1.45 * n);
+  // A smaller hand burns lower and sparser: the same heat, turned down, so
+  // fewer licks clear the edge below and those that do are shorter.
+  float t = heat * (0.12 + 1.45 * n) * mix(0.72, 1.0, uFire);
   // Thinning out over the last few pixels at either end of the word, so a
   // flame leaning past it tapers off instead of being cut down a line.
   float w = uRes.x / uDpr;
@@ -104,10 +107,13 @@ void main() {
   float edge = smoothstep(0.29, 0.31, t);
   vec3 col = mix(uDeep * 0.4, uDeep, smoothstep(0.31, 0.42, t));
   col = mix(col, uMid, smoothstep(0.42, 0.6, t));
-  col = mix(col, uHot, smoothstep(0.6, 0.85, t));
+  // ...with less of the white-hot core.
+  col = mix(col, uHot, smoothstep(0.6, 0.85, t) * mix(0.35, 1.0, uFire));
   // Embers' light just outside the flames, faint.
   float haze = 0.25 * smoothstep(0.1, 0.29, t) * (1.0 - edge);
-  gl_FragColor = vec4(col * edge + uDeep * 0.5 * haze, edge + haze * 0.5);
+  // ...and fainter.
+  float strength = mix(0.6, 1.0, uFire);
+  gl_FragColor = vec4(col * edge + uDeep * 0.5 * haze, edge + haze * 0.5) * strength;
 }`;
 
 /** "#rgb", "#rrggbb" or "rgb(r, g, b)" as 0..1 channels; grey if unreadable. */
@@ -273,6 +279,7 @@ export function startFire(canvas: HTMLCanvasElement, title: HTMLElement, palette
   gl.uniform3fv(u('uDeep'), parseColour(cs.getPropertyValue('--limit-b')));
   gl.uniform3fv(u('uMid'), parseColour(cs.getPropertyValue('--limit')));
   gl.uniform3fv(u('uHot'), parseColour(cs.getPropertyValue('--limit-a')));
+  gl.uniform1f(u('uFire'), Math.min(1, Math.max(0, parseFloat(cs.getPropertyValue('--fire')) || 1)));
   gl.uniform1i(u('uMask'), 0);
   gl.uniform1i(u('uNoise'), 1);
 
