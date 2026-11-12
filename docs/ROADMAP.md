@@ -1062,6 +1062,10 @@ Asked in chat (2026-11-09), one commit each, in this order:
         note) plus "Choose one to save the match." and the "already paid
         1,000" note. **Don't add explainer prose back**: the user dislikes
         it; a label or a disabled state should say enough.
+      - *Timeline hands* (same day): each player shows name and total
+        after the hand (no place label, no change); the place is the
+        name's colour (`--place-*`, none while level), and a ▲/▼ by the
+        name says the hand won or lost them points.
       - *The centre box* (`358e0e2`). As tall as the side boxes
         (`--seat-w`), 4px padding, contents spread: wordmark, the round
         stacked as wind over a 3rem number, bigger aligned counts. Sizes
@@ -1076,7 +1080,7 @@ Asked in chat (2026-11-09), one commit each, in this order:
   and All Last, the taller centre box. Frontend only, no migration.
   Pushed, and so is the feedback round after it (score order, All Last
   label, Best hand fire). The second round (fire by hand value, explainer
-  texts removed) is **committed, not pushed**.
+  texts removed, timeline totals) is **committed, not pushed**.
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
