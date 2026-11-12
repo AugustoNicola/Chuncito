@@ -111,13 +111,15 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     return () => clearTimeout(timer);
   }, []);
 
-  // The kind of match, and whether this hand could be its last, tint the
-  // whole page while the match is open: set on <html> rather than on the
-  // table, so the menus, the timeline and the page behind them follow it, and
-  // taken off again on the way out (theme.css, "the match's look").
+  // The kind of match tints the whole page while the match is open: set on
+  // <html> rather than on the table, so the menus, the timeline and the page
+  // behind them follow it, and taken off again on the way out (theme.css,
+  // "the match's look"). All Last is the table's alone: its red frame shows
+  // on the table and goes the moment anything opens over it.
   const tiktok = match.config.tiktok;
   const sanma = match.config.players === 3;
-  const allLast = isAllLast(match);
+  const onTable = menu.at === 'table' && pending === null && match.status === 'in_progress';
+  const allLast = onTable && isAllLast(match);
   useEffect(() => {
     const root = document.documentElement;
     root.toggleAttribute('data-tiktok', tiktok);

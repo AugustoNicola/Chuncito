@@ -1213,7 +1213,7 @@ try {
   await shot('37-all-last.png');
   await byText('Manual');
   await page.waitForSelector('.manual');
-  check(await look() === 'all-last', 'the menus keep the All Last look');
+  check(await look() === 'plain', 'All Last is the table\'s alone: a menu over it is plain');
   await byText('End early');
   await page.waitForSelector('.confirm');
   await byText('End it now');

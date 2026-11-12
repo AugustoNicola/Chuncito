@@ -1077,6 +1077,9 @@ Asked in chat (2026-11-09), one commit each, in this order:
         `bestHand` now carries `handSeq` / `winnerSeat`. A limit score is
         framed like All Last in its tier's colour (`.limitframe`).
         Timeline names: bold, chevron after, lightened medal colours.
+        Later: the review dropped its headline, and All Last's frame and
+        red tint show on the table only, not over a menu, confirmation
+        or review (the Tiktok / sanma tint stays on all of them).
       - *Timeline hands* (same day): each player shows name and total
         after the hand (no place label, no change); the place is the
         name's colour (`--place-*`, none while level), and a ▲/▼ by the
