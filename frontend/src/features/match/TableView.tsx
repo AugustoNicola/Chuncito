@@ -9,7 +9,7 @@
  * phone can be laid flat in the middle and still read correctly from any chair.
  */
 import type { MatchState } from './matchState';
-import { dealerSeat, potOnTable, seatsIn } from './matchState';
+import { dealerSeat, isAllLast, potOnTable, seatsIn } from './matchState';
 import type { Seat, TableSide } from './seats';
 import { diceTotalsFor, roundKanji, roundLabel, roundName, seatWindOf, sidesOf } from './seats';
 import { placeLabel, placesOf } from './scoring';
@@ -82,6 +82,7 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
   const pot = potOnTable(state);
   const places = placesOf(state.scores);
   const sides = sidesOf(state.config.players, state.config.emptySide);
+  const allLast = isAllLast(state);
 
   return (
     <div className="table">
@@ -90,7 +91,7 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
                    onOpen={onOpenSeat} onRiichi={onRiichi} />
       ))}
 
-      <button type="button" className="centre"
+      <button type="button" className={`centre${allLast ? ' centre--alllast' : ''}`}
               disabled={state.status !== 'in_progress'}
               onClick={onOpenCentre}
               aria-label="Record a draw">
@@ -98,7 +99,9 @@ export function TableView({ state, onOpenSeat, onRiichi, onOpenCentre }: {
           {/* Stands in for the red dragon logo; the tile glyph is masked rather
               than drawn, so it takes the app's colour instead of its own. */}
           <span className="centre__logo" aria-hidden="true" />
-          Chuncito
+          {/* The last hand says so where the wordmark was, in the red of the
+              frame round the screen. */}
+          {allLast ? 'All Last' : 'Chuncito'}
         </span>
         {/* The wind over a big number: the box is narrow but tall, so the
             round reads larger stacked than on one line. Still "East 1" as

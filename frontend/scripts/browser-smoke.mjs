@@ -1161,6 +1161,19 @@ try {
         `East 4 of an East match is All Last (got ${await centreText()}, ${await look()})`);
   const frame = await page.evaluate(() => getComputedStyle(document.body, '::after').boxShadow);
   check(frame.includes('6px'), `All Last draws a red frame round the screen (got "${frame}")`);
+  const allLastCentre = await page.evaluate(() => {
+    const brand = document.querySelector('.centre__brand');
+    const round = document.querySelector('.centre__round');
+    return { text: brand.textContent.trim(), brand: getComputedStyle(brand).color, round: getComputedStyle(round).color };
+  });
+  // rgb() in 0-255, or color(srgb ...) in 0-1, as a color-mix() comes back.
+  const reddish = (c) => {
+    const scale = c.startsWith('color(') ? 255 : 1;
+    const [r, g, b] = c.match(/[\d.]+/g).map((v) => Number(v) * scale);
+    return r > 200 && g < 130 && b < 130;
+  };
+  check(allLastCentre.text === 'All Last' && reddish(allLastCentre.brand) && reddish(allLastCentre.round),
+        `the centre says All Last, and it and the round are red (got ${JSON.stringify(allLastCentre)})`);
   await shot('37-all-last.png');
   await byText('Manual');
   await page.waitForSelector('.manual');

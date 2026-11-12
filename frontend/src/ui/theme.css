@@ -1195,6 +1195,11 @@ button {
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45);
 }
 .centre:disabled { opacity: 0.6; }
+/* All Last: the wordmark becomes "All Last", and it and the round go the
+   frame's red, a little lighter so it reads on the dark box. */
+.centre--alllast { --alllast: color-mix(in srgb, var(--alarm, #e5383b) 80%, #fff); }
+.centre--alllast .centre__brand,
+.centre--alllast .centre__round { color: var(--alllast); }
 /* The wind over its number, each as big as the box allows: the width caps
    the word ("South" is about three and a quarter ems in this weight), the
    height is what the number gets. 100cqi is the centre's width inside its
