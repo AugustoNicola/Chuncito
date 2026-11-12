@@ -503,6 +503,123 @@ button {
   }
 }
 
+/*
+ * A limit hand's title burns: it stands in front of a fire in its tier's
+ * colours (green mangan, purple haneman, ...) and glows in them. The fire and
+ * the glow grow with the hand, through --heat. Only limit hands have a title,
+ * so an ordinary hand gets none of this.
+ */
+.score[data-tier="mangan"]    { --heat: 0.7; }
+.score[data-tier="haneman"]   { --heat: 0.85; }
+.score[data-tier="baiman"]    { --heat: 1; }
+.score[data-tier="sanbaiman"] { --heat: 1.1; }
+.score[data-tier="kazoe"]     { --heat: 1.1; }
+.score[data-tier="yakuman"]   { --heat: 1.3; }
+
+.score__blaze {
+  position: relative;
+  /* As wide as the word, so the fire is too. */
+  align-self: center;
+  display: grid;
+  place-items: center;
+  /* Room above the word for the flames to rise into. */
+  padding: calc(2.4rem * var(--heat, 1)) 0.4em 0;
+  isolation: isolate;
+}
+.score__blaze .score__title {
+  position: relative;
+  z-index: 1;
+  /* A tight dark edge keeps the letters legible against the brightest
+     flames, then the glow, which widens with the hand. */
+  filter:
+    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 0 calc(5px * var(--heat, 1)) color-mix(in srgb, var(--limit) 85%, transparent))
+    drop-shadow(0 0 calc(16px * var(--heat, 1)) color-mix(in srgb, var(--limit) 45%, transparent));
+}
+/* The total glows with it, more softly: the title is the event. */
+.score:not([data-tier="none"]) .score__points {
+  filter: drop-shadow(0 0 calc(10px * var(--heat, 1)) color-mix(in srgb, var(--limit) 40%, transparent));
+}
+
+.flames {
+  position: absolute;
+  /* From the top of the blaze down to the word's baseline. */
+  inset: 0 -8% 0.45em;
+  z-index: 0;
+  pointer-events: none;
+}
+/* Softened just enough that the tongues read as one fire, not as shapes. */
+.flames__fire {
+  position: absolute;
+  inset: 0;
+  filter: blur(3px);
+  /* The bed of the fire: a glowing line along the foot of the word. */
+  background: radial-gradient(ellipse 50% 22% at 50% 100%,
+    color-mix(in srgb, var(--limit) 60%, transparent), transparent 100%);
+  animation: flames-breathe 1.9s ease-in-out infinite alternate;
+}
+.flames__tongue {
+  position: absolute;
+  bottom: 0;
+  left: var(--x);
+  width: var(--w);
+  /* Taller than the blaze: the gradient fades well before the tip, so the
+     visible flame ends about where the box does. */
+  height: calc(var(--h) * 1.4);
+  /* A teardrop standing on its round end: the gradient's tall ellipse,
+     anchored at the bottom, tapers it to a point. */
+  background: radial-gradient(ellipse 50% 100% at 50% 100%,
+    var(--limit-a) 0%, var(--limit) 28%,
+    color-mix(in srgb, var(--limit-b) 85%, transparent) 58%, transparent 80%);
+  border-radius: 45% 45% 50% 50% / 80% 80% 20% 20%;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: flames-lick var(--d) ease-in-out var(--delay) infinite;
+}
+.flames__ember {
+  position: absolute;
+  bottom: 15%;
+  left: var(--x);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--limit-a);
+  box-shadow: 0 0 5px 1px var(--limit);
+  opacity: 0;
+  animation: flames-ember var(--d) ease-out var(--delay) infinite;
+}
+/* Fewer sparks off a mangan than off a yakuman. */
+.score[data-tier="mangan"] .flames__ember:nth-child(n + 6),
+.score[data-tier="haneman"] .flames__ember:nth-child(n + 8) { display: none; }
+
+/* A tongue flares up, stretches thin and sways as it goes, then dies back. */
+@keyframes flames-lick {
+  0%   { transform: translateX(-50%) scale(1, 0.3); opacity: 0; }
+  20%  { transform: translateX(-50%) scale(0.95, 0.75) skewX(-3deg); opacity: 0.95; }
+  60%  { transform: translateX(-50%) scale(0.7, 1) skewX(4deg); opacity: 0.8; }
+  100% { transform: translateX(-50%) scale(0.35, 0.85) skewX(-5deg); opacity: 0; }
+}
+@keyframes flames-ember {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  12%  { opacity: 1; }
+  100% { transform: translate(var(--drift), calc(-5rem * var(--heat, 1))) scale(0.4); opacity: 0; }
+}
+@keyframes flames-breathe {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
+/* Without motion the fire is a still glow: the tongues at their tallest. */
+@media (prefers-reduced-motion: reduce) {
+  .flames__fire { animation: none; }
+  .flames__tongue {
+    animation: none; opacity: 0.6;
+    transform: translateX(-50%) scale(0.75, 0.8);
+  }
+  .flames__ember { display: none; }
+}
+
 /* The scored hand, shown read-only above the result. */
 .handsummary {
   --tile-w: 30px;

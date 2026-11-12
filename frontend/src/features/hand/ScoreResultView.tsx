@@ -10,6 +10,7 @@ import { HONBA, type HonbaRates, honbaExtra, paymentTotal } from '../match/scori
 import { type YakuDora, type YakuDoraKind, yakuDoraKind } from '../match/yakuWall';
 import { fuPartName, isYakumanLevel, levelName, levelTier, yakuName } from './yakuNames';
 import { HandSummary } from './HandDisplay';
+import { Flames } from './Flames';
 import type { HandState } from './handState';
 
 /**
@@ -174,8 +175,13 @@ export function ScoreResultView({
       </div>
 
       {title && (
-        <div className={`score__title${isYakumanLevel(result.level) ? ' score__title--yakuman' : ''}`}>
-          {title}
+        // The title stands in front of its own fire; only limit hands have a
+        // title, so an ordinary hand never pays for the flames.
+        <div className="score__blaze">
+          <Flames />
+          <div className={`score__title${isYakumanLevel(result.level) ? ' score__title--yakuman' : ''}`}>
+            {title}
+          </div>
         </div>
       )}
 
