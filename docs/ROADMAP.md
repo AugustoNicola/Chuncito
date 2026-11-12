@@ -1019,12 +1019,22 @@ Asked in chat (2026-11-09), one commit each, in this order:
       shows, dashed and inert. Covers nagashi's tenpai too.
 - [x] **Visual revamp** (2026-11-12, asked in chat, not in `backlog.md`;
       one commit each, so each reverts on its own):
-      - *Limit hands on fire* (`bea7497`). The score screen's limit title
-        stands in front of a fire in its tier's two colours (`Flames.tsx`:
-        fixed tongues and embers, plain keyframes, `--heat` per tier) and
-        glows; the total glows more softly; the shimmer stays. Only a hand
-        with a title renders it. Kazoe Yakuman's title wraps to two lines
-        (it did before), so its first line sits in the flames.
+      - *Limit hands on fire* (`bea7497`, redone the same day after the
+        user's reference, a "HEATWAVE" fire-text image). Flames rise off
+        the title's own letters (`fire.ts`, WebGL 1): the letters, drawn
+        where they stand, become a heat field smeared upwards and cooling
+        (CPU, once per layout); the shader bends it with scrolling noise,
+        breaks it into licks with more, and thresholds it to hard edges in
+        the tier's ramp (`--limit-b` / `--limit` / `--limit-a`). Never
+        wider than the word; the heat runs out below the canvas top. The
+        first CSS version (blurred tongues) was "muddled" and spread past
+        the word; a crisp CSS "goo" version was rejected too. **Lagged on a
+        phone** at first: now noise from a seeded 256² texture (9 reads a
+        pixel, ~3x cheaper per pixel), at most 1.5 device px per CSS px,
+        paused off screen; the title over it is still (no shimmer, two
+        shadows, own layer) and the total's glow is a static gradient, not
+        a filter. Without WebGL the canvas stays empty. Preview page:
+        https://claude.ai/artifact/LNNwWMPjqGAG11YioqcHrF (private).
       - *The match's look* (`c7cba63`). `MatchScreen` marks `<html>` with
         `data-tiktok` / `data-sanma` / `data-all-last` while a match is
         open (menus included) and clears them on the way out. Casual and

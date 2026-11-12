@@ -178,7 +178,7 @@ export function ScoreResultView({
         // The title stands in front of its own fire; only limit hands have a
         // title, so an ordinary hand never pays for the flames.
         <div className="score__blaze">
-          <Flames />
+          <Flames text={title} />
           <div className={`score__title${isYakumanLevel(result.level) ? ' score__title--yakuman' : ''}`}>
             {title}
           </div>
