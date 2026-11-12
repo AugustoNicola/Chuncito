@@ -2318,7 +2318,6 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   overscroll-behavior: contain;
   background: var(--bg);
 }
-.handreview__what { margin: 0; text-align: center; color: var(--text-dim); font-size: 0.95rem; }
 .handreview__honba { color: var(--text-dim); font-weight: 500; }
 .handreview__none { color: var(--text-faint); text-align: center; }
 .handreview__open { margin-top: 6px; }

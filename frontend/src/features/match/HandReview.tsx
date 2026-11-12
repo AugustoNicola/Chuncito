@@ -18,7 +18,6 @@ import { ScoreResultView } from '../hand/ScoreResultView';
 import type { HandRow, MatchState, WinRow } from './matchState';
 import { type Seat, dealerOf, roundLabel, seatWindOf, turnDistance } from './seats';
 import { honbaRatesOf, paymentFor } from './scoring';
-import { headline } from './TimelineView';
 import { wallOfRow, wonAfterRiichi } from './yakuWall';
 
 /** Which hand is open: a hand by its `seq`, and, from a Best hand, one winner of it. */
@@ -134,7 +133,6 @@ export function HandReview({ state, reviewed, onBack, onOpenMatch }: {
   onOpenMatch?: () => void;
 }) {
   const row = state.hands.find((h) => h.seq === reviewed.seq);
-  const names = state.config.seats.map((s) => s.name);
   const wins = row?.wins.filter((w) => reviewed.winner === undefined || w.winnerSeat === reviewed.winner) ?? [];
 
   useEffect(() => {
@@ -155,10 +153,7 @@ export function HandReview({ state, reviewed, onBack, onOpenMatch }: {
           <span className="app__barspacer" />
         </header>
         {row ? (
-          <>
-            <p className="handreview__what">{headline(row, names)}</p>
-            {wins.map((win) => <WinReview key={win.winnerSeat} state={state} row={row} win={win} />)}
-          </>
+          wins.map((win) => <WinReview key={win.winnerSeat} state={state} row={row} win={win} />)
         ) : (
           <p className="home__hint">That hand is not in this match.</p>
         )}
