@@ -1017,10 +1017,36 @@ Asked in chat (2026-11-09), one commit each, in this order:
       follow `sidesOf` with this round's seat winds; the dealer's wind is
       in the dealer colour (replacing the "dealer" tag); sanma's empty side
       shows, dashed and inert. Covers nagashi's tenpai too.
+- [x] **Visual revamp** (2026-11-12, asked in chat, not in `backlog.md`;
+      one commit each, so each reverts on its own):
+      - *Limit hands on fire* (`bea7497`). The score screen's limit title
+        stands in front of a fire in its tier's two colours (`Flames.tsx`:
+        fixed tongues and embers, plain keyframes, `--heat` per tier) and
+        glows; the total glows more softly; the shimmer stays. Only a hand
+        with a title renders it. Kazoe Yakuman's title wraps to two lines
+        (it did before), so its first line sits in the flames.
+      - *The match's look* (`c7cba63`). `MatchScreen` marks `<html>` with
+        `data-tiktok` / `data-sanma` / `data-all-last` while a match is
+        open (menus included) and clears them on the way out. Casual and
+        Ranked are as before; Tiktok pink-grey, sanma green-grey, Tiktok
+        sanma a pink page under green boxes (`--look-*`). All Last
+        (`isAllLast`: the final round, or any hand of sudden death; never a
+        finished match) mixes 7% red into whichever, and draws a 6px red
+        frame with an inner glow (`body::after`, breathing). Ranked has no
+        look of its own: the user named only casual, Tiktok and sanma.
+      - *The centre box* (`358e0e2`). As tall as the side boxes
+        (`--seat-w`), 4px padding, contents spread: wordmark, the round
+        stacked as wind over a 3rem number, bigger aligned counts. Sizes
+        follow the box's width (`cqi`); short (landscape) centres go back
+        to one line each, below 104px without the wordmark.
 
 ## Picking this up cold
 
-**State as of 2026-11-10** (the Backlog section above has the detail):
+**State as of 2026-11-12** (the Backlog section above has the detail):
+
+- 2026-11-12: visual revamp -- limit-hand fire, the match's look by kind
+  and All Last, the taller centre box. Frontend only, no migration.
+  **Committed, not pushed.**
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
