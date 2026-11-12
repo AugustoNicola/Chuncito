@@ -46,7 +46,8 @@ export async function refreshPlayers(): Promise<Player[] | null> {
     const response = await fetchTransport('GET', '/players');
     if (response.status !== 200) return null;
     const list = (response.body as (Player & { slug?: string })[])
-      .map(({ id, displayName, mpPoints, mpMatches }) => ({ id, displayName, mpPoints, mpMatches }));
+      .map(({ id, displayName, mpPoints, mpMatches, matches }) =>
+        ({ id, displayName, mpPoints, mpMatches, matches }));
     setCachedPlayers(list);
     return list;
   } catch {

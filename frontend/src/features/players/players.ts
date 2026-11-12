@@ -20,6 +20,11 @@ export interface Player {
    */
   mpPoints?: number;
   mpMatches?: number;
+  /**
+   * Finished matches sat in, of every kind: how active the player is, which
+   * decides who setup's seat picker offers. Absent in an older cache.
+   */
+  matches?: number;
 }
 
 const CACHE_KEY = 'chuncito.players.v2';
@@ -104,6 +109,16 @@ export function markSeated(ids: readonly string[], now = new Date()): void {
   const recent = readJson<Record<string, string>>(RECENT_KEY, {});
   for (const id of ids) recent[id] = now.toISOString();
   writeJson(RECENT_KEY, recent);
+}
+
+/**
+ * The `n` most active players (most matches; ties by name), listed by name:
+ * the regulars are the ones offered, and found where the alphabet puts them.
+ */
+export function mostActive(list: readonly Player[], n: number): Player[] {
+  const busiest = [...list].sort((a, b) => (b.matches ?? 0) - (a.matches ?? 0)
+    || a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
+  return byName(busiest.slice(0, n));
 }
 
 /** Players whose name contains what was typed, ignoring case and accents. */

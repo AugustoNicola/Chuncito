@@ -23,7 +23,7 @@ import {
 import { MiniSide, MiniTable } from './MiniTable';
 import { SITUATION_WINDS, type Rule } from '../../scorer/types';
 import {
-  type Player, byName, cachedPlayers, findByName, markSeated, search, slugOf,
+  type Player, byName, cachedPlayers, findByName, markSeated, mostActive, search, slugOf,
 } from '../players/players';
 import { createPlayer, refreshPlayers } from './syncClient';
 import { okaOf, placeLabel } from './scoring';
@@ -173,11 +173,14 @@ export function SetupScreen({ onStart, onEnter, onCancel }: {
     if (nextEmpty !== undefined) setTimeout(() => inputs.current[nextEmpty]?.focus(), 0);
   }
 
-  /** What the open seat's list offers: matching players not already seated. */
+  /**
+   * What the open seat's list offers: of the matching players not already
+   * seated, the most active, in alphabetical order.
+   */
   function optionsFor(seat: Seat): { players: Player[]; guest: string | null } {
     const query = queries[seat]!.trim();
     const taken = new Set(seated.map((c) => c?.playerId).filter(Boolean));
-    const players = search(roster, query).filter((p) => !taken.has(p.id)).slice(0, MAX_OPTIONS);
+    const players = mostActive(search(roster, query).filter((p) => !taken.has(p.id)), MAX_OPTIONS);
     // A guest by a player's own name would be that player seated twice over.
     const guest = query && !findByName(roster, query) ? query : null;
     return { players, guest };

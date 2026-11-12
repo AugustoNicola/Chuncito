@@ -147,11 +147,23 @@ def _mp_totals(conn: Connection, player_id: str | None = None) -> dict[str, tupl
     return {row[0]: (int(row[1]), row[2]) for row in conn.execute(query).all()}
 
 
+def _match_counts(conn: Connection) -> dict[str, int]:
+    """Finished, non-test matches per registered player, of every kind."""
+    c, mp = m.matches.c, m.match_players.c
+    query = (select(mp.player_id, func.count())
+             .select_from(m.match_players.join(m.matches, c.id == mp.match_id))
+             .where(mp.player_id.is_not(None), c.status == 'finished', c.is_test.is_(False))
+             .group_by(mp.player_id))
+    return {row[0]: row[1] for row in conn.execute(query).all()}
+
+
 def list_players(conn: Connection) -> list[PlayerOut]:
     found = conn.execute(select(m.players).order_by(m.players.c.display_name)).all()
     totals = _mp_totals(conn)
+    played = _match_counts(conn)
     return [PlayerOut(id=p.id, display_name=p.display_name, slug=p.slug,
-                      mp_points=totals.get(p.id, (0, 0))[0], mp_matches=totals.get(p.id, (0, 0))[1])
+                      mp_points=totals.get(p.id, (0, 0))[0], mp_matches=totals.get(p.id, (0, 0))[1],
+                      matches=played.get(p.id, 0))
             for p in found]
 
 

@@ -4,7 +4,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  type Player, byMakapoints, byName, byRecent, cachedPlayers, findByName, markSeated, nameOf, search, setCachedPlayers,
+  type Player, byMakapoints, byName, byRecent, cachedPlayers, findByName, markSeated, mostActive, nameOf, search, setCachedPlayers,
   slugOf,
 } from './players';
 
@@ -72,6 +72,24 @@ describe('byName', () => {
     const p = (displayName: string) => ({ id: displayName, displayName, slug: displayName }) as Player;
     expect(byName([p('beto'), p('Álvaro'), p('Ana'), p('Cami')]).map((x) => x.displayName))
       .toEqual(['Álvaro', 'Ana', 'beto', 'Cami']);
+  });
+});
+
+describe('mostActive', () => {
+  const p = (displayName: string, matches?: number) => ({ id: displayName, displayName, matches }) as Player;
+
+  it('offers the players with the most matches, by name', () => {
+    const list = [p('Ana', 2), p('Beto', 9), p('Cami', 0), p('Dani', 5), p('Eli', 7)];
+    expect(mostActive(list, 3).map((x) => x.displayName)).toEqual(['Beto', 'Dani', 'Eli']);
+  });
+
+  it('breaks a tie by name, and treats an unknown count as none', () => {
+    const list = [p('Zoe', 1), p('Beto', 1), p('Ana'), p('Cami', 1)];
+    expect(mostActive(list, 2).map((x) => x.displayName)).toEqual(['Beto', 'Cami']);
+  });
+
+  it('offers everyone when there are fewer than asked for', () => {
+    expect(mostActive([p('Beto'), p('Ana')], 8).map((x) => x.displayName)).toEqual(['Ana', 'Beto']);
   });
 });
 

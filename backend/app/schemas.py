@@ -183,6 +183,10 @@ class PlayerOut(Player):
     # non-test matches, in points (the client shows thousands), and how many.
     mp_points: int = 0
     mp_matches: int = 0
+    # Finished, non-test matches the player sat in, of every kind (Tiktok
+    # included): how active they are, which orders setup's seat picker. Not a
+    # stat, so it does not follow the stats' exclusions.
+    matches: int = 0
 
 
 class PutMatch(Wire):

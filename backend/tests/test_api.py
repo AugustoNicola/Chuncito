@@ -393,6 +393,8 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     assert (b['mpPoints'], b['mpMatches']) == (38800 - 30000 + 20000 + 20000 + 5000, 1)
     listed = {p['id']: p for p in unlocked.get('/api/players').json()}
     assert (listed[beto['id']]['mpPoints'], listed[ana['id']]['mpPoints']) == (53800, 4000 - 30000 - 20000 + 5000)
+    # How active each is: finished matches of any kind, the test match left out.
+    assert listed[beto['id']]['matches'] == b['matchesFour'] + b['matchesSanma']
     assert b['winMethods'] == {'riichi': 1, 'dama': 1, 'open': 0, 'unknown': 0}
     assert b['bestHand']['level'] == 'mangan' and b['bestHand']['matchId'] == 'stats-4p'
     # Yaku are counted off the hands' yaku rows. (The fixture's hand 5 lists a
@@ -451,6 +453,9 @@ def test_a_tiktok_match_counts_for_nothing(unlocked):
     assert (t['matchesFour'], t['matches'], t['hands'], t['wins']) == (0, [], 0, 0)
     assert t['yakus'] == [] and t['bestHand'] is None
     assert (t['mpPoints'], t['mpMatches']) == (0, 0)
+    # Out of the stats, but he did play: it counts for how active he is.
+    listed = {p['id']: p for p in unlocked.get('/api/players').json()}
+    assert listed[tom['id']]['matches'] == 1
 
     listed = {m['id']: m for m in unlocked.get('/api/matches', params={'tiktok': True}).json()}
     assert listed['stats-tiktok']['tiktok'] is True
