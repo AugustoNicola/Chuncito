@@ -1450,11 +1450,10 @@ button {
   min-width: 0;
 }
 .timeline__seatname > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* The place is the name's colour: the medal metals, lightened so they stand
-   apart at a glance (silver from plain text above all); last place stays
-   grey. */
+/* The place is the name's colour, and only the colour: the medal metals,
+   lightened so they stand apart at a glance; last place stays grey. */
 .timeline__seatname[data-place="1"] { color: color-mix(in srgb, var(--place-1) 75%, #fff); }
-.timeline__seatname[data-place="2"] { color: #f4f8ff; text-shadow: 0 0 6px rgba(211, 218, 229, 0.45); }
+.timeline__seatname[data-place="2"] { color: #f4f8ff; }
 .timeline__seatname[data-place="3"] { color: color-mix(in srgb, var(--place-3) 70%, #fff); }
 .timeline__seatname:not([data-place]),
 .timeline__seatname[data-place="4"] { color: var(--text-faint); }

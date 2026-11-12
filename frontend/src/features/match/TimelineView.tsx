@@ -6,7 +6,7 @@
  * timeline being a plain list of rows rather than a fold over events.
  */
 import type { HandRow, MatchState, SeatPlayer, Standing, WinRow } from './matchState';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { KeyboardEvent } from 'react';
 import { PlayerName } from '../players/PlayerName';
 import { HandReview, type Reviewed, reviewable, useHandReview } from './HandReview';
 import { standingsOverTime, topLevel } from './matchState';
@@ -103,23 +103,23 @@ function tierOf(row: HandRow): string | undefined {
 const level = (standing: Standing): boolean =>
   standing.scores.every((score) => score === standing.scores[0]);
 
-function HandEntry({ row, after, duration, names, seats, link, sanma, onReview }: {
+function HandEntry({ row, after, duration, names, seats, sanma, onReview }: {
   row: HandRow;
   /** How long the hand took, in ms; null when it was not timed. */
   duration: number | null;
   /** The standings once this hand (and anything adjusted after it) was in. */
   after: Standing | undefined;
-  names: readonly string[]; seats: readonly SeatPlayer[]; link: boolean; sanma: boolean;
+  names: readonly string[]; seats: readonly SeatPlayer[]; sanma: boolean;
   /** Opens the hand's score, for a hand somebody won. */
   onReview?: () => void;
 }) {
-  // The whole box opens the hand, bar a player's name, which is a link of its own.
+  // The whole box opens the hand.
   const open = onReview && reviewable(row) ? onReview : undefined;
   return (
     <li className={`timeline__hand${open ? ' timeline__hand--open' : ''}`} data-tier={tierOf(row)}
         {...(open ? {
           role: 'button', tabIndex: 0, 'aria-label': `Review ${headline(row, names)}`,
-          onClick: (e: MouseEvent) => { if (!(e.target as Element).closest('a')) open(); },
+          onClick: open,
           onKeyDown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } },
         } : {})}>
       <div className="timeline__head">
@@ -164,7 +164,8 @@ function HandEntry({ row, after, duration, names, seats, link, sanma, onReview }
             <span key={seat} className="timeline__delta">
               <span className="timeline__seatname"
                     data-place={after && !level(after) ? after.places[seat] : undefined}>
-                <PlayerName seat={seats[seat]!} link={link} />
+                {/* Plain text, never a link: the whole box opens the hand. */}
+                <span>{seats[seat]!.name}</span>
                 {delta !== 0 && (
                   <span className={delta > 0 ? 'timeline__move timeline__move--up' : 'timeline__move timeline__move--down'}
                         aria-label={`${delta > 0 ? 'won' : 'lost'} ${Math.abs(delta).toLocaleString()}`}>
@@ -228,7 +229,7 @@ export function TimelineList({ state, linkPlayers = false, onReview }: {
         <ol className="timeline">
           {rows.map((row) => <HandEntry key={row.clientUuid} row={row} after={afterOf.get(row.clientUuid)}
                                             duration={durationOf.get(row.clientUuid) ?? null} names={names}
-                                            seats={state.config.seats} link={linkPlayers}
+                                            seats={state.config.seats}
                                             sanma={state.config.players === 3}
                                             onReview={onReview && (() => onReview({ seq: row.seq }))} />)}
         </ol>

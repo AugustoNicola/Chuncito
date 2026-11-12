@@ -1876,6 +1876,8 @@ try {
         `a registered player's name links to their page, a guest's does not (got ${JSON.stringify(nameLinks)})`);
   check(JSON.stringify(await timelineRounds()) === JSON.stringify(['East 1', 'East 2']),
         `the review reads East 1 first (got ${JSON.stringify(await timelineRounds())})`);
+  check(await page.$('.review__hands .timeline__delta a') === null,
+        'a hand box names its players in plain text, no links: the box itself opens the hand');
   check((await page.$$('.review__hands .standchart__series')).length === 3,
         'the review shows the standings chart above the hands');
   const reviewTimes = await page.$$eval('.review__hands .timeline__duration', (els) => els.map((e) => e.textContent));
