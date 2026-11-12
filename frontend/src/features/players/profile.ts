@@ -26,6 +26,8 @@ export interface BestHand {
   matchId: string; matchName: string; roundWind: string; roundNumber: number;
   level: string | null; han: number | null; fu: number | null;
   pointsWon: number | null; handTiles: string | null;
+  /** Which hand of the match and whose win; absent from an older server. */
+  handSeq?: number; winnerSeat?: number;
 }
 
 export interface PlayerStats {

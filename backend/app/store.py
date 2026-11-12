@@ -544,7 +544,7 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
 
     best = conn.execute(
         select(c.id, c.name, h.round_wind, h.round_number,
-               w.level, w.han, w.fu, w.points_won, w.hand_tiles)
+               w.level, w.han, w.fu, w.points_won, w.hand_tiles, h.seq, w.winner_seat)
         .select_from(my_wins.join(m.matches, c.id == h.match_id))
         .where(won)
         .order_by(w.level_rank.desc().nulls_last(), w.base_points.desc().nulls_last(), c.started_at)
@@ -596,7 +596,8 @@ def player_stats(conn: Connection, slug: str, players: int) -> PlayerStats | Non
         best_hand=None if best is None else BestHand(
             match_id=best.id, match_name=best.name, round_wind=best.round_wind,
             round_number=best.round_number, level=best.level, han=best.han, fu=best.fu,
-            points_won=best.points_won, hand_tiles=best.hand_tiles),
+            points_won=best.points_won, hand_tiles=best.hand_tiles,
+            hand_seq=best.seq, winner_seat=best.winner_seat),
         yakus=[YakuCount(yaku=y.yaku, count=y.n) for y in yakus],
         win_values=[WinValue(level=v.level, base_points=v.base_points, count=v.n) for v in values],
     )

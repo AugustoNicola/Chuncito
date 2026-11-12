@@ -77,7 +77,7 @@ export function YakuWallLine({ wall }: { wall: YakuDora & { riichi: boolean } })
 
 export function ScoreResultView({
   result, hand, attribution, honba = 0, honbaRates, onBack, onConfirm, confirmLabel, onAddAnother, isNewYaku,
-  yakuDora,
+  yakuDora, showTiles = true,
 }: {
   result: ScoreResult;
   /**
@@ -89,7 +89,10 @@ export function ScoreResultView({
   /** Omitted by the limit-theming preview; the score stands on its own. */
   hand?: HandState;
   attribution?: ScoreAttribution;
-  onBack: () => void;
+  /** Back to the hand being built. A hand read back from a match has none. */
+  onBack?: () => void;
+  /** False for a hand that was typed in as han and fu: there are no tiles. */
+  showTiles?: boolean;
   /** Set when the score is about to be recorded against a match. */
   onConfirm?: () => void;
   confirmLabel?: string;
@@ -120,7 +123,9 @@ export function ScoreResultView({
 
   return (
     <div className="score" data-tier={levelTier(result.level)}>
-      {hand && <HandSummary state={hand} />}
+      {/* A limit hand frames the screen in its colour, as All Last does in red. */}
+      {levelTier(result.level) !== 'none' && <div className="limitframe" aria-hidden="true" />}
+      {hand && showTiles && <HandSummary state={hand} />}
 
       {/* The result straight under the hand, the yaku that make it after:
           a limit hand's fire is the first thing on the screen. */}
@@ -203,7 +208,7 @@ export function ScoreResultView({
         )}
       </div>
 
-      <div className="score__actions">
+      {onBack && <div className="score__actions">
         <button type="button" className="btn btn--wide" onClick={onBack}>
           {onConfirm ? 'Edit the hand' : 'Back to the hand'}
         </button>
@@ -217,7 +222,7 @@ export function ScoreResultView({
             {confirmLabel ?? 'Record this hand'}
           </button>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

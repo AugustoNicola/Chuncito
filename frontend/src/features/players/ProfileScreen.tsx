@@ -22,7 +22,9 @@ import { levelName, levelTier } from '../hand/yakuNames';
 import type { Fetched } from '../history/history';
 import { matchDate } from '../history/MatchList';
 import { PinForm } from '../match/SyncPanel';
-import { type Round, roundLabel } from '../match/seats';
+import { type Round, type Seat, roundLabel } from '../match/seats';
+import { useHandReview } from '../match/HandReview';
+import { RemoteHandReview } from '../history/RemoteHandReview';
 import { mpLabel } from '../match/scoring';
 import { durationLabel, matchDuration } from '../match/duration';
 import { refreshPlayers } from '../match/syncClient';
@@ -105,6 +107,8 @@ export function ProfileScreen({ onBack }: { onBack: () => void }) {
 }
 
 function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: string) => void }) {
+  // The best hand opens in place, its own match a tap further.
+  const review = useHandReview(false);
   /** The ranking the Players screen shows, for this player's place in it. */
   const [roster, setRoster] = useState<Player[]>(cachedPlayers);
   useEffect(() => { void refreshPlayers().then((list) => { if (list) setRoster(list); }); }, []);
@@ -167,8 +171,10 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
           {/* The whole box opens the match it was won in. */}
           <button type="button" className="endscreen__best endscreen__best--link"
                   data-tier={best.level ? levelTier(best.level) : 'none'}
-                  aria-label="Open the match this hand was won in"
-                  onClick={() => onOpen(best.matchId)}>
+                  aria-label="Review the best hand"
+                  onClick={() => (best.handSeq === undefined || best.winnerSeat === undefined
+                    ? onOpen(best.matchId)
+                    : review.open({ seq: best.handSeq, winner: best.winnerSeat as Seat }))}>
             <BurningWord className="endscreen__bestvalue"
                          burn={!!best.level && best.level !== 'sinNombre'}
                          text={!best.level || best.level === 'sinNombre'
@@ -180,8 +186,12 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
               {best.pointsWon !== null && ` · ${best.pointsWon.toLocaleString()}`}
             </span>
             {best.handTiles && <HandSummary state={decodeHandTiles(best.handTiles, sanma)} />}
-            <span className="endscreen__bestopen" aria-hidden="true">Open the match ›</span>
+            <span className="endscreen__bestopen" aria-hidden="true">Review the hand ›</span>
           </button>
+          {review.reviewed && (
+            <RemoteHandReview matchId={best.matchId} reviewed={review.reviewed}
+                              onBack={review.close} onOpenMatch={() => onOpen(best.matchId)} />
+          )}
         </section>
       )}
 

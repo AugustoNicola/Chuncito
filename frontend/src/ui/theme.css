@@ -711,6 +711,22 @@ button {
   :root[data-all-last] body::after { animation: none; }
 }
 
+/* The same frame round a limit hand's score, in its tier's colour: green for
+   a mangan, gold for a yakuman. Over All Last's, while a hand is reviewed. */
+.limitframe {
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 6px var(--limit),
+    inset 0 0 28px 8px color-mix(in srgb, var(--limit) 50%, transparent);
+  animation: all-last-breathe 2.8s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .limitframe { animation: none; }
+}
+
 /* The table fills what is left between the bar and the bottom of the screen. */
 .app--table { gap: 6px; }
 .app__title--match { color: var(--text-dim); font-weight: 500; }
@@ -2290,3 +2306,28 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   .linechart__point, .profile__match { cursor: pointer; }
   .profile__match:hover .profile__matchname { color: var(--accent); }
 }
+
+/* ---------- a won hand, read back (HandReview) ---------- */
+
+/* Over whatever opened it, page and all, so Back finds that page as it was. */
+.handreview {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+}
+.handreview__what { margin: 0; text-align: center; color: var(--text-dim); font-size: 0.95rem; }
+.handreview__honba { color: var(--text-dim); font-weight: 500; }
+.handreview__none { color: var(--text-faint); text-align: center; }
+.handreview__open { margin-top: 6px; }
+/* Several winners on one discard: one score after another, set apart. */
+.handreview .score + .score { border-top: 1px solid var(--border); padding-top: 16px; }
+
+/* A won hand in the timeline opens it: it reads as something to tap. */
+.timeline__hand--open { cursor: pointer; transition: border-color 120ms, transform 120ms; }
+.timeline__hand--open:hover, .timeline__hand--open:focus-visible { border-color: var(--border-strong); }
+.timeline__hand--open[data-tier]:hover,
+.timeline__hand--open[data-tier]:focus-visible { border-color: var(--tier); }
+.timeline__hand--open:active { transform: scale(0.99); }

@@ -5,7 +5,9 @@
  */
 import type { MatchState } from './matchState';
 import { bestHand } from './matchState';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { HandSummary } from '../hand/HandDisplay';
+import type { Reviewed } from './HandReview';
 import { BurningWord } from '../hand/Flames';
 import { decodeHandTiles } from '../hand/handTiles';
 import { MP_BONUS, matchResults, mpLabel, mpOf, placeLabel, resultLabel } from './scoring';
@@ -26,9 +28,11 @@ const START = { wind: 'este', number: 1 } as const;
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
 
 /** `linkPlayers` in a match review; never on the night, inside the match. */
-export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked }: {
+export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked, onReview }: {
   state: MatchState;
   linkPlayers?: boolean;
+  /** Opens the best hand's score (`HandReview`), wherever the page keeps it. */
+  onReview?: (r: Reviewed) => void;
   /** Whether the results are MAKApoints: the end screen's choice before it is saved. */
   ranked?: boolean;
 }) {
@@ -83,7 +87,18 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
       </ol>
 
       {best && (
-        <div className="endscreen__best" data-tier={levelTier(best.win.level!)}>
+        <div className={`endscreen__best${onReview ? ' endscreen__best--link' : ''}`}
+             data-tier={levelTier(best.win.level!)}
+             {...(onReview ? {
+               role: 'button', tabIndex: 0, 'aria-label': 'Review the best hand',
+               // A player's name is a link of its own.
+               onClick: (e: MouseEvent) => {
+                 if (!(e.target as Element).closest('a')) onReview({ seq: best.seq, winner: best.seat });
+               },
+               onKeyDown: (e: KeyboardEvent) => {
+                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onReview({ seq: best.seq, winner: best.seat }); }
+               },
+             } : {})}>
           <span className="endscreen__bestlabel">Best hand</span>
           {/* A limit hand burns, as on the score screen. */}
           <BurningWord className="endscreen__bestvalue"

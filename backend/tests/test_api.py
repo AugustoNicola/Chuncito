@@ -397,6 +397,9 @@ def test_a_profile_counts_only_what_that_player_did(unlocked):
     assert listed[beto['id']]['matches'] == b['matchesFour'] + b['matchesSanma']
     assert b['winMethods'] == {'riichi': 1, 'dama': 1, 'open': 0, 'unknown': 0}
     assert b['bestHand']['level'] == 'mangan' and b['bestHand']['matchId'] == 'stats-4p'
+    # Named by hand and seat, so the profile can open that very win.
+    assert any(wn['handSeq'] == b['bestHand']['handSeq'] and wn['winnerSeat'] == b['bestHand']['winnerSeat']
+               and wn['level'] == 'mangan' for wn in rows['handWins'])
     # Yaku are counted off the hands' yaku rows. (The fixture's hand 5 lists a
     # riichi yaku its table never declared, so the two disagree on purpose here:
     # the win method reads the declaration, the frequency reads the yaku.)

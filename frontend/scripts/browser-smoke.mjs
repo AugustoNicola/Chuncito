@@ -101,10 +101,14 @@ try {
         hands: 20, wins: 4, tsumoWins: 1, pointsWonTotal: 25800, dealIns: 3, riichis: 5,
         mpPoints: 12500, mpMatches: 2,
         winMethods: { riichi: 2, dama: 1, open: 1, unknown: 0 },
-        bestHand: mine.length && tiles ? {
-          matchId: mine[0][0], matchName: mine[0][1].rows.match.name, roundWind: 'este', roundNumber: 2,
-          level: 'haneman', han: 6, fu: 30, pointsWon: 12000, handTiles: tiles.handTiles,
-        } : null,
+        bestHand: mine.length && tiles ? (() => {
+          const [matchId, { rows: r }] = mine.find(([, m]) => m.rows.handWins.includes(tiles));
+          return {
+            matchId, matchName: r.match.name, roundWind: 'este', roundNumber: 2,
+            level: 'haneman', han: 6, fu: 30, pointsWon: 12000, handTiles: tiles.handTiles,
+            handSeq: tiles.handSeq, winnerSeat: tiles.winnerSeat,
+          };
+        })() : null,
         winValues: mine.length ? [{ level: 'sinNombre', basePoints: 240, count: 2 },
                                   { level: 'mangan', basePoints: 2000, count: 1 },
                                   { level: 'haneman', basePoints: 3000, count: 1 }] : [],
@@ -891,6 +895,26 @@ try {
   check(reviewTiles >= 14, `the scored hand is shown back on review (got ${reviewTiles} tiles)`);
   await shot('24-review-hand.png');
   await shot('14-timeline.png');
+  // A won hand opens its score, as it was scored; Back returns to the timeline.
+  const openable = await page.$$eval('.timeline__hand', (els) =>
+    els.map((e) => e.classList.contains('timeline__hand--open')));
+  check(openable.includes(true) && openable.includes(false),
+        `won hands open, a draw does not (got ${JSON.stringify(openable)})`);
+  await page.click('.timeline__hand--open');
+  await page.waitForSelector('.handreview .score__points');
+  const reviewed = await page.evaluate(() => ({
+    points: document.querySelector('.handreview .score__points').textContent,
+    who: document.querySelector('.handreview .score__who')?.textContent,
+    tiles: document.querySelectorAll('.handreview .handsummary .tile').length,
+    yaku: [...document.querySelectorAll('.handreview .score__yaku span:first-child')].map((e) => e.textContent),
+  }));
+  check(reviewed.points === '7,700' && reviewed.who === 'Dani off Ana’s discard' && reviewed.tiles === 14
+        && reviewed.yaku.includes('Pinfu'),
+        `the hand is read back with its tiles, yaku and value (got ${JSON.stringify(reviewed)})`);
+  await shot('38-hand-review.png');
+  await page.click('.handreview .app__bar .btn');
+  await page.waitForSelector('.timeline');
+  check(await page.$('.handreview') === null, 'Back closes the hand and leaves the timeline open');
   await byText('Back');
 
   // --- undo puts the table back, riichi stick included ---
@@ -1859,6 +1883,15 @@ try {
   check(JSON.stringify(reviewTimes) === '["20 min","20 min"]' && reviewTook === '1 h 12 min',
         `the review times each hand and the match (got ${JSON.stringify(reviewTimes)}, ${reviewTook})`);
   await shot('61-review.png');
+  // A hand opens from the review too, in the address, so the back gesture
+  // closes it like Back.
+  await page.click('.review__hands .timeline__hand--open');
+  await page.waitForSelector('.handreview .score__points');
+  check((await page.evaluate(() => location.search)).startsWith('?hand='),
+        `the open hand is in the address (got ${await page.evaluate(() => location.search)})`);
+  await page.goBack();
+  await page.waitForFunction(() => !document.querySelector('.handreview'));
+  check(await at() === '/matches/hist-beto', `going back closes the hand, not the match (got ${await at()})`);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.standings', { timeout: 10_000 });
   check(true, 'a match review survives a reload');
@@ -1903,8 +1936,9 @@ try {
   check(mpMetas.length > 0 && mpMetas.every((m) => m.includes('Ranked')),
         `and to ranked ones (got ${JSON.stringify(mpMetas)})`);
   // Filters replace the history entry, so Back leaves the list rather than
-  // stepping back through every filter. (One entry was added by the review.)
-  check(await page.evaluate(() => history.length) === entriesBefore + 1,
+  // stepping back through every filter. (Two entries were added by the
+  // review: the match, and the hand opened in it, both still ahead.)
+  check(await page.evaluate(() => history.length) === entriesBefore + 2,
         `changing filters adds no history entries (got ${await page.evaluate(() => history.length)}, from ${entriesBefore})`);
 
   await page.goto('http://localhost:5199/matches/no-such-match', { waitUntil: 'domcontentloaded' });
@@ -2051,11 +2085,17 @@ try {
   check(await page.$('.endscreen__best .blaze > canvas.flames + [data-burns]') !== null,
         'a limit best hand burns, as on the score screen');
   check(await page.$('.profile__open') === null && await page.$('button.endscreen__best--link') !== null,
-        'the best hand box is itself the link to its match');
+        'the best hand box is itself a button');
   await page.click('button.endscreen__best--link');
+  await page.waitForSelector('.handreview .score__points', { timeout: 10_000 });
+  check((await page.$$('.handreview .score')).length === 1, 'tapping the best hand opens that one win');
+  await byText('Open the match');
   await page.waitForSelector('.standings', { timeout: 10_000 });
-  check((await at()).startsWith('/matches/'), `tapping the best hand opens its match (got ${await at()})`);
+  check((await at()).startsWith('/matches/'), `and from there its match (got ${await at()})`);
   await page.goBack();
+  await page.waitForSelector('.handreview', { timeout: 10_000 });
+  await page.goBack();
+  await page.waitForFunction(() => !document.querySelector('.handreview'));
   await page.waitForSelector('button.endscreen__best--link', { timeout: 10_000 });
   const fills = await page.$$eval('.donut__slice', (els) => els.map((e) => getComputedStyle(e).fill));
   check(fills.includes('rgb(255, 210, 74)') && fills.includes('rgb(180, 122, 232)') && fills.includes('rgb(255, 107, 107)'),

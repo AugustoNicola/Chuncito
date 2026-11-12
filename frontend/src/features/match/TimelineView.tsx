@@ -6,7 +6,9 @@
  * timeline being a plain list of rows rather than a fold over events.
  */
 import type { HandRow, MatchState, SeatPlayer, Standing, WinRow } from './matchState';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { PlayerName } from '../players/PlayerName';
+import { HandReview, type Reviewed, reviewable, useHandReview } from './HandReview';
 import { standingsOverTime, topLevel } from './matchState';
 import { StandingsChart } from './StandingsChart';
 import { durationLabel, handDurations } from './duration';
@@ -27,7 +29,7 @@ const OUTCOME_LABEL: Record<HandRow['outcome'], string> = {
   nagashi_mangan: 'Nagashi mangan',
 };
 
-function headline(row: HandRow, names: readonly string[]): string {
+export function headline(row: HandRow, names: readonly string[]): string {
   const winners = row.wins.map((w) => names[w.winnerSeat]).join(' and ');
   switch (row.outcome) {
     case 'ron':
@@ -101,16 +103,25 @@ function tierOf(row: HandRow): string | undefined {
 const level = (standing: Standing): boolean =>
   standing.scores.every((score) => score === standing.scores[0]);
 
-function HandEntry({ row, after, duration, names, seats, link, sanma }: {
+function HandEntry({ row, after, duration, names, seats, link, sanma, onReview }: {
   row: HandRow;
   /** How long the hand took, in ms; null when it was not timed. */
   duration: number | null;
   /** The standings once this hand (and anything adjusted after it) was in. */
   after: Standing | undefined;
   names: readonly string[]; seats: readonly SeatPlayer[]; link: boolean; sanma: boolean;
+  /** Opens the hand's score, for a hand somebody won. */
+  onReview?: () => void;
 }) {
+  // The whole box opens the hand, bar a player's name, which is a link of its own.
+  const open = onReview && reviewable(row) ? onReview : undefined;
   return (
-    <li className="timeline__hand" data-tier={tierOf(row)}>
+    <li className={`timeline__hand${open ? ' timeline__hand--open' : ''}`} data-tier={tierOf(row)}
+        {...(open ? {
+          role: 'button', tabIndex: 0, 'aria-label': `Review ${headline(row, names)}`,
+          onClick: (e: MouseEvent) => { if (!(e.target as Element).closest('a')) open(); },
+          onKeyDown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } },
+        } : {})}>
       <div className="timeline__head">
         <span className="timeline__round">
           {roundLabel({ wind: row.roundWind, number: row.roundNumber })}
@@ -194,7 +205,11 @@ function HandEntry({ row, after, duration, names, seats, link, sanma }: {
  * how the history shows it too.
  */
 /** `linkPlayers` in a match review; never during the match itself. */
-export function TimelineList({ state, linkPlayers = false }: { state: MatchState; linkPlayers?: boolean }) {
+export function TimelineList({ state, linkPlayers = false, onReview }: {
+  state: MatchState; linkPlayers?: boolean;
+  /** Opens a won hand's score (`HandReview`), wherever the page keeps it. */
+  onReview?: (r: Reviewed) => void;
+}) {
   const names = state.config.seats.map((p) => p.name);
   const rows = state.status === 'finished' ? state.hands : [...state.hands].reverse();
   const over = standingsOverTime(state);
@@ -214,7 +229,8 @@ export function TimelineList({ state, linkPlayers = false }: { state: MatchState
           {rows.map((row) => <HandEntry key={row.clientUuid} row={row} after={afterOf.get(row.clientUuid)}
                                             duration={durationOf.get(row.clientUuid) ?? null} names={names}
                                             seats={state.config.seats} link={linkPlayers}
-                                            sanma={state.config.players === 3} />)}
+                                            sanma={state.config.players === 3}
+                                            onReview={onReview && (() => onReview({ seq: row.seq }))} />)}
         </ol>
       )}
 
@@ -237,6 +253,8 @@ export function TimelineList({ state, linkPlayers = false }: { state: MatchState
 }
 
 export function TimelineView({ state, onClose }: { state: MatchState; onClose: () => void }) {
+  // Inside the match: the review is the timeline's own state, not the address.
+  const review = useHandReview(true);
   return (
     <div className="app">
       <header className="app__bar">
@@ -245,7 +263,8 @@ export function TimelineView({ state, onClose }: { state: MatchState; onClose: (
         <span className="app__barspacer" />
       </header>
 
-      <TimelineList state={state} />
+      <TimelineList state={state} onReview={review.open} />
+      {review.reviewed && <HandReview state={state} reviewed={review.reviewed} onBack={review.close} />}
     </div>
   );
 }

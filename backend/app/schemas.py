@@ -297,6 +297,9 @@ class BestHand(Wire):
     fu: int | None
     points_won: int | None
     hand_tiles: str | None
+    # Which hand of the match, and whose win: what the profile opens it by.
+    hand_seq: int
+    winner_seat: int
 
 
 class WinValue(Wire):

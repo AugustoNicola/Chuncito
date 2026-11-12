@@ -10,6 +10,7 @@ import type { MatchState } from '../match/matchState';
 import { MatchOutcome } from '../match/MatchOutcome';
 import { PinForm } from '../match/SyncPanel';
 import { TimelineList } from '../match/TimelineView';
+import { HandReview, useHandReview } from '../match/HandReview';
 import { type Fetched, fetchMatch } from './history';
 import { matchDate } from './MatchList';
 
@@ -26,6 +27,7 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
   }, [id, reload]);
 
   const state = result?.kind === 'ok' ? result.value : null;
+  const review = useHandReview(false);
 
   return (
     <div className="app app--wide">
@@ -56,7 +58,7 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
           </p>
           <div className="review">
             <div className="endscreen review__outcome">
-              <MatchOutcome state={state} linkPlayers />
+              <MatchOutcome state={state} linkPlayers onReview={review.open} />
             </div>
             <section className="review__hands">
               <h2 className="home__heading review__heading">Hands</h2>
@@ -65,11 +67,12 @@ export function MatchReview({ onBack }: { onBack: () => void }) {
                   Played without Chuncito and entered afterwards: only the final
                   scores were kept.
                 </p>
-              ) : <TimelineList state={state} linkPlayers />}
+              ) : <TimelineList state={state} linkPlayers onReview={review.open} />}
             </section>
           </div>
         </>
       )}
+      {state && review.reviewed && <HandReview state={state} reviewed={review.reviewed} onBack={review.close} />}
     </div>
   );
 }

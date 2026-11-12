@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { type MatchState, canSaveAsEast } from './matchState';
 import { MatchOutcome } from './MatchOutcome';
+import { HandReview, useHandReview } from './HandReview';
 import { matchResults, mpLabel, mpOf } from './scoring';
 import { cachedPlayers, type Player } from '../players/players';
 import { refreshPlayers } from './syncClient';
@@ -25,6 +26,8 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
   onTimeline: () => void;
 }) {
   const [name, setName] = useState(state.name);
+  // Still inside the match: the review is the screen's own state.
+  const review = useHandReview(true);
   /**
    * No default: somebody has to say which, so a ranked night is never saved
    * as casual (or the other way) by tapping straight past the question. A
@@ -54,7 +57,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
       </header>
 
       <div className="endscreen">
-        <MatchOutcome state={state} ranked={ranked ?? false} />
+        <MatchOutcome state={state} ranked={ranked ?? false} onReview={review.open} />
 
         {/* A Tiktok match is never ranked: nothing to choose. */}
         {!state.config.tiktok && <div className="field">
@@ -148,6 +151,7 @@ export function EndScreen({ state, onSave, onDiscard, onTimeline, onContinueAsSo
           </span>
         )}
       </div>
+      {review.reviewed && <HandReview state={state} reviewed={review.reviewed} onBack={review.close} />}
     </div>
   );
 }
