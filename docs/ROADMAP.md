@@ -1051,6 +1051,17 @@ Asked in chat (2026-11-09), one commit each, in this order:
         colours from the nearest `[data-tier]`, scaled to the word's
         size), used on the Best hand box of the end screen, review and
         profile, not on the timeline (`bf18bc5`).
+      - *Second round* (same day): the fire scales with the hand
+        (`--fire` per tier, 0.15 mangan to 1 yakuman: cooler, fainter,
+        less white core; yakuman unchanged), and the explainer texts went
+        through review: the user kept 18 of 42 (the setup's dealer note,
+        sanma table note, open-riichi and goal/target hints; the
+        confirmations' descriptions; "Pick who dealt in first"; the four
+        riichi reason; "Tap who was tenpai"; the discard warning; the
+        first-round yakuman line; the empty-hand hint; the entered match
+        note) plus "Choose one to save the match." and the "already paid
+        1,000" note. **Don't add explainer prose back**: the user dislikes
+        it; a label or a disabled state should say enough.
       - *The centre box* (`358e0e2`). As tall as the side boxes
         (`--seat-w`), 4px padding, contents spread: wordmark, the round
         stacked as wind over a 3rem number, bigger aligned counts. Sizes
@@ -1064,7 +1075,8 @@ Asked in chat (2026-11-09), one commit each, in this order:
 - 2026-11-12: visual revamp -- limit-hand fire, the match's look by kind
   and All Last, the taller centre box. Frontend only, no migration.
   Pushed, and so is the feedback round after it (score order, All Last
-  label, Best hand fire).
+  label, Best hand fire). The second round (fire by hand value, explainer
+  texts removed) is **committed, not pushed**.
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
