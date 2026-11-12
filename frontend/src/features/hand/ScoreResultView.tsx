@@ -150,7 +150,10 @@ export function ScoreResultView({
           {/* Fu is 0 whenever a yakuman applies, so showing it would be noise. */}
           {result.fu > 0 && ` · ${result.fu} fu`}
         </span>
-        <span className="score__points">{paymentTotal(result.payment, players).toLocaleString()}</span>
+        {/* A limit hand's total sits in a lens flare (theme.css). */}
+        <span className="score__flare">
+          <span className="score__points">{paymentTotal(result.payment, players).toLocaleString()}</span>
+        </span>
         {seat && <span className="score__seat">{seat} {winType}</span>}
         {split && <span className="score__breakdown">{split}</span>}
         {/* Paid on top of the hand's value, not part of it: the total above

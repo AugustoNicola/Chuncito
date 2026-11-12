@@ -109,6 +109,9 @@ void main() {
   col = mix(col, uMid, smoothstep(0.42, 0.6, t));
   // ...with less of the white-hot core.
   col = mix(col, uHot, smoothstep(0.6, 0.85, t) * mix(0.35, 1.0, uFire));
+  // ...and duller: a smaller hand's colours drained towards grey, a
+  // yakuman's at full strength.
+  col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, mix(0.3, 1.0, uFire));
   // Embers' light just outside the flames, faint.
   float haze = 0.25 * smoothstep(0.1, 0.29, t) * (1.0 - edge);
   // ...and fainter.
@@ -279,7 +282,11 @@ export function startFire(canvas: HTMLCanvasElement, title: HTMLElement, palette
   gl.uniform3fv(u('uDeep'), parseColour(cs.getPropertyValue('--limit-b')));
   gl.uniform3fv(u('uMid'), parseColour(cs.getPropertyValue('--limit')));
   gl.uniform3fv(u('uHot'), parseColour(cs.getPropertyValue('--limit-a')));
-  gl.uniform1f(u('uFire'), Math.min(1, Math.max(0, parseFloat(cs.getPropertyValue('--fire')) || 1)));
+  const fire = Math.min(1, Math.max(0, parseFloat(cs.getPropertyValue('--fire')) || 1));
+  gl.uniform1f(u('uFire'), fire);
+  // A bigger hand burns faster too: a mangan's fire lazy, a yakuman's a
+  // little quicker than the shader's own pace.
+  const speed = 0.55 + 0.6 * fire;
   gl.uniform1i(u('uMask'), 0);
   gl.uniform1i(u('uNoise'), 1);
 
@@ -291,7 +298,7 @@ export function startFire(canvas: HTMLCanvasElement, title: HTMLElement, palette
 
   const draw = (now: number) => {
     // Kept small, so the shader's float precision never runs out.
-    gl.uniform1f(uTime, still ? 2.5 : ((now - started) / 1000) % 600);
+    gl.uniform1f(uTime, still ? 2.5 : (((now - started) / 1000) * speed) % 600);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
   // Only while the canvas is on screen: scrolled off, the fire stops.

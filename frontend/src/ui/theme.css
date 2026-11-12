@@ -545,18 +545,61 @@ button {
   animation: none !important;
   will-change: transform;
 }
-/* The total glows softly with the hand: a still blur of colour behind the
-   number rather than a filter on it, so the shimmer stays cheap. */
-.score:not([data-tier="none"]) .score__totals { position: relative; isolation: isolate; }
-.score:not([data-tier="none"]) .score__totals::before {
+/*
+ * A limit hand's total sits in a lens flare: a glow of the tier's colour
+ * behind the number, and a hot streak through it, wider and brighter the
+ * bigger the hand (--fire), breathing a little faster too. Gradients and
+ * transforms only, nothing that repaints the shimmering number. The totals
+ * clip it at the screen's edge rather than let it widen the page.
+ */
+.score:not([data-tier="none"]) .score__totals { overflow-x: clip; }
+/* The number in front of its flare, outlined like the title so the streak
+   reads as behind it, not through it; still, as the title is, so the outline
+   is drawn once. */
+.score:not([data-tier="none"]) .score__points {
+  filter: drop-shadow(0 0 1px #000) drop-shadow(0 1px 1px #000);
+  animation: none !important;
+  will-change: transform;
+}
+.score__flare { position: relative; isolation: isolate; display: inline-grid; place-items: center; }
+.score:not([data-tier="none"]) .score__flare::before,
+.score:not([data-tier="none"]) .score__flare::after {
   content: '';
   position: absolute;
   z-index: -1;
-  left: 50%; top: 50%;
-  width: 70%; height: 70%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--limit) calc(22% * var(--heat, 1)), transparent), transparent);
+  left: 50%; top: 52%;
   pointer-events: none;
+  animation: flare-breathe calc(3.2s - 1.4s * var(--fire, 1)) ease-in-out infinite alternate;
+}
+/* The glow: a wide, soft ellipse. */
+.score:not([data-tier="none"]) .score__flare::before {
+  width: calc(130% + 90% * var(--fire, 1));
+  height: calc(120% + 60% * var(--fire, 1));
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, var(--limit-a) calc(20% + 45% * var(--fire, 1)), transparent),
+    color-mix(in srgb, var(--limit) calc(8% + 22% * var(--fire, 1)), transparent) 45%,
+    transparent);
+}
+/* The streak: a thin line, white-hot in the middle, the tier's colour along
+   it, fading at both ends. */
+.score:not([data-tier="none"]) .score__flare::after {
+  width: calc(150% + 250% * var(--fire, 1));
+  height: calc(1px + 2px * var(--fire, 1));
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, var(--limit) 70%, transparent) 25%,
+    #fff 50%,
+    color-mix(in srgb, var(--limit) 70%, transparent) 75%, transparent);
+  box-shadow: 0 0 calc(4px + 8px * var(--fire, 1)) calc(1px * var(--fire, 1)) var(--limit);
+  opacity: calc(0.45 + 0.55 * var(--fire, 1));
+}
+@keyframes flare-breathe {
+  from { transform: translate(-50%, -50%) scale(0.9, 0.85); }
+  to   { transform: translate(-50%, -50%) scale(1.04, 1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .score:not([data-tier="none"]) .score__flare::before,
+  .score:not([data-tier="none"]) .score__flare::after { animation: none; transform: translate(-50%, -50%); }
 }
 
 /* The fire's canvas (`fire.ts`), over the whole blaze: exactly as wide as
