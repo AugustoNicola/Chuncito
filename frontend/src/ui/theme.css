@@ -1371,16 +1371,19 @@ button {
   font-size: 0.68rem; color: var(--text-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.timeline__place {
-  font-size: 0.66rem; font-weight: 700; color: var(--text-faint);
-  text-transform: uppercase; letter-spacing: 0.04em;
-}
-.timeline__place[data-place="1"] { color: var(--place-1); }
-.timeline__place[data-place="2"] { color: var(--place-2); }
-.timeline__place[data-place="3"] { color: var(--place-3); }
+/* The place is the name's colour: the medal metals, last place left plain. */
+.timeline__seatname[data-place="1"] { color: var(--place-1); }
+.timeline__seatname[data-place="2"] { color: var(--place-2); }
+.timeline__seatname[data-place="3"] { color: var(--place-3); }
+/* Won or lost points this hand, whatever it did to the places. */
+.timeline__move { margin-right: 2px; font-size: 0.6rem; }
+.timeline__move--up { color: var(--gain); }
+.timeline__move--down { color: var(--loss); }
+.timeline__total { font-variant-numeric: tabular-nums; }
+.timeline__total--negative { color: var(--loss); }
+/* An adjustment's points, in the timeline. */
 .timeline__gain { color: var(--gain); font-variant-numeric: tabular-nums; }
 .timeline__loss { color: var(--loss); font-variant-numeric: tabular-nums; }
-.timeline__flat { color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .timeline__tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .timeline__tag {
   font-size: 0.68rem; color: var(--text-faint);

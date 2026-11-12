@@ -8,7 +8,6 @@
 import type { HandRow, MatchState, SeatPlayer, Standing, WinRow } from './matchState';
 import { PlayerName } from '../players/PlayerName';
 import { standingsOverTime, topLevel } from './matchState';
-import { placeLabel } from './scoring';
 import { StandingsChart } from './StandingsChart';
 import { durationLabel, handDurations } from './duration';
 import { levelName, levelTier, yakuName } from '../hand/yakuNames';
@@ -98,6 +97,10 @@ function tierOf(row: HandRow): string | undefined {
   return levelTier(level);
 }
 
+/** Everyone on the same score: no place means anything yet. */
+const level = (standing: Standing): boolean =>
+  standing.scores.every((score) => score === standing.scores[0]);
+
 function HandEntry({ row, after, duration, names, seats, link, sanma }: {
   row: HandRow;
   /** How long the hand took, in ms; null when it was not timed. */
@@ -139,21 +142,33 @@ function HandEntry({ row, after, duration, names, seats, link, sanma }: {
         </div>
       )}
 
+      {/* Everyone after the hand: the name in the colour of their place
+          (gold, silver, bronze; none while the table is level), a chevron
+          for whether this hand won or lost them points, and their total. */}
       <div className="timeline__deltas">
-        {seatsOf(sanma ? 3 : 4).map((seat) => (
-          <span key={seat} className="timeline__delta">
-            <span className="timeline__seatname"><PlayerName seat={seats[seat]!} link={link} /></span>
-            {after && (
-              <span className="timeline__place" data-place={after.places[seat]}>
-                {placeLabel(after.places[seat]!)}
+        {seatsOf(sanma ? 3 : 4).map((seat) => {
+          const delta = row.scoreDelta[seat];
+          const total = after?.scores[seat];
+          return (
+            <span key={seat} className="timeline__delta">
+              <span className="timeline__seatname"
+                    data-place={after && !level(after) ? after.places[seat] : undefined}>
+                {delta !== 0 && (
+                  <span className={delta > 0 ? 'timeline__move timeline__move--up' : 'timeline__move timeline__move--down'}
+                        aria-label={`${delta > 0 ? 'won' : 'lost'} ${Math.abs(delta).toLocaleString()}`}>
+                    {delta > 0 ? '▲' : '▼'}
+                  </span>
+                )}
+                <PlayerName seat={seats[seat]!} link={link} />
               </span>
-            )}
-            <span className={row.scoreDelta[seat] < 0 ? 'timeline__loss'
-              : row.scoreDelta[seat] > 0 ? 'timeline__gain' : 'timeline__flat'}>
-              {row.scoreDelta[seat] > 0 ? '+' : ''}{row.scoreDelta[seat].toLocaleString()}
+              {total !== undefined && (
+                <span className={`timeline__total${total < 0 ? ' timeline__total--negative' : ''}`}>
+                  {total.toLocaleString()}
+                </span>
+              )}
             </span>
-          </span>
-        ))}
+          );
+        })}
       </div>
 
       {(row.riichiSeats.length > 0 || row.tenpaiSeats.length > 0) && (

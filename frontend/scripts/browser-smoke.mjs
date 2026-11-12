@@ -861,10 +861,20 @@ try {
   await page.waitForFunction(() => document.querySelector('.standchart .linechart__axis')?.textContent === '1st');
   check((await axisOf()).join() === '1st,2nd,3rd,4th' && JSON.stringify(await series()) !== JSON.stringify(chart),
         `Place redraws the lines by place (got ${await axisOf()})`);
-  const newestPlaces = await page.$$eval('.timeline__hand:first-child .timeline__place',
-                                         (els) => els.map((e) => e.textContent));
-  check([...newestPlaces].sort().join() === '1st,2nd,3rd,4th',
-        `each hand's box gives everyone's place after it (got ${JSON.stringify(newestPlaces)})`);
+  // Each player after the hand: the name coloured by place, a chevron for
+  // points won or lost in it, and the total.
+  const newest = await page.$$eval('.timeline__hand:first-child .timeline__delta', (els) => els.map((e) => ({
+    place: e.querySelector('.timeline__seatname').dataset.place ?? null,
+    move: e.querySelector('.timeline__move')?.textContent ?? null,
+    total: e.querySelector('.timeline__total')?.textContent ?? null,
+  })));
+  check([...newest.map((p) => p.place)].sort().join() === '1,2,3,4',
+        `each hand's box colours every name by place after it (got ${JSON.stringify(newest)})`);
+  check(newest.filter((p) => p.move === '▲').length === 1 && newest.filter((p) => p.move === '▼').length === 1
+        && newest.filter((p) => p.move === null).length === 2,
+        `a ron's winner gets ▲, the discarder ▼, the rest nothing (got ${JSON.stringify(newest.map((p) => p.move))})`);
+  check(newest.every((p) => /^-?[\d,]+$/.test(p.total ?? '')),
+        `each player's total is shown, not the change (got ${JSON.stringify(newest.map((p) => p.total))})`);
   const firstEntry = await page.$eval('.timeline__what', (el) => el.textContent);
   check(firstEntry === 'Dani ron off Ana', `newest hand first (got ${firstEntry})`);
   // A scored hand carries its yaku, which is what makes the Phase 4 filters work.
