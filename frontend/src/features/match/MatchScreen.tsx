@@ -22,7 +22,8 @@ import { useBlocker } from 'react-router-dom';
 import type { HandInput, HandRow, MatchState, WinEntry } from './matchState';
 import {
   adjustScores, advanceRoundManually, continueAsSouth, endMatchManually, hideYaku, recordHand,
-  revealYaku, saveAsEast, setHonba, setMatchName, setRanked, toggleRiichi, undoLastHand, winnersOf,
+  isAllLast, revealYaku, saveAsEast, setHonba, setMatchName, setRanked, toggleRiichi, undoLastHand,
+  winnersOf,
 } from './matchState';
 import { YakuWallScreen, YakuWallStrip } from './YakuWallView';
 import type { Seat } from './seats';
@@ -109,6 +110,25 @@ export function MatchScreen({ match, onChange, onFinished, onLeave, onDiscard }:
     const timer = setTimeout(warmScorer, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  // The kind of match, and whether this hand could be its last, tint the
+  // whole page while the match is open: set on <html> rather than on the
+  // table, so the menus, the timeline and the page behind them follow it, and
+  // taken off again on the way out (theme.css, "the match's look").
+  const tiktok = match.config.tiktok;
+  const sanma = match.config.players === 3;
+  const allLast = isAllLast(match);
+  useEffect(() => {
+    const root = document.documentElement;
+    root.toggleAttribute('data-tiktok', tiktok);
+    root.toggleAttribute('data-sanma', sanma);
+    root.toggleAttribute('data-all-last', allLast);
+    return () => {
+      root.removeAttribute('data-tiktok');
+      root.removeAttribute('data-sanma');
+      root.removeAttribute('data-all-last');
+    };
+  }, [tiktok, sanma, allLast]);
 
   const nameOf = (seat: Seat) => match.config.seats[seat]!.name;
 

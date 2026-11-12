@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UMA, type HandInput, type MatchConfig, type MatchState,
   LEFTOVER_NOTE, adjustScore, adjustScores, advanceRoundManually, createMatch, endMatchManually,
-  IMPORTED_NOTE, canSaveAsEast, continueAsSouth, enteredMatch, enteredScoresProblem, maxLevel, potOnTable, recordHand, saveAsEast, standingsOverTime, toggleRiichi, undoLastHand,
+  IMPORTED_NOTE, canSaveAsEast, continueAsSouth, enteredMatch, enteredScoresProblem, isAllLast, maxLevel, potOnTable, recordHand, saveAsEast, standingsOverTime, toggleRiichi, undoLastHand,
 } from './matchState';
 import { enterPlayedMatch, fourPlayerConfig, nameOfTest, playEverything } from './testMatches';
 import { fromRows, toRows } from './rows';
@@ -341,6 +341,45 @@ describe('ending the match', () => {
     expect(s.status).toBe('in_progress');
     expect(s.round).toEqual({ wind: 'este', number: 4 });
     expect(s.honba).toBe(1);
+  });
+});
+
+describe('All Last', () => {
+  const sanma: Partial<MatchConfig> = {
+    players: 3, uma: [15, 0, -15], emptySide: 'top',
+    seats: [{ playerId: null, name: 'A' }, { playerId: null, name: 'B' }, { playerId: null, name: 'C' }],
+  };
+  const at = (over: Partial<MatchConfig>, round: MatchState['round']): MatchState =>
+    ({ ...start(over), round });
+
+  it('is the final round of the match, at either length and player count', () => {
+    expect(isAllLast(at({}, { wind: 'sur', number: 4 }))).toBe(true);
+    expect(isAllLast(at({}, { wind: 'sur', number: 3 }))).toBe(false);
+    expect(isAllLast(at({ length: 'east' }, { wind: 'este', number: 4 }))).toBe(true);
+    expect(isAllLast(at(sanma, { wind: 'sur', number: 3 }))).toBe(true);
+    expect(isAllLast(at(sanma, { wind: 'sur', number: 2 }))).toBe(false);
+  });
+
+  it('is never the first round of a match', () => {
+    expect(isAllLast(start())).toBe(false);
+    expect(isAllLast(start({ length: 'east' }))).toBe(false);
+  });
+
+  it('is every hand of sudden death, any of which can end the match', () => {
+    expect(isAllLast(at({}, { wind: 'oeste', number: 1 }))).toBe(true);
+    expect(isAllLast(at({ length: 'east' }, { wind: 'sur', number: 2 }))).toBe(true);
+  });
+
+  it('is not a finished match', () => {
+    const s = at({}, { wind: 'sur', number: 4 });
+    expect(isAllLast(endMatchManually(s))).toBe(false);
+  });
+
+  it('is reached by playing into it', () => {
+    let s = start({ length: 'east' });
+    for (let i = 0; i < 3; i++) s = play(s, win(((i + 1) % 4) as Seat, i as Seat, { dealIn: 0 }));
+    expect(s.round).toEqual({ wind: 'este', number: 4 });
+    expect(isAllLast(s)).toBe(true);
   });
 });
 

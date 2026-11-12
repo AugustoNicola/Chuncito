@@ -193,6 +193,10 @@ try {
     }
   };
 
+  // The match's look (theme.css): what MatchScreen has marked <html> with.
+  const look = () => page.evaluate(() => ['tiktok', 'sanma', 'all-last']
+    .filter((a) => document.documentElement.hasAttribute(`data-${a}`)).join('+') || 'plain');
+
   const shot = async (name, opts = {}) => {
     if (SHOT_DIR) { mkdirSync(SHOT_DIR, { recursive: true }); await page.screenshot({ path: join(SHOT_DIR, name), ...opts }); }
   };
@@ -511,6 +515,7 @@ try {
   check(dealerBox.name === 'Ana', `seat 1 deals East 1 (got ${dealerBox.name})`);
   check(dealerBox.windName === 'East' && dealerBox.kanji === '東',
         `each box names its wind as well as showing the kanji (got ${JSON.stringify(dealerBox)})`);
+  check(await look() === 'plain', `a four-player match that is not Tiktok keeps the plain look (got ${await look()})`);
   await shot('11-table.png');
 
   // --- a riichi takes 1000 and puts a stick on the table ---
@@ -1141,8 +1146,25 @@ try {
   await byText('East match');
   await byText('Start match');
   await page.waitForSelector('.table');
+  // Passing the deal three times reaches East 4, an East match's All Last:
+  // the page warms to red inside a red frame.
+  for (let i = 0; i < 3; i++) {
+    check(await look() === 'plain', `${await centreText()} of an East match is not All Last`);
+    await byText('Manual');
+    await page.waitForSelector('.manual');
+    await byText('Pass the deal on');
+    await page.waitForSelector('.confirm');
+    await byText('Pass the deal');
+    await page.waitForSelector('.table');
+  }
+  check(await centreText() === 'East 4' && await look() === 'all-last',
+        `East 4 of an East match is All Last (got ${await centreText()}, ${await look()})`);
+  const frame = await page.evaluate(() => getComputedStyle(document.body, '::after').boxShadow);
+  check(frame.includes('6px'), `All Last draws a red frame round the screen (got "${frame}")`);
+  await shot('37-all-last.png');
   await byText('Manual');
   await page.waitForSelector('.manual');
+  check(await look() === 'all-last', 'the menus keep the All Last look');
   await byText('End early');
   await page.waitForSelector('.confirm');
   await byText('End it now');
@@ -1152,18 +1174,20 @@ try {
   await byText('Continue as South match');
   await page.waitForSelector('.confirm');
   const goOn = await page.$eval('.confirm__what', (el) => el.textContent);
-  check(goOn.includes('South match') && goOn.includes('East 1'),
+  check(goOn.includes('South match') && goOn.includes('East 4'),
         `the confirmation says where play goes on (got "${goOn}")`);
   await byText('Play on');
   await page.waitForSelector('.table');
   const carriedTitle = await page.$eval('.app__title--match', (el) => el.textContent);
-  check(carriedTitle.includes('South match') && await centreText() === 'East 1',
+  check(carriedTitle.includes('South match') && await centreText() === 'East 4',
         `the match is back in progress as a South match (got "${carriedTitle}", ${await centreText()})`);
+  check(await look() === 'plain', `East 4 of a South match is not All Last (got ${await look()})`);
   await byText('Manual');
   await page.waitForSelector('.manual');
   await byText('Discard this match');
   await byText('Yes, throw it away');
   await page.waitForSelector('.home');
+  check(await look() === 'plain', 'leaving a match takes its look off the page');
 
   // ==================== sanma ====================
 
@@ -1196,6 +1220,7 @@ try {
         `the table leaves the chosen side empty (got ${JSON.stringify(boxes)})`);
   check(JSON.stringify(await scores()) === JSON.stringify(['35,000', '35,000', '35,000']),
         'everyone starts on 35,000');
+  check(await look() === 'sanma', `a sanma table is green-grey (got ${await look()})`);
   await shot('31-sanma-table.png');
 
   // A 1 han 30 fu non-dealer tsumo: 500 + 300, the third payer is gone.
@@ -1557,6 +1582,7 @@ try {
         `the wall shows its first yaku, the rest face down (got ${JSON.stringify(await wallCards())})`);
   const wallBottom = await page.$eval('.yakuwall', (el) => el.getBoundingClientRect().bottom);
   check(wallBottom <= 844, `the wall fits under the table on a phone (bottom at ${wallBottom})`);
+  check(await look() === 'tiktok', `a Tiktok table is pink-grey (got ${await look()})`);
   await shot('90-tiktok-table.png');
 
   // A kan reveals the next yaku, from the wall's own screen; a mistake goes back.

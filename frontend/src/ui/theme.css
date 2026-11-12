@@ -645,6 +645,79 @@ button {
   --loss:         #ff8585;
 }
 
+/*
+ * The match's look. While a match is open, `MatchScreen` marks <html> with
+ * what kind it is and whether this hand could be its last, and the greys
+ * shift with it -- the same greys, a step towards another hue, so the screen
+ * is the same screen and only the feel of it changes:
+ *
+ *   casual or ranked  as everywhere else: blue-grey
+ *   Tiktok            pink-grey
+ *   sanma             green-grey
+ *   Tiktok sanma      a pink-grey page under green-grey boxes
+ *   All Last          any of those, warmed towards red, inside a red frame
+ *
+ * Two layers, so All Last can sit on top of any kind: the kind picks the
+ * --look-* greys, and the tokens the rest of the stylesheet reads are those
+ * mixed with --alarm, by 0% until the last hand.
+ */
+:root[data-tiktok], :root[data-sanma], :root[data-all-last] {
+  --look-bg:            #12131a;
+  --look-raised:        #1a1c26;
+  --look-sunken:        #0d0e13;
+  --look-border:        #2a2d3a;
+  --look-border-strong: #3a3e4f;
+  --alarm: #e5383b;
+  --alarm-mix: 0%;
+
+  --bg:            color-mix(in srgb, var(--look-bg), var(--alarm) var(--alarm-mix));
+  --bg-raised:     color-mix(in srgb, var(--look-raised), var(--alarm) var(--alarm-mix));
+  --bg-sunken:     color-mix(in srgb, var(--look-sunken), var(--alarm) var(--alarm-mix));
+  --border:        color-mix(in srgb, var(--look-border), var(--alarm) calc(var(--alarm-mix) * 2));
+  --border-strong: color-mix(in srgb, var(--look-border-strong), var(--alarm) calc(var(--alarm-mix) * 2));
+}
+:root[data-tiktok] {
+  --look-bg:            #191219;
+  --look-raised:        #251b24;
+  --look-sunken:        #120d12;
+  --look-border:        #3b2a37;
+  --look-border-strong: #513a4b;
+}
+:root[data-sanma] {
+  --look-bg:            #111813;
+  --look-raised:        #19241d;
+  --look-sunken:        #0c110d;
+  --look-border:        #283a2f;
+  --look-border-strong: #374f41;
+}
+/* Both: the page stays Tiktok's pink, the boxes on it are sanma's green. */
+:root[data-tiktok][data-sanma] {
+  --look-bg:            #191219;
+  --look-sunken:        #120d12;
+}
+:root[data-all-last] { --alarm-mix: 7%; }
+
+/* The frame: thick and red, drawn over the edge of the screen, never in the
+   way of a tap. It breathes, slowly, so it reads as a state and not a fault. */
+:root[data-all-last] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 6px var(--alarm),
+    inset 0 0 28px 8px color-mix(in srgb, var(--alarm) 50%, transparent);
+  animation: all-last-breathe 2.8s ease-in-out infinite alternate;
+}
+@keyframes all-last-breathe {
+  from { opacity: 0.8; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-all-last] body::after { animation: none; }
+}
+
 /* The table fills what is left between the bar and the bottom of the screen. */
 .app--table { gap: 6px; }
 .app__title--match { color: var(--text-dim); font-weight: 500; }

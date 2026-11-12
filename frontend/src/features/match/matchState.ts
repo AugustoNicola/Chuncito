@@ -856,6 +856,20 @@ export const setRanked = (state: MatchState, ranked: boolean): MatchState =>
 export const dealerSeat = (state: MatchState): Seat =>
   dealerOf(state.round, state.config.players);
 
+/**
+ * All Last: the hand being played could be the match's last. That is its final
+ * round and, past it, every hand of sudden death, any of which ends the match
+ * the moment it puts somebody at the goal. The table turns red for it. Not a
+ * finished match, which has no hand left to play.
+ */
+export function isAllLast(state: MatchState): boolean {
+  if (state.status !== 'in_progress') return false;
+  const { length, players } = state.config;
+  if (isSuddenDeath(state.round, length)) return true;
+  const final = finalRound(length, players);
+  return state.round.wind === final.wind && state.round.number === final.number;
+}
+
 /** Sticks visible on the table right now, including this hand's declarations. */
 export const potOnTable = (state: MatchState): number =>
   state.potCarried + state.pendingRiichi.length;
