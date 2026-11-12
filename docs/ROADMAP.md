@@ -1062,6 +1062,12 @@ Asked in chat (2026-11-09), one commit each, in this order:
         note) plus "Choose one to save the match." and the "already paid
         1,000" note. **Don't add explainer prose back**: the user dislikes
         it; a label or a disabled state should say enough.
+      - *Fire by value, more* (same day): speed (0.55 + 0.6 x --fire) and
+        saturation rise with the hand too, and a limit total sits in a
+        lens flare (glow + streak, `.score__flare`, scaled by --fire); the
+        total is outlined and no longer shimmers. Setup's seat picker
+        offers the 8 most active players (new `matches` on the player
+        list: finished, non-test, every kind), by name.
       - *Timeline hands* (same day): each player shows name and total
         after the hand (no place label, no change); the place is the
         name's colour (`--place-*`, none while level), and a ▲/▼ by the
@@ -1080,7 +1086,9 @@ Asked in chat (2026-11-09), one commit each, in this order:
   and All Last, the taller centre box. Frontend only, no migration.
   Pushed, and so is the feedback round after it (score order, All Last
   label, Best hand fire). The second round (fire by hand value, explainer
-  texts removed, timeline totals) is **committed, not pushed**.
+  texts removed, timeline totals, total flare, seat picker by activity;
+  the last touches the backend's player list, no migration) is
+  **committed, not pushed**.
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
