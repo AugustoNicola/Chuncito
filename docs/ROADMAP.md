@@ -1044,6 +1044,13 @@ Asked in chat (2026-11-09), one commit each, in this order:
         finished match) mixes 7% red into whichever, and draws a 6px red
         frame with an inner glow (`body::after`, breathing). Ranked has no
         look of its own: the user named only casual, Tiktok and sanma.
+      - *Feedback round* (same day, after testing on prod): the score
+        screen reads hand > result > yaku, so the fire is on top; the
+        centre says "All Last" (red, as is the round) on the last hand
+        (`ac16395`); the fire is a reusable `.blaze` (`data-burns` word,
+        colours from the nearest `[data-tier]`, scaled to the word's
+        size), used on the Best hand box of the end screen, review and
+        profile, not on the timeline (`bf18bc5`).
       - *The centre box* (`358e0e2`). As tall as the side boxes
         (`--seat-w`), 4px padding, contents spread: wordmark, the round
         stacked as wind over a 3rem number, bigger aligned counts. Sizes
@@ -1056,7 +1063,8 @@ Asked in chat (2026-11-09), one commit each, in this order:
 
 - 2026-11-12: visual revamp -- limit-hand fire, the match's look by kind
   and All Last, the taller centre box. Frontend only, no migration.
-  **Pushed** (deploys on Heroku).
+  Pushed; the feedback round after it (score order, All Last label, Best
+  hand fire) is **committed, not pushed**.
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
