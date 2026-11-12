@@ -1,5 +1,6 @@
 /**
- * The score screen: yaku list, then the totals, themed by limit hand.
+ * The score screen: the hand, then the totals (a limit hand burning on top),
+ * then the yaku list, themed by limit hand.
  *
  * dora / akaDora / uraDora are separated from real yaku, matching how the engine
  * already sorts them and how online clients present them.
@@ -136,6 +137,47 @@ export function ScoreResultView({
     <div className="score" data-tier={levelTier(result.level)}>
       {hand && <HandSummary state={hand} />}
 
+      {/* The result straight under the hand, the yaku that make it after:
+          a limit hand's fire is the first thing on the screen. */}
+      {title && (
+        // The title stands in front of its own fire; only limit hands have a
+        // title, so an ordinary hand never pays for the flames.
+        <div className="blaze">
+          <Flames text={title} />
+          <div className={`score__title${isYakumanLevel(result.level) ? ' score__title--yakuman' : ''}`}
+               data-burns="">
+            {title}
+          </div>
+        </div>
+      )}
+
+      <div className="score__totals">
+        {attribution && (
+          <span className="score__who">
+            <span className="score__winner">{attribution.winner}</span>
+            {attribution.dealIn !== undefined
+              ? <> off <span className="score__dealin">{attribution.dealIn}</span>’s discard</>
+              : ', self-drawn'}
+          </span>
+        )}
+        <span className="score__hanfu">
+          {result.han} han
+          {/* Fu is 0 whenever a yakuman applies, so showing it would be noise. */}
+          {result.fu > 0 && ` · ${result.fu} fu`}
+        </span>
+        <span className="score__points">{paymentTotal(result.payment, players).toLocaleString()}</span>
+        {seat && <span className="score__seat">{seat} {winType}</span>}
+        {split && <span className="score__breakdown">{split}</span>}
+        {loss && <span className="score__breakdown score__breakdown--note">{loss}</span>}
+        {/* Paid on top of the hand's value, not part of it: the total above
+            stays the hand's, as the engine priced it. */}
+        {extra && (
+          <span className="score__honba">
+            +{extra}{winType === 'tsumo' ? ' all' : ''} due to {honba} honba
+          </span>
+        )}
+      </div>
+
       <div className="score__yakus">
         {real.map((y) => {
           const kind = doraKind(y.yaku);
@@ -171,44 +213,6 @@ export function ScoreResultView({
             <div className="score__divider" />
             <YakuWallLine wall={yakuDora} />
           </>
-        )}
-      </div>
-
-      {title && (
-        // The title stands in front of its own fire; only limit hands have a
-        // title, so an ordinary hand never pays for the flames.
-        <div className="score__blaze">
-          <Flames text={title} />
-          <div className={`score__title${isYakumanLevel(result.level) ? ' score__title--yakuman' : ''}`}>
-            {title}
-          </div>
-        </div>
-      )}
-
-      <div className="score__totals">
-        {attribution && (
-          <span className="score__who">
-            <span className="score__winner">{attribution.winner}</span>
-            {attribution.dealIn !== undefined
-              ? <> off <span className="score__dealin">{attribution.dealIn}</span>’s discard</>
-              : ', self-drawn'}
-          </span>
-        )}
-        <span className="score__hanfu">
-          {result.han} han
-          {/* Fu is 0 whenever a yakuman applies, so showing it would be noise. */}
-          {result.fu > 0 && ` · ${result.fu} fu`}
-        </span>
-        <span className="score__points">{paymentTotal(result.payment, players).toLocaleString()}</span>
-        {seat && <span className="score__seat">{seat} {winType}</span>}
-        {split && <span className="score__breakdown">{split}</span>}
-        {loss && <span className="score__breakdown score__breakdown--note">{loss}</span>}
-        {/* Paid on top of the hand's value, not part of it: the total above
-            stays the hand's, as the engine priced it. */}
-        {extra && (
-          <span className="score__honba">
-            +{extra}{winType === 'tsumo' ? ' all' : ''} due to {honba} honba
-          </span>
         )}
       </div>
 

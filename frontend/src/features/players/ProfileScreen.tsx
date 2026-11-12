@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { HandSummary } from '../hand/HandDisplay';
+import { BurningWord } from '../hand/Flames';
 import { decodeHandTiles } from '../hand/handTiles';
 import { levelName, levelTier } from '../hand/yakuNames';
 import type { Fetched } from '../history/history';
@@ -168,11 +169,11 @@ function Profile({ stats, onOpen }: { stats: PlayerStats; onOpen: (matchId: stri
                   data-tier={best.level ? levelTier(best.level) : 'none'}
                   aria-label="Open the match this hand was won in"
                   onClick={() => onOpen(best.matchId)}>
-            <span className="endscreen__bestvalue">
-              {!best.level || best.level === 'sinNombre'
-                ? `${best.han ?? '?'} han${best.fu ? ` · ${best.fu} fu` : ''}`
-                : levelName(best.level)}
-            </span>
+            <BurningWord className="endscreen__bestvalue"
+                         burn={!!best.level && best.level !== 'sinNombre'}
+                         text={!best.level || best.level === 'sinNombre'
+                           ? `${best.han ?? '?'} han${best.fu ? ` · ${best.fu} fu` : ''}`
+                           : levelName(best.level)} />
             <span className="endscreen__bestwho">
               {best.matchName || 'Unnamed match'}
               {' · '}{roundLabel({ wind: best.roundWind, number: best.roundNumber } as Round)}

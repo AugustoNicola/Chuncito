@@ -289,6 +289,10 @@ try {
   });
   await page.waitForSelector('.score', { timeout: 90_000 });
   await shot('03-score.png');
+  const scoreOrder = await page.$$eval('.score > *', (els) => els.map((e) => e.className.split(' ')[0]));
+  check(scoreOrder.indexOf('handsummary') < scoreOrder.indexOf('score__totals')
+        && scoreOrder.indexOf('score__totals') < scoreOrder.indexOf('score__yakus'),
+        `the score reads hand, then result, then yaku (got ${JSON.stringify(scoreOrder)})`);
 
   const summaryTiles = await page.$$eval('.handsummary__tiles .tile', (els) => els.length);
   check(summaryTiles === 14, `score screen shows the hand (got ${summaryTiles} tiles)`);
@@ -2042,6 +2046,8 @@ try {
   check(JSON.stringify(bars) === JSON.stringify(['Riichi', 'Tanyao', 'Pinfu']),
         `the yaku leave dora out (got ${JSON.stringify(bars)})`);
   check(await page.$('.endscreen__best .handsummary') !== null, 'the best hand shows its tiles');
+  check(await page.$('.endscreen__best .blaze > canvas.flames + [data-burns]') !== null,
+        'a limit best hand burns, as on the score screen');
   check(await page.$('.profile__open') === null && await page.$('button.endscreen__best--link') !== null,
         'the best hand box is itself the link to its match');
   await page.click('button.endscreen__best--link');

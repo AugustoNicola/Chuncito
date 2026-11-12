@@ -375,17 +375,18 @@ button {
 
 /*
  * Each limit tier gets its own two-stop ramp, used as gradient text for both
- * the title and the total. --limit stays a flat colour for glows and borders,
+ * the title and the total, and as the colours of its fire wherever a limit
+ * hand burns (`.blaze`). --limit stays a flat colour for glows and borders,
  * since colour-mix needs one.
  */
-.score[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: var(--limit-none); }
-.score[data-tier="mangan"]    { --limit-a: #9df5b8; --limit-b: #17945a; --limit: var(--limit-mangan); }
-.score[data-tier="haneman"]   { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: var(--limit-haneman); }
-.score[data-tier="baiman"]    { --limit-a: #f0c396; --limit-b: #9c5320; --limit: var(--limit-baiman); }
-.score[data-tier="sanbaiman"] { --limit-a: #ffffff; --limit-b: #8793a8; --limit: var(--limit-sanbaiman); }
+[data-tier="none"]      { --limit-a: #6fc0ff; --limit-b: #3a7fd5; --limit: var(--limit-none); }
+[data-tier="mangan"]    { --limit-a: #9df5b8; --limit-b: #17945a; --limit: var(--limit-mangan); }
+[data-tier="haneman"]   { --limit-a: #e2b6ff; --limit-b: #7b32d8; --limit: var(--limit-haneman); }
+[data-tier="baiman"]    { --limit-a: #f0c396; --limit-b: #9c5320; --limit: var(--limit-baiman); }
+[data-tier="sanbaiman"] { --limit-a: #ffffff; --limit-b: #8793a8; --limit: var(--limit-sanbaiman); }
 /* A counted yakuman: gold, but deliberately duller than the real thing. */
-.score[data-tier="kazoe"]     { --limit-a: #e6d08a; --limit-b: #9c7615; --limit: var(--limit-kazoe); }
-.score[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ffa61f; --limit: var(--limit-yakuman); }
+[data-tier="kazoe"]     { --limit-a: #e6d08a; --limit-b: #9c7615; --limit: var(--limit-kazoe); }
+[data-tier="yakuman"]   { --limit-a: #fff7c4; --limit-b: #ffa61f; --limit: var(--limit-yakuman); }
 
 .score__yakus {
   background: var(--bg-sunken);
@@ -504,29 +505,30 @@ button {
 }
 
 /*
- * A limit hand's title burns: it stands in front of a fire in its tier's
- * colours (green mangan, purple haneman, ...) and glows in them. The fire and
- * the glow grow with the hand, through --heat. Only limit hands have a title,
- * so an ordinary hand gets none of this.
+ * A limit hand burns: its word (the score screen's title, a Best hand's
+ * value) stands in front of a fire in its tier's colours (green mangan,
+ * purple haneman, ...). The fire grows with the hand, through --heat. Only a
+ * limit hand gets a `.blaze`, so an ordinary one gets none of this.
  */
-.score[data-tier="mangan"]    { --heat: 0.7; }
-.score[data-tier="haneman"]   { --heat: 0.85; }
-.score[data-tier="baiman"]    { --heat: 1; }
-.score[data-tier="sanbaiman"] { --heat: 1.1; }
-.score[data-tier="kazoe"]     { --heat: 1.1; }
-.score[data-tier="yakuman"]   { --heat: 1.3; }
+[data-tier="mangan"]    { --heat: 0.7; }
+[data-tier="haneman"]   { --heat: 0.85; }
+[data-tier="baiman"]    { --heat: 1; }
+[data-tier="sanbaiman"] { --heat: 1.1; }
+[data-tier="kazoe"]     { --heat: 1.1; }
+[data-tier="yakuman"]   { --heat: 1.3; }
 
-.score__blaze {
+.blaze {
   position: relative;
   /* As wide as the word, and the fire no wider. */
   align-self: center;
   display: grid;
   place-items: center;
-  /* Room above the word for the flames to rise into. */
-  padding-top: calc(3rem * var(--heat, 1));
+  /* Room above the word for the flames to rise into: --blaze-room is sized
+     for the word it carries, a title's or a smaller value's. */
+  padding-top: calc(var(--blaze-room, 3rem) * var(--heat, 1));
   isolation: isolate;
 }
-.score__blaze .score__title {
+.blaze > [data-burns] {
   position: relative;
   z-index: 1;
   /* A dark outline, as a drawn title over fire has, without which the word
@@ -1487,6 +1489,8 @@ button {
   text-transform: uppercase; letter-spacing: 0.08em;
 }
 .endscreen__bestvalue { font-size: 1.3rem; font-weight: 600; }
+/* A limit best hand burns, its fire scaled to the smaller word. */
+.endscreen__best .blaze { --blaze-room: 1.7rem; }
 .endscreen__bestwho { font-size: 0.85rem; color: var(--text-dim); }
 /* The stored hand, wherever one is shown back: review, timeline, best hand. */
 .endscreen__best .handsummary,

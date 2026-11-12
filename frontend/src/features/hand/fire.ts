@@ -41,6 +41,7 @@ uniform sampler2D uNoise; // 256 x 256 random bytes
 uniform vec2 uRes;      // canvas, device pixels
 uniform float uDpr;
 uniform float uTime;
+uniform float uScale;   // the word's size against the score title's: 1 there
 uniform vec3 uDeep;
 uniform vec3 uMid;
 uniform vec3 uHot;
@@ -79,14 +80,14 @@ float heatAt(vec2 p) {
 
 void main() {
   vec2 p = vUv * uRes / uDpr;          // CSS pixels, y up
-  vec2 q = p / 30.0;
+  vec2 q = p / (30.0 * uScale);
   // Scrolling up, with a slow sway across so the tongues lean and wave.
-  vec2 rise = vec2(sin(uTime * 0.7 + p.y * 0.02) * 0.4, -uTime * 1.4);
+  vec2 rise = vec2(sin(uTime * 0.7 + p.y * 0.02 / uScale) * 0.4, -uTime * 1.4);
   // The heat field (letters, smeared upwards and cooling), sampled along a
   // path bent by noise: hardly bent at the letters, more the higher it goes.
   vec2 warp = fbm2(q + rise) - 0.5;
   float near = heatAt(p);
-  float bend = mix(36.0, 4.0, near);
+  float bend = mix(36.0, 4.0, near) * uScale;
   float heat = heatAt(p + warp * bend);
 
   // Licks: fast, fine noise, also scrolling up, breaks the heat apart.
@@ -95,7 +96,8 @@ void main() {
   // Thinning out over the last few pixels at either end of the word, so a
   // flame leaning past it tapers off instead of being cut down a line.
   float w = uRes.x / uDpr;
-  t *= smoothstep(0.0, 12.0, p.x) * smoothstep(0.0, 12.0, w - p.x);
+  float taper = 12.0 * uScale;
+  t *= smoothstep(0.0, taper, p.x) * smoothstep(0.0, taper, w - p.x);
 
   // A hard edge, then the ramp: a dark rim of the deep colour, the deep
   // colour, the flat one, and the bright core nearest the letters.
@@ -266,7 +268,7 @@ export function startFire(canvas: HTMLCanvasElement, title: HTMLElement, palette
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
   const u = (name: string) => gl.getUniformLocation(program, name);
-  const uRes = u('uRes'), uDpr = u('uDpr'), uTime = u('uTime');
+  const uRes = u('uRes'), uDpr = u('uDpr'), uTime = u('uTime'), uScale = u('uScale');
   const cs = getComputedStyle(palette);
   gl.uniform3fv(u('uDeep'), parseColour(cs.getPropertyValue('--limit-b')));
   gl.uniform3fv(u('uMid'), parseColour(cs.getPropertyValue('--limit')));
@@ -316,7 +318,11 @@ export function startFire(canvas: HTMLCanvasElement, title: HTMLElement, palette
     // flames end in tips of their own rather than at its edge.
     const above = title.getBoundingClientRect().top - canvas.getBoundingClientRect().top;
     const reach = Math.max(10, above) * dpr;
-    const heat = heatField(image.data, canvas.width, canvas.height, reach, 3 * dpr);
+    // Everything in the fire is drawn to the size of the word: the score
+    // screen's title (2.8rem) is the size it was tuned at.
+    const scale = Math.max(0.3, parseFloat(getComputedStyle(title).fontSize) / 44.8);
+    gl.uniform1f(uScale, scale);
+    const heat = heatField(image.data, canvas.width, canvas.height, reach, 3 * dpr * scale);
     for (let i = 0; i < heat.length; i++) {
       image.data[i * 4] = image.data[i * 4 + 1] = image.data[i * 4 + 2] = 255;
       image.data[i * 4 + 3] = Math.round(heat[i]! * 255);

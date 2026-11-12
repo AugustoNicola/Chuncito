@@ -6,6 +6,7 @@
 import type { MatchState } from './matchState';
 import { bestHand } from './matchState';
 import { HandSummary } from '../hand/HandDisplay';
+import { BurningWord } from '../hand/Flames';
 import { decodeHandTiles } from '../hand/handTiles';
 import { MP_BONUS, matchResults, mpLabel, mpOf, okaOf, placeLabel, resultLabel } from './scoring';
 import { levelName, levelTier } from '../hand/yakuNames';
@@ -108,11 +109,12 @@ export function MatchOutcome({ state, linkPlayers = false, ranked = state.ranked
       {best && (
         <div className="endscreen__best" data-tier={levelTier(best.win.level!)}>
           <span className="endscreen__bestlabel">Best hand</span>
-          <span className="endscreen__bestvalue">
-            {best.win.level === 'sinNombre'
-              ? `${best.win.han} han${best.win.fu ? ` · ${best.win.fu} fu` : ''}`
-              : levelName(best.win.level!)}
-          </span>
+          {/* A limit hand burns, as on the score screen. */}
+          <BurningWord className="endscreen__bestvalue"
+                       burn={best.win.level !== 'sinNombre'}
+                       text={best.win.level === 'sinNombre'
+                         ? `${best.win.han} han${best.win.fu ? ` · ${best.win.fu} fu` : ''}`
+                         : levelName(best.win.level!)} />
           <span className="endscreen__bestwho">
             <PlayerName seat={state.config.seats[best.seat]!} link={linkPlayers} />
             {best.win.pointsWon !== null && ` · ${best.win.pointsWon.toLocaleString()}`}
