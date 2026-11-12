@@ -1068,6 +1068,15 @@ Asked in chat (2026-11-09), one commit each, in this order:
         total is outlined and no longer shimmers. Setup's seat picker
         offers the 8 most active players (new `matches` on the player
         list: finished, non-test, every kind), by name.
+      - *Hand review* (same day): tapping a won hand in the timeline or
+        a match's history, or a Best hand box (end screen, review,
+        profile), opens its score rebuilt from the row (`HandReview.tsx`;
+        no fu breakdown, it is not stored). In a match it is local state;
+        elsewhere `?hand=<seq>[.<seat>]`, so the back gesture closes it.
+        The profile fetches the match (`RemoteHandReview`); the stats'
+        `bestHand` now carries `handSeq` / `winnerSeat`. A limit score is
+        framed like All Last in its tier's colour (`.limitframe`).
+        Timeline names: bold, chevron after, lightened medal colours.
       - *Timeline hands* (same day): each player shows name and total
         after the hand (no place label, no change); the place is the
         name's colour (`--place-*`, none while level), and a ▲/▼ by the
@@ -1086,9 +1095,9 @@ Asked in chat (2026-11-09), one commit each, in this order:
   and All Last, the taller centre box. Frontend only, no migration.
   Pushed, and so is the feedback round after it (score order, All Last
   label, Best hand fire). The second round (fire by hand value, explainer
-  texts removed, timeline totals, total flare, seat picker by activity;
-  the last touches the backend's player list, no migration) is
-  **committed, not pushed**.
+  texts removed, timeline totals, total flare, seat picker by activity,
+  hand review; the last two touch the backend's player list and stats, no
+  migration) is **committed, not pushed**.
 
 - 2026-11-10: no latest-15 note on the profile; tenpai picked on the
   miniature table; Tiktok Mahjong. **`main` is migrated to `0009` and
