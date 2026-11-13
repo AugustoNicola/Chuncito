@@ -298,7 +298,7 @@ export const seatsIn = (state: { config: MatchConfig }): readonly Seat[] =>
 
 /** A fresh wall for the next hand, if the match plays with one. */
 const wallFor = (config: MatchConfig, rng: Rng): YakuWall | null =>
-  (config.tiktok ? drawWall(rng) : null);
+  (config.tiktok ? drawWall(rng, undefined, config.players === 3) : null);
 
 export function createMatch(config: MatchConfig, now = new Date(), id = uuid(),
                             rng: Rng = Math.random): MatchState {
@@ -666,7 +666,8 @@ export function undoLastHand(state: MatchState, rng: Rng = Math.random): MatchSt
     pendingRiichi: [...row.riichiSeats],
     // The yaku that were up go back up, the ura under them; the face-down
     // rest was never recorded and is drawn again.
-    yakuWall: state.config.tiktok ? drawWall(rng, { dora: row.yakuDora, ura: row.yakuUra }) : null,
+    yakuWall: state.config.tiktok
+      ? drawWall(rng, { dora: row.yakuDora, ura: row.yakuUra }, state.config.players === 3) : null,
     scores: deltaOf(state.config.players, (s) =>
       state.scores[s] - row.scoreDelta[s] + alreadyPaid(state.config.players, row.riichiSeats)[s]),
     hands: state.hands.slice(0, -1),

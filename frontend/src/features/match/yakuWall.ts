@@ -8,8 +8,8 @@
  * same way, but only for a winner who declared riichi -- as ura dora do.
  *
  * Nobody draws the yaku at the table, so the app does: ten different yaku,
- * no yakuman, the common ones likelier (`WALL_WEIGHTS`), drawn afresh for
- * every hand. The wall lives in the match state for the hand in
+ * no yakuman, the common ones likelier (`WALL_WEIGHTS`), and in sanma none
+ * that cannot be made there (`SANMA_IMPOSSIBLE`), drawn afresh for every hand. The wall lives in the match state for the hand in
  * progress, and each recorded hand keeps what was revealed of it -- the dora
  * yaku and the ura yaku beneath them -- never the ones still face down.
  *
@@ -54,6 +54,14 @@ export const WALL_WEIGHTS: Readonly<Record<string, number>> = {
   shousangen: 1, honroutou: 1, chinitsu: 1,
 };
 
+/**
+ * Yaku a three-player set cannot make: sanshoku doujun needs a run in every
+ * suit, and 2m–8m are not in the set. (Sanshoku doukou can still be 111 or
+ * 999 in all three; ittsuu, chinitsu and the rest go in pinzu or souzu.) A
+ * dora yaku nobody can have would only be a dead slot on the wall.
+ */
+export const SANMA_IMPOSSIBLE: ReadonlySet<string> = new Set(['sanshokuDoujun']);
+
 /** One yaku from what is left, by weight, taken out of it. */
 function drawOne(left: Map<string, number>, rng: Rng): string {
   const total = [...left.values()].reduce((a, b) => a + b, 0);
@@ -74,10 +82,11 @@ function drawOne(left: Map<string, number>, rng: Rng): string {
  * restore exactly -- and only the face-down rest is drawn anew.
  */
 export function drawWall(rng: Rng = Math.random,
-                         kept?: { dora: readonly string[]; ura: readonly string[] }): YakuWall {
+                         kept?: { dora: readonly string[]; ura: readonly string[] },
+                         sanma = false): YakuWall {
   const dora = [...(kept?.dora ?? [])].slice(0, WALL_SIZE);
   const ura = [...(kept?.ura ?? [])].slice(0, dora.length);
-  const used = new Set([...dora, ...ura]);
+  const used = new Set([...dora, ...ura, ...(sanma ? SANMA_IMPOSSIBLE : [])]);
   const left = new Map(Object.entries(WALL_WEIGHTS).filter(([y]) => !used.has(y)));
   while (ura.length < dora.length) ura.push(drawOne(left, rng));
   const revealed = Math.max(1, dora.length);

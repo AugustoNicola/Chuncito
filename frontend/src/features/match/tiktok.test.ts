@@ -11,7 +11,7 @@ import { YAKU_ATOMS } from '../hand/yakuNames';
 import { withYakuDora } from '../hand/yakuDora';
 import { basePoints, paymentFor, paymentTotal } from './scoring';
 import { fromRows, toRows } from './rows';
-import { WALL_SIZE, WALL_WEIGHTS, drawWall, wallOfRow, yakuDoraKind } from './yakuWall';
+import { SANMA_IMPOSSIBLE, WALL_SIZE, WALL_WEIGHTS, drawWall, wallOfRow, yakuDoraKind } from './yakuWall';
 import { fourPlayerConfig, manual, nameOfTest, playTiktok, seeded } from './testMatches';
 import type { ScoreResult } from '../../scorer/types';
 
@@ -38,6 +38,25 @@ describe('the yaku wall', () => {
     // A yaku added to the names later fails here until it is given a weight.
     expect(Object.keys(WALL_WEIGHTS).sort())
       .toEqual(YAKU_ATOMS.filter((y) => !YAKUMAN.includes(y)).sort());
+  });
+
+  it('never draws in sanma a yaku sanma cannot make', () => {
+    const rng = seeded(8);
+    for (let i = 0; i < 2000; i++) {
+      const wall = drawWall(rng, undefined, true);
+      for (const y of [...wall.dora, ...wall.ura]) expect(SANMA_IMPOSSIBLE.has(y)).toBe(false);
+    }
+    // A four-player wall still can.
+    expect(Array.from({ length: 2000 }, () => drawWall(rng).dora).flat()).toContain('sanshokuDoujun');
+    // And a sanma Tiktok match deals its walls that way, the first and every next one.
+    let state = createMatch({
+      ...tiktok, players: 3, uma: [15, 0, -15], emptySide: 'left', seats: tiktok.seats.slice(0, 3),
+    }, new Date(), 'tt3', rng);
+    for (let i = 0; i < 300; i++) {
+      expect(state.yakuWall!.dora.concat(state.yakuWall!.ura)).not.toContain('sanshokuDoujun');
+      state = recordHand(state, draw, new Date(), rng).state;
+      if (state.status !== 'in_progress') break;
+    }
   });
 
   it('draws the common yaku more often', () => {

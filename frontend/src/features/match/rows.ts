@@ -354,7 +354,8 @@ export function fromRows(rows: MatchRows, nameOf?: (playerId: string) => string,
     // Not persisted: a declaration belongs to a hand that has not resolved.
     pendingRiichi: [],
     // Not persisted either: the hand in progress gets a wall of its own.
-    yakuWall: config.tiktok && rows.match.status === 'in_progress' ? drawWall(rng) : null,
+    yakuWall: config.tiktok && rows.match.status === 'in_progress'
+      ? drawWall(rng, undefined, config.players === 3) : null,
     scores,
     hands,
     adjustments: rows.adjustments.map<Adjustment>((a) => ({ ...a })),
