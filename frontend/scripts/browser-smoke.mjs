@@ -861,6 +861,22 @@ try {
                                        (el) => getComputedStyle(el).stroke);
   check(northColour === 'rgb(255, 154, 60)', `North's line is orange (got ${northColour})`);
   await shot('14b-standings-points.png');
+  // The legend: one line when the four fit, and when they do not, two and
+  // two -- never three and a lone one.
+  const legendRows = () => page.$$eval('.standchart__key', (els) => {
+    const rows = {};
+    for (const e of els) rows[Math.round(e.getBoundingClientRect().top)] = (rows[Math.round(e.getBoundingClientRect().top)] ?? 0) + 1;
+    return Object.keys(rows).sort((a, b) => a - b).map((k) => rows[k]);
+  });
+  const wide = await legendRows();
+  await page.setViewport({ width: 280, height: 740 });
+  await page.waitForSelector('.standchart__legend[data-paired]');
+  const narrow = await legendRows();
+  await shot('14c-legend-paired.png');
+  await page.setViewport({ width: 390, height: 844 });
+  await page.waitForSelector('.standchart__legend:not([data-paired])');
+  check(wide.join() === '4' && narrow.join() === '2,2',
+        `the legend is one line of four, or two of two (got ${JSON.stringify({ wide, narrow })})`);
   await page.$$eval('.standchart__view .segmented__btn', (els) => els.find((e) => e.textContent === 'Place').click());
   await page.waitForFunction(() => document.querySelector('.standchart .linechart__axis')?.textContent === '1st');
   check((await axisOf()).join() === '1st,2nd,3rd,4th' && JSON.stringify(await series()) !== JSON.stringify(chart),

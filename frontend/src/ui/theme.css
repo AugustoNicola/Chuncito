@@ -2215,6 +2215,9 @@ a.players__name:hover, a.players__name:focus-visible { color: var(--accent); }
   display: flex; flex-wrap: wrap; gap: 4px 14px;
   font-size: 0.8rem;
 }
+/* Four that will not fit on one line: two and two, in columns, never three
+   and one (`usePairedLegend`). */
+.standchart__legend[data-paired] { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); }
 .standchart__key { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .standchart__swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--wind); }
 .standchart__name { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

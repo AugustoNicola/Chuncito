@@ -1086,6 +1086,11 @@ Asked in chat (2026-11-09), one commit each, in this order:
         after the hand (no place label, no change); the place is the
         name's colour (`--place-*`, none while level), and a ▲/▼ by the
         name says the hand won or lost them points.
+      - *Follow-ups* (2026-11-13): the standings chart's legend, when its
+        four keys do not fit one line, is set as two columns, two and two
+        rather than three and one (`usePairedLegend`, measured). A sanma
+        Tiktok wall leaves out sanshoku doujun, which sanma cannot make
+        (`SANMA_IMPOSSIBLE` in `yakuWall.ts`). Not pushed.
       - *The centre box* (`358e0e2`). As tall as the side boxes
         (`--seat-w`), 4px padding, contents spread: wordmark, the round
         stacked as wind over a 3rem number, bigger aligned counts. Sizes
@@ -1094,7 +1099,10 @@ Asked in chat (2026-11-09), one commit each, in this order:
 
 ## Picking this up cold
 
-**State as of 2026-11-12** (the Backlog section above has the detail):
+**State as of 2026-11-13** (the Backlog section above has the detail):
+
+- 2026-11-13: chart legend two-and-two on a narrow screen; no sanshoku
+  doujun on a sanma Tiktok wall. Frontend only, committed, not pushed.
 
 - 2026-11-12: visual revamp -- limit-hand fire, the match's look by kind
   and All Last, the taller centre box. Frontend only, no migration.

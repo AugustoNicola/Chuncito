@@ -10,7 +10,7 @@
  * drawn, that the standings mark with its kanji. Plain SVG, like the
  * profile's placement line, whose look and tooltip it shares.
  */
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { SituationWind } from '../../scorer/types';
 import type { MatchState, Standing } from './matchState';
 import { placeLabel } from './scoring';
@@ -49,6 +49,42 @@ export function scoreAxis(over: readonly Standing[], seats: readonly Seat[]): {
   return { lo, hi, ticks: within(step) };
 }
 
+/** A legend key's width with nothing cut short: its parts side by side. */
+function naturalWidth(key: HTMLElement): number {
+  const parts = [...key.children] as HTMLElement[];
+  const gap = parseFloat(getComputedStyle(key).columnGap) || 0;
+  return parts.reduce((sum, el) => sum + el.scrollWidth, 0) + gap * Math.max(0, parts.length - 1);
+}
+
+/**
+ * Whether four legend keys need two lines. Left to wrap on their own, they
+ * fall three and one; two and two looks better, so a legend that does not
+ * fit on one line is set as two columns (`data-paired`). Measured, since only
+ * the names' widths can tell, and again whenever the legend's width changes.
+ */
+function usePairedLegend(count: number) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [paired, setPaired] = useState(false);
+  useLayoutEffect(() => {
+    const legend = ref.current;
+    if (!legend || count !== 4) { setPaired(false); return; }
+    const check = () => {
+      const keys = [...legend.children] as HTMLElement[];
+      const gap = parseFloat(getComputedStyle(legend).columnGap) || 0;
+      const need = keys.reduce((sum, key) => sum + naturalWidth(key), 0) + gap * (keys.length - 1);
+      setPaired(need > legend.clientWidth);
+    };
+    check();
+    const watch = new ResizeObserver(check);
+    watch.observe(legend);
+    // A web font arriving after the first measure changes every name's width.
+    let live = true;
+    void document.fonts?.ready.then(() => { if (live) check(); });
+    return () => { live = false; watch.disconnect(); };
+  }, [count]);
+  return { ref, paired };
+}
+
 /** "25k", "-3k", "12.5k": thousands, as the gridlines fall on them. */
 const thousands = (n: number) => `${n / 1000}k`;
 
@@ -62,6 +98,7 @@ export function StandingsChart({ state, over }: {
   const [view, setView] = useState<View>('points');
   const players = state.config.players;
   const seats = seatsOf(players);
+  const legend = usePairedLegend(seats.length);
   /** Point `i` is the table after hand `i`. */
   const points = over.slice(1);
   const n = points.length;
@@ -153,7 +190,7 @@ export function StandingsChart({ state, over }: {
           </div>
         )}
       </div>
-      <ul className="standchart__legend">
+      <ul className="standchart__legend" ref={legend.ref} data-paired={legend.paired || undefined}>
         {seats.map((seat) => (
           <li key={seat} className="standchart__key" data-wind={windOf(seat)}>
             <span className="standchart__swatch" />
