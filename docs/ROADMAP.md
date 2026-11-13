@@ -1090,7 +1090,7 @@ Asked in chat (2026-11-09), one commit each, in this order:
         four keys do not fit one line, is set as two columns, two and two
         rather than three and one (`usePairedLegend`, measured). A sanma
         Tiktok wall leaves out sanshoku doujun, which sanma cannot make
-        (`SANMA_IMPOSSIBLE` in `yakuWall.ts`). Not pushed.
+        (`SANMA_IMPOSSIBLE` in `yakuWall.ts`). Pushed.
       - *The centre box* (`358e0e2`). As tall as the side boxes
         (`--seat-w`), 4px padding, contents spread: wordmark, the round
         stacked as wind over a 3rem number, bigger aligned counts. Sizes
@@ -1102,7 +1102,7 @@ Asked in chat (2026-11-09), one commit each, in this order:
 **State as of 2026-11-13** (the Backlog section above has the detail):
 
 - 2026-11-13: chart legend two-and-two on a narrow screen; no sanshoku
-  doujun on a sanma Tiktok wall. Frontend only, committed, not pushed.
+  doujun on a sanma Tiktok wall. Frontend only, pushed.
 
 - 2026-11-12: visual revamp -- limit-hand fire, the match's look by kind
   and All Last, the taller centre box. Frontend only, no migration.
